@@ -1,9 +1,9 @@
-"""Tests for the post-pull HEAD-movement gate in ``hermes update``.
+"""Tests for the post-pull HEAD-movement gate in ``max update``.
 
 Issue #79678: a detached/pinned checkout can report "N new commit(s)"
 against origin, run the ff-only merge successfully, and still sit on the
 old commit afterward (the branch-switch step re-detaches to the raw SHA).
-Before this guard ``hermes update`` printed "✓ Code updated!" and
+Before this guard ``max update`` printed "✓ Code updated!" and
 reinstalled deps + rebuilt the desktop app against the stale tree — no
 error, no warning. The gate compares the pre-pull and post-pull HEAD SHA
 and fails loudly when the update was a no-op.
@@ -13,7 +13,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from hermes_cli import main as hermes_main
+from max_cli import main as hermes_main
 
 
 def _make_head_moved_side_effect(pre_sha="abc123", post_sha="def456"):
@@ -66,11 +66,11 @@ def _make_head_pinned_side_effect(sha="abc123"):
 
 
 def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
-    """Patch the hermes_cli.main helpers ``_cmd_update_impl`` touches.
+    """Patch the max_cli.main helpers ``_cmd_update_impl`` touches.
 
-    ``_m()`` in update_cmd.py lazily returns hermes_cli.main, so patching
+    ``_m()`` in update_cmd.py lazily returns max_cli.main, so patching
     attributes on that module is the canonical test surface (matches
-    tests/hermes_cli/test_cmd_update.py).
+    tests/max_cli/test_cmd_update.py).
     """
     monkeypatch.setattr(hermes_main.subprocess, "run", run_side_effect)
     monkeypatch.setattr(hermes_main, "PROJECT_ROOT", tmp_path)
@@ -81,7 +81,7 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
     monkeypatch.setattr(hermes_main, "_is_windows", lambda: False)
     monkeypatch.setattr(
         hermes_main, "_get_origin_url",
-        lambda *a, **k: "https://github.com/NousResearch/hermes-agent.git",
+        lambda *a, **k: "https://github.com/NousResearch/max-agent.git",
     )
     monkeypatch.setattr(hermes_main, "_is_fork", lambda *a, **k: False)
     monkeypatch.setattr(
@@ -108,7 +108,7 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
     # Keep the (now surfaced — #78574) gateway auto-restart phase away from
     # this machine's real gateways: discovery returns nothing, systemd is
     # unsupported, so the phase is a clean no-op for both snapshots.
-    import hermes_cli.gateway as hermes_gateway
+    import max_cli.gateway as hermes_gateway
 
     monkeypatch.setattr(
         hermes_gateway, "find_gateway_pids", lambda all_profiles=False: []

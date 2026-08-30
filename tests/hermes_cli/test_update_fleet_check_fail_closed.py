@@ -3,7 +3,7 @@
 ``collect_fleet_versions()`` swallows every probe failure via
 ``logger.debug()`` and ``print_fleet_version_matrix([])`` early-returns
 ``False``, so an empty fleet snapshot used to read as "healthy fleet" and
-``hermes update`` exited 0 with zero rows — even when a gateway was
+``max update`` exited 0 with zero rows — even when a gateway was
 verifiably live before the update.
 
 The first guard (PR #93410) keyed on ``(restarted_services or killed_pids)``,
@@ -24,7 +24,7 @@ from __future__ import annotations
 import inspect
 import types
 
-from hermes_cli.main import _fleet_probe_expected_runtimes
+from max_cli.main import _fleet_probe_expected_runtimes
 
 
 def _plan(runtimes):
@@ -78,7 +78,7 @@ class TestEmptySnapshotFailClosed:
             "resume_needed": False,
             "profiles": {},
             "unmapped": [],
-            "services": ["HermesGateway"],
+            "services": ["MaxGateway"],
         }
         assert (
             _fleet_probe_expected_runtimes(None, [], token, [], set()) is False
@@ -128,7 +128,7 @@ class TestCallSiteWiring:
     """
 
     def _impl_source(self):
-        from hermes_cli import update_cmd
+        from max_cli import update_cmd
 
         return inspect.getsource(update_cmd._cmd_update_impl)
 

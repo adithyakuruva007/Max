@@ -8,7 +8,7 @@ import {
   attachmentPreviewDataUrl,
   type DroppedFile,
   extractDroppedFiles,
-  HERMES_PATHS_MIME,
+  MAX_PATHS_MIME,
   partitionDroppedFiles,
   useComposerActions
 } from './use-composer-actions'
@@ -101,7 +101,7 @@ function stubTransfer(entries: StubEntry[], internalRaw = ''): DataTransfer & { 
   })
 
   return {
-    getData: (mime: string) => (mime === HERMES_PATHS_MIME ? internalRaw : ''),
+    getData: (mime: string) => (mime === MAX_PATHS_MIME ? internalRaw : ''),
     files: {
       length: files.length,
       item: (i: number) => files[i] ?? null
@@ -259,7 +259,7 @@ describe('useComposerActions native image drops', () => {
     const transientPath =
       '/var/folders/x7/example/T/TemporaryItems/NSIRD_screencaptureui_4roSuW/Screen Shot 2026-08-11.png'
 
-    const durablePath = '/Users/test/Library/Application Support/Hermes/composer-images/composer_saved.png'
+    const durablePath = '/Users/test/Library/Application Support/Max/composer-images/composer_saved.png'
     const previewUrl = 'data:image/png;base64,c2NyZWVuc2hvdA=='
 
     const screenshot = new File([new Uint8Array([1, 2, 3])], 'Screen Shot 2026-08-11.png', {
@@ -333,7 +333,7 @@ describe('attachImagePath thumbnail separation', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
-    delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
+    delete (window as unknown as { hermesDesktop?: unknown }).maxDesktop
     $composerAttachments.set([])
     $connection.set(null)
   })
@@ -345,7 +345,7 @@ describe('attachImagePath thumbnail separation', () => {
       window as unknown as {
         hermesDesktop: { readFileDataUrl: typeof readFileDataUrl }
       }
-    ).hermesDesktop = { readFileDataUrl }
+    ).maxDesktop = { readFileDataUrl }
 
     let resolveBitmap!: (bitmap: { close: () => void; height: number; width: number }) => void
 
@@ -410,7 +410,7 @@ describe('attachImagePath thumbnail separation', () => {
       window as unknown as {
         hermesDesktop: { readFileDataUrl: typeof readFileDataUrl }
       }
-    ).hermesDesktop = { readFileDataUrl }
+    ).maxDesktop = { readFileDataUrl }
 
     let resolveBitmap!: (bitmap: { close: () => void; height: number; width: number }) => void
 
@@ -479,7 +479,7 @@ describe('attachImagePath thumbnail separation', () => {
       window as unknown as {
         hermesDesktop: { readFileDataUrl: typeof readFileDataUrl }
       }
-    ).hermesDesktop = { readFileDataUrl }
+    ).maxDesktop = { readFileDataUrl }
 
     let resolveBitmap!: (bitmap: { close: () => void; height: number; width: number }) => void
 
@@ -522,7 +522,7 @@ describe('attachImagePath thumbnail separation', () => {
       ...original,
       attachedSessionId: 'session-1',
       label: 'photo.png',
-      path: '/root/.hermes/attachments/photo.png',
+      path: '/root/.max/attachments/photo.png',
       uploadState: undefined
     })
 
@@ -534,7 +534,7 @@ describe('attachImagePath thumbnail separation', () => {
 
     expect($composerAttachments.get()[0]).toMatchObject({
       attachedSessionId: 'session-1',
-      path: '/root/.hermes/attachments/photo.png',
+      path: '/root/.max/attachments/photo.png',
       thumbnailUrl: expect.stringMatching(/^data:image\/png;base64,/)
     })
   })
@@ -546,7 +546,7 @@ describe('attachImagePath thumbnail separation', () => {
       window as unknown as {
         hermesDesktop: { readFileDataUrl: typeof readFileDataUrl }
       }
-    ).hermesDesktop = { readFileDataUrl }
+    ).maxDesktop = { readFileDataUrl }
 
     // Exercise the real downscale path: 4000×3000 bitmap → 512×384 canvas.
     const drawImage = vi.fn()
@@ -609,7 +609,7 @@ describe('attachImagePath thumbnail separation', () => {
       window as unknown as {
         hermesDesktop: { readFileDataUrl: typeof readFileDataUrl }
       }
-    ).hermesDesktop = { readFileDataUrl }
+    ).maxDesktop = { readFileDataUrl }
 
     vi.stubGlobal(
       'fetch',
@@ -653,7 +653,7 @@ describe('attachImagePath thumbnail separation', () => {
       window as unknown as {
         hermesDesktop: { readFileDataUrl: typeof readFileDataUrl }
       }
-    ).hermesDesktop = { readFileDataUrl }
+    ).maxDesktop = { readFileDataUrl }
 
     const { result } = renderHook(() =>
       useComposerActions({ activeSessionId: null, currentCwd: '', requestGateway: vi.fn() })

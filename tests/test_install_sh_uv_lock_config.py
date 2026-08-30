@@ -13,7 +13,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INSTALL_SCRIPTS = (
     REPO_ROOT / "scripts" / "install.sh",
-    REPO_ROOT / "setup-hermes.sh",
+    REPO_ROOT / "setup-max.sh",
 )
 _HELPER_START = "run_locked_uv_sync() {\n"
 

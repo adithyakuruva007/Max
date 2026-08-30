@@ -1,4 +1,4 @@
-"""Tests for kanban board export / import (``hermes_cli.kanban_transfer``).
+"""Tests for kanban board export / import (``max_cli.kanban_transfer``).
 
 The contract these pin down is "a board survives the trip to another
 machine, and nothing that only made sense on the exporting machine comes
@@ -29,9 +29,9 @@ _WORKTREE = Path(__file__).resolve().parents[2]
 if str(_WORKTREE) not in sys.path:
     sys.path.insert(0, str(_WORKTREE))
 
-from hermes_cli import kanban_db as kb
-from hermes_cli import kanban_transfer as kt
-from hermes_cli.archive_safe import normalize_archive_parts, safe_extract_targz
+from max_cli import kanban_db as kb
+from max_cli import kanban_transfer as kt
+from max_cli.archive_safe import normalize_archive_parts, safe_extract_targz
 
 
 @pytest.fixture
@@ -46,10 +46,10 @@ def kanban_root(tmp_path, monkeypatch):
     def _use(name: str) -> Path:
         root = tmp_path / name
         root.mkdir(exist_ok=True)
-        monkeypatch.setenv("HERMES_HOME", str(root))
-        monkeypatch.setenv("HERMES_KANBAN_HOME", str(root))
-        for var in ("HERMES_KANBAN_DB", "HERMES_KANBAN_WORKSPACES_ROOT",
-                    "HERMES_KANBAN_ATTACHMENTS_ROOT", "HERMES_KANBAN_BOARD"):
+        monkeypatch.setenv("MAX_HOME", str(root))
+        monkeypatch.setenv("MAX_KANBAN_HOME", str(root))
+        for var in ("MAX_KANBAN_DB", "MAX_KANBAN_WORKSPACES_ROOT",
+                    "MAX_KANBAN_ATTACHMENTS_ROOT", "MAX_KANBAN_BOARD"):
             monkeypatch.delenv(var, raising=False)
         kb._INITIALIZED_PATHS.clear()
         return root
@@ -360,5 +360,5 @@ def test_import_rejects_a_future_format_version(kanban_root, tmp_path):
         tf.add(staged / "alpha", arcname="alpha")
 
     kanban_root("target")
-    with pytest.raises(ValueError, match="newer than this Hermes"):
+    with pytest.raises(ValueError, match="newer than this Max"):
         kt.import_board(str(bumped))

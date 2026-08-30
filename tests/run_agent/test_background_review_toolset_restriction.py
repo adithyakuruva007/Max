@@ -94,7 +94,7 @@ def test_background_review_installs_thread_local_whitelist():
     whitelist is set with exactly the memory+skills tool names.
     """
     import run_agent
-    from hermes_cli import plugins as _plugins
+    from max_cli import plugins as _plugins
 
     captured = {}
 
@@ -212,7 +212,7 @@ def test_background_review_whitelist_includes_configured_extra_tools(
     thread-local whitelist.  This config hook lets profiles grant a narrowly
     scoped, human-gated proposal tool without enabling unrelated side effects.
     """
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
     (hermes_home / "config.yaml").write_text(
         "auxiliary:\n"
@@ -221,11 +221,11 @@ def test_background_review_whitelist_includes_configured_extra_tools(
         "      - propose_shared_memory\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     import run_agent
-    from hermes_cli import config as config_module
-    from hermes_cli import plugins as _plugins
+    from max_cli import config as config_module
+    from max_cli import plugins as _plugins
 
     config_module._LOAD_CONFIG_CACHE.clear()
     config_module._RAW_CONFIG_CACHE.clear()

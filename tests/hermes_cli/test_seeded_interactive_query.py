@@ -1,6 +1,6 @@
 """Seeded interactive ``-q`` behavior (Aug 2026).
 
-On a real TTY, ``hermes chat -q "…"`` seeds a normal interactive session with
+On a real TTY, ``max chat -q "…"`` seeds a normal interactive session with
 the prompt submitted literally as the first turn. Legacy answer-and-exit is
 preserved for ``--oneshot``, ``-Q/--quiet``, and every non-TTY invocation
 (kanban workers, cron, pipes, A2A). The seeded prompt bypasses slash-command
@@ -102,7 +102,7 @@ class TestChatParserOneshotFlag:
     """The chat subcommand's --oneshot must not collide with top-level -z."""
 
     def _parse(self, argv):
-        from hermes_cli._parser import build_top_level_parser
+        from max_cli._parser import build_top_level_parser
 
         parser, _subparsers, _chat = build_top_level_parser()
         return parser.parse_args(argv)

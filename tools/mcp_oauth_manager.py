@@ -16,7 +16,7 @@ instances and coordinates:
   is warranted.
 
 Replaces what used to be scattered across eight call sites in `mcp_oauth.py`,
-`mcp_tool.py`, and `hermes_cli/mcp_config.py`. This module is the ONLY place
+`mcp_tool.py`, and `max_cli/mcp_config.py`. This module is the ONLY place
 that instantiates the MCP SDK's `OAuthClientProvider` — all other code paths
 go through `get_manager()`.
 
@@ -99,7 +99,7 @@ class _ProviderEntry:
 
 
 # ---------------------------------------------------------------------------
-# HermesMCPOAuthProvider — OAuthClientProvider subclass with disk-watch
+# MaxMCPOAuthProvider — OAuthClientProvider subclass with disk-watch
 # ---------------------------------------------------------------------------
 
 
@@ -114,7 +114,7 @@ def _make_hermes_provider_class() -> Optional[type]:
     except ImportError:  # pragma: no cover — SDK required in CI
         return None
 
-    class HermesMCPOAuthProvider(OAuthClientProvider):
+    class MaxMCPOAuthProvider(OAuthClientProvider):
         """OAuthClientProvider with pre-flow disk-mtime reload.
 
         Before every ``async_auth_flow`` invocation, asks the manager to
@@ -269,7 +269,7 @@ def _make_hermes_provider_class() -> Optional[type]:
             ``async_auth_flow`` takes the ``can_refresh_token()`` branch,
             and the SDK quietly refreshes before the first real request.
 
-            Paired with :class:`HermesTokenStorage` persisting an absolute
+            Paired with :class:`MaxTokenStorage` persisting an absolute
             ``expires_at`` timestamp (``mcp_oauth.py:set_tokens``) so the
             remaining TTL we compute here reflects real wall-clock age.
             """
@@ -284,9 +284,9 @@ def _make_hermes_provider_class() -> Optional[type]:
             # guessed ``{server_url}/token`` path (returns 404 on most real
             # providers) and require a full browser re-authorization.
             storage = self.context.storage
-            from tools.mcp_oauth import HermesTokenStorage
+            from tools.mcp_oauth import MaxTokenStorage
             if (
-                isinstance(storage, HermesTokenStorage)
+                isinstance(storage, MaxTokenStorage)
                 and self.context.oauth_metadata is None
             ):
                 meta = storage.load_oauth_metadata()
@@ -328,7 +328,7 @@ def _make_hermes_provider_class() -> Optional[type]:
             builders and response handlers so we track whatever the SDK
             version we're pinned to expects.
             """
-            # The SDK's httpx flavour, not Hermes' — mcp 2.0 builds on httpx2,
+            # The SDK's httpx flavour, not Max' — mcp 2.0 builds on httpx2,
             # and `create_oauth_metadata_request` below returns one of *its*
             # Request objects, which only its own AsyncClient can send. See
             # tools.mcp_tool.sdk_httpx.
@@ -390,8 +390,8 @@ def _make_hermes_provider_class() -> Optional[type]:
                         # Persist immediately so a subsequent cold-load can
                         # skip discovery entirely.
                         storage = self.context.storage
-                        from tools.mcp_oauth import HermesTokenStorage
-                        if isinstance(storage, HermesTokenStorage):
+                        from tools.mcp_oauth import MaxTokenStorage
+                        if isinstance(storage, MaxTokenStorage):
                             storage.save_oauth_metadata(asm)
                         logger.debug(
                             "MCP OAuth '%s': pre-flight ASM discovered "
@@ -411,8 +411,8 @@ def _make_hermes_provider_class() -> Optional[type]:
             if meta is None:
                 return
             storage = self.context.storage
-            from tools.mcp_oauth import HermesTokenStorage
-            if not isinstance(storage, HermesTokenStorage):
+            from tools.mcp_oauth import MaxTokenStorage
+            if not isinstance(storage, MaxTokenStorage):
                 return
             existing = storage.load_oauth_metadata()
             if (
@@ -432,7 +432,7 @@ def _make_hermes_provider_class() -> Optional[type]:
             registration. This addresses the recurring manual-reset ritual in
             GH#36767 for the auto-detectable subset (token-endpoint rejection);
             the browser-side "Redirect URI Mismatch" case has no HTTP signal
-            and is handled by ``hermes mcp reauth``.
+            and is handled by ``max mcp reauth``.
 
             Conservative by construction — acts ONLY when all hold:
               * status is 400/401,
@@ -449,7 +449,7 @@ def _make_hermes_provider_class() -> Optional[type]:
             preemptive refresh — but only when ``token_endpoint`` was
             discovered (``_initialize`` prefetches it on cold-load). If that
             discovery was skipped, the guard returns early and the user falls
-            back to ``hermes mcp reauth``.
+            back to ``max mcp reauth``.
             """
             try:
                 if self._hermes_preregistered:
@@ -477,14 +477,14 @@ def _make_hermes_provider_class() -> Optional[type]:
                     return
 
                 storage = self.context.storage
-                from tools.mcp_oauth import HermesTokenStorage
+                from tools.mcp_oauth import MaxTokenStorage
 
                 # When the rejected client_id was our Client ID Metadata
                 # Document URL, re-presenting it next flow would loop: the
                 # server has already fetched that document and refused it.
                 # Dropping the URL sends the retry down the DCR branch
                 # instead, and the marker on disk keeps the next process from
-                # walking back into the same refusal. `hermes mcp login`
+                # walking back into the same refusal. `max mcp login`
                 # clears the marker, so a fixed document gets another chance.
                 cimd_url = getattr(self.context, "client_metadata_url", None)
                 rejected_id = getattr(self.context.client_info, "client_id", None)
@@ -496,10 +496,10 @@ def _make_hermes_provider_class() -> Optional[type]:
                         self._hermes_server_name, cimd_url,
                     )
                     self.context.client_metadata_url = None
-                    if isinstance(storage, HermesTokenStorage):
+                    if isinstance(storage, MaxTokenStorage):
                         storage.mark_cimd_rejected()
 
-                if isinstance(storage, HermesTokenStorage):
+                if isinstance(storage, MaxTokenStorage):
                     storage.poison_client_registration()
                 # Drop the in-memory client so the SDK re-registers next flow.
                 self.context.client_info = None
@@ -603,11 +603,11 @@ def _make_hermes_provider_class() -> Optional[type]:
                 self._persist_oauth_metadata_if_changed()
                 return
 
-    return HermesMCPOAuthProvider
+    return MaxMCPOAuthProvider
 
 
 # Cached at import time. Tested and used by :class:`MCPOAuthManager`.
-_HERMES_PROVIDER_CLS: Optional[type] = _make_hermes_provider_class()
+_MAX_PROVIDER_CLS: Optional[type] = _make_hermes_provider_class()
 
 
 # ---------------------------------------------------------------------------
@@ -676,9 +676,9 @@ class MCPOAuthManager:
         server_name: str,
         hermes_home: str | Path | None = None,
     ) -> tuple[str, str]:
-        from hermes_constants import get_hermes_home
+        from max_constants import get_max_home
 
-        home = Path(hermes_home) if hermes_home is not None else get_hermes_home()
+        home = Path(hermes_home) if hermes_home is not None else get_max_home()
         return (str(home.expanduser().resolve(strict=False)), server_name)
 
     def _build_provider(
@@ -688,14 +688,14 @@ class MCPOAuthManager:
     ) -> Optional[Any]:
         """Build the underlying OAuth provider.
 
-        Constructs :class:`HermesMCPOAuthProvider` directly using the helpers
+        Constructs :class:`MaxMCPOAuthProvider` directly using the helpers
         extracted from ``tools.mcp_oauth``. The subclass injects a pre-flow
         disk-watch hook so external token refreshes (cron, other CLI
         instances) are visible to running MCP sessions.
 
         Returns None if the MCP SDK's OAuth support is unavailable.
         """
-        if _HERMES_PROVIDER_CLS is None:
+        if _MAX_PROVIDER_CLS is None:
             logger.warning(
                 "MCP OAuth '%s': SDK auth module unavailable", server_name,
             )
@@ -703,7 +703,7 @@ class MCPOAuthManager:
 
         # Local imports avoid circular deps at module import time.
         from tools.mcp_oauth import (
-            HermesTokenStorage,
+            MaxTokenStorage,
             OAuthNonInteractiveError,
             _OAUTH_AVAILABLE,
             _build_client_metadata,
@@ -725,7 +725,7 @@ class MCPOAuthManager:
         apply_oauth_provider_defaults(
             cfg, server_name=server_name, server_url=entry.server_url
         )
-        storage = HermesTokenStorage(server_name)
+        storage = MaxTokenStorage(server_name)
 
         from tools.mcp_dashboard_oauth import get_dashboard_oauth_flow
 
@@ -737,7 +737,7 @@ class MCPOAuthManager:
             raise OAuthNonInteractiveError(
                 "MCP OAuth for "
                 f"'{server_name}': non-interactive environment and no "
-                "cached tokens found. Run `hermes mcp login "
+                "cached tokens found. Run `max mcp login "
                 f"{server_name}` interactively first to complete initial "
                 "authorization."
             )
@@ -755,7 +755,7 @@ class MCPOAuthManager:
             resolved_port, cfg.get("_cimd_url"), timeout=float(cfg.get("timeout", 300))
         )
 
-        return _HERMES_PROVIDER_CLS(
+        return _MAX_PROVIDER_CLS(
             server_name=server_name,
             preregistered=bool(cfg.get("client_id")),
             server_url=entry.server_url,
@@ -775,8 +775,8 @@ class MCPOAuthManager:
     ) -> _ProviderEntry | None:
         """Evict the provider from cache AND delete tokens from disk.
 
-        Called by ``hermes mcp remove <name>`` and (indirectly) by
-        ``hermes mcp login <name>`` during forced re-auth.
+        Called by ``max mcp remove <name>`` and (indirectly) by
+        ``max mcp login <name>`` during forced re-auth.
         """
         with self._entries_lock:
             entry = self._entries.pop(self._key(server_name, hermes_home), None)

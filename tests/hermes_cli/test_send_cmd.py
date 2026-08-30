@@ -1,7 +1,7 @@
-"""Tests for the ``hermes send`` CLI subcommand.
+"""Tests for the ``max send`` CLI subcommand.
 
 Covers the argument parsing / stdin / file / list behavior of
-``hermes_cli.send_cmd``. The underlying ``send_message_tool`` is stubbed so
+``max_cli.send_cmd``. The underlying ``send_message_tool`` is stubbed so
 no network I/O or gateway is required.
 """
 
@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from hermes_cli import send_cmd
+from max_cli import send_cmd
 
 
 # ---------------------------------------------------------------------------
@@ -204,28 +204,28 @@ def test_load_hermes_env_bridges_config_yaml_scalars(tmp_path, monkeypatch):
     """Top-level config.yaml scalars should be bridged into os.environ.
 
     This mirrors the gateway/run.py bootstrap behavior: without this, running
-    ``hermes send`` from a fresh shell cannot resolve the home channel
-    because ``TELEGRAM_HOME_CHANNEL`` (saved by ``hermes config set``) lives
+    ``max send`` from a fresh shell cannot resolve the home channel
+    because ``TELEGRAM_HOME_CHANNEL`` (saved by ``max config set``) lives
     in config.yaml, not in .env — and the gateway's config loader reads via
     ``os.getenv(...)``.
     """
     import os
 
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
     (hermes_home / ".env").write_text("SOME_TOKEN=abc123\n")
     (hermes_home / "config.yaml").write_text(
         "TELEGRAM_HOME_CHANNEL: '5550001111'\nnested:\n  ignored: true\n"
     )
 
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
     monkeypatch.delenv("TELEGRAM_HOME_CHANNEL", raising=False)
     monkeypatch.delenv("SOME_TOKEN", raising=False)
 
-    # Force get_hermes_home() to re-resolve under the patched env.
+    # Force get_max_home() to re-resolve under the patched env.
     from importlib import reload
 
-    import hermes_cli.config as _hc_config
+    import max_cli.config as _hc_config
     reload(_hc_config)
 
     send_cmd._load_hermes_env()
@@ -240,22 +240,22 @@ def test_load_hermes_env_utf8_bom_preserves_first_key(tmp_path, monkeypatch):
     PowerShell 5.1 `Set-Content -Encoding UTF8` and Notepad prepend a BOM
     (EF BB BF). With encoding=utf-8, python-dotenv kept U+FEFF on the first
     key, so the credential never appeared under its canonical name and
-    `hermes send` failed to authenticate.
+    `max send` failed to authenticate.
     """
     import os
 
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
     (hermes_home / ".env").write_bytes(
         b"\xef\xbb\xbfSEND_BOM_BOT_TOKEN=tok-first\nSEND_BOM_SECOND=two\n"
     )
 
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
     monkeypatch.delenv("SEND_BOM_BOT_TOKEN", raising=False)
     monkeypatch.delenv("SEND_BOM_SECOND", raising=False)
 
     from importlib import reload
-    import hermes_cli.config as _hc_config
+    import max_cli.config as _hc_config
     reload(_hc_config)
 
     send_cmd._load_hermes_env()
@@ -268,15 +268,15 @@ def test_load_hermes_env_bomless_utf8_still_loads(tmp_path, monkeypatch):
     """BOM-less UTF-8 .env files must keep loading after the utf-8-sig switch."""
     import os
 
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
     (hermes_home / ".env").write_bytes(b"SEND_PLAIN_TOKEN=plain-val\n")
 
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
     monkeypatch.delenv("SEND_PLAIN_TOKEN", raising=False)
 
     from importlib import reload
-    import hermes_cli.config as _hc_config
+    import max_cli.config as _hc_config
     reload(_hc_config)
 
     send_cmd._load_hermes_env()
@@ -289,7 +289,7 @@ def test_load_hermes_env_latin1_fallback_still_loads(tmp_path, monkeypatch):
     first key keeps its canonical name."""
     import os
 
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
     # BOM + valid first key + latin-1 é (0xE9, invalid UTF-8 alone) in a
     # later value — forces the UnicodeDecodeError → latin-1 stream path.
@@ -297,12 +297,12 @@ def test_load_hermes_env_latin1_fallback_still_loads(tmp_path, monkeypatch):
         b"\xef\xbb\xbfSEND_L1_TOKEN=tok-l1\nSEND_L1_NOTE=caf\xe9\n"
     )
 
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
     monkeypatch.delenv("SEND_L1_TOKEN", raising=False)
     monkeypatch.delenv("SEND_L1_NOTE", raising=False)
 
     from importlib import reload
-    import hermes_cli.config as _hc_config
+    import max_cli.config as _hc_config
     reload(_hc_config)
 
     send_cmd._load_hermes_env()
@@ -316,16 +316,16 @@ def test_load_hermes_env_latin1_fallback_overrides_shell(tmp_path, monkeypatch):
     the .env value wins over a stale shell export, same as the primary path."""
     import os
 
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
     # 0xE9 forces the UnicodeDecodeError \u2192 latin-1 stream fallback.
     (hermes_home / ".env").write_bytes(b"SEND_OVR_TOKEN=caf\xe9-file\n")
 
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
     monkeypatch.setenv("SEND_OVR_TOKEN", "stale-shell-value")
 
     from importlib import reload
-    import hermes_cli.config as _hc_config
+    import max_cli.config as _hc_config
     reload(_hc_config)
 
     send_cmd._load_hermes_env()
@@ -337,12 +337,12 @@ def test_load_hermes_env_fallback_read_error_is_swallowed(tmp_path, monkeypatch)
     path is best-effort by design and must never crash on a broken .env."""
     from pathlib import Path
 
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
     # Invalid UTF-8 so the fallback (and its read_bytes call) is reached.
     (hermes_home / ".env").write_bytes(b"SEND_ERR_TOKEN=caf\xe9\n")
 
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     def _boom(self):
         raise OSError("disk went away")
@@ -350,7 +350,7 @@ def test_load_hermes_env_fallback_read_error_is_swallowed(tmp_path, monkeypatch)
     monkeypatch.setattr(Path, "read_bytes", _boom)
 
     from importlib import reload
-    import hermes_cli.config as _hc_config
+    import max_cli.config as _hc_config
     reload(_hc_config)
 
     # Should not raise.
@@ -360,14 +360,14 @@ def test_load_hermes_env_bom_only_env_is_noop(tmp_path, monkeypatch):
     """A .env containing only a BOM must load zero vars without error."""
     import os
 
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
     (hermes_home / ".env").write_bytes(b"\xef\xbb\xbf")
 
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     from importlib import reload
-    import hermes_cli.config as _hc_config
+    import max_cli.config as _hc_config
     reload(_hc_config)
 
     before = dict(os.environ)

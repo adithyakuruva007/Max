@@ -10,7 +10,7 @@ export const DEFAULT_HEALTH_PROBE_TIMEOUT_MS = 5_000
 type FetchPublicJson = (url: string, options?: { timeoutMs?: number }) => Promise<unknown>
 type FetchJson = (url: string, token?: string | null, options?: { timeoutMs?: number }) => Promise<unknown>
 
-export interface HermesReadyOptions {
+export interface MaxReadyOptions {
   fetchPublicJson: FetchPublicJson
   fetchJson: FetchJson
   token?: string | null
@@ -30,7 +30,7 @@ export interface HermesReadyOptions {
   probeHealth?: (url: string, options?: { timeoutMs?: number }) => Promise<unknown>
   /**
    * Whether `probeHealth` actually presents credentials. Distinguishes the
-   * two very different meanings of a 401 (see `waitForHermesReady`).
+   * two very different meanings of a 401 (see `waitForMaxReady`).
    */
   probeIsCredentialed?: boolean
 }
@@ -39,7 +39,7 @@ export const REMOTE_SESSION_EXPIRED_MESSAGE =
   'Your remote gateway session has expired. Open Settings → Gateway and click "Sign in" again.'
 
 export const REMOTE_UNSIGNED_OAUTH_MESSAGE =
-  'Remote Hermes gateway uses OAuth, but you are not signed in. ' +
+  'Remote Max gateway uses OAuth, but you are not signed in. ' +
   'Open Settings → Gateway and click "Sign in", or switch back to Local.'
 
 /**
@@ -97,9 +97,9 @@ export function isServerSideHttpError(error: unknown): {
  *
  *  - OAuth WS-ticket mint (buildRemoteConnection → mintGatewayWsTicket), which
  *    runs BEFORE the readiness loop; and
- *  - readiness-probe exhaustion in waitForHermesReady().
+ *  - readiness-probe exhaustion in waitForMaxReady().
  *
- * Returns null unless the backend is a *.agents.nousresearch.com host AND the
+ * Returns null unless the backend is a *.agents.stardustresearch.com host AND the
  * error classifies as 502/503/504. When it matches, returns an error carrying:
  * isCloudBackendDown, statusCode, detail, and the original cause. The renderer
  * overlay keys on isCloudBackendDown/statusCode; main owns the classification.
@@ -129,7 +129,7 @@ export function makeNousCloudBackendDownError(baseUrl: string, error: unknown): 
   const err = new Error(
     `Nous Cloud agent ${hostname} is down ` +
       `(HTTP ${serverError.statusCode}: server-side fault). ` +
-      'Check https://portal.nousresearch.com for backend status, ' +
+      'Check https://portal.stardustresearch.com for backend status, ' +
       'or switch to Local mode in Settings → Gateway. ' +
       'You can also reach out on Discord at discord.gg/NousResearch ' +
       'for immediate assistance. ' +
@@ -145,8 +145,8 @@ export function makeNousCloudBackendDownError(baseUrl: string, error: unknown): 
 }
 
 /**
- * True when the backend URL points at a Nous-managed Hermes Cloud instance
- * (e.g. ares-3009.agents.nousresearch.com). These are Fly.io-hosted machines
+ * True when the backend URL points at a Nous-managed Max Cloud instance
+ * (e.g. ares-3009.agents.stardustresearch.com). These are Fly.io-hosted machines
  * the user cannot restart themselves — a 503 from one means the server is down
  * and the recovery path is Portal/Discord/wait.
  */
@@ -154,7 +154,7 @@ export function isNousCloudAgentUrl(baseUrl: string): boolean {
   try {
     const host = new URL(baseUrl).hostname
 
-    return host.endsWith('.agents.nousresearch.com')
+    return host.endsWith('.agents.stardustresearch.com')
   } catch {
     return false
   }
@@ -206,7 +206,7 @@ export function makeReauthRequiredError(detail?: string): Error {
 
 /**
  * No native token and no live cookie: boot cannot self-heal. Must carry
- * `isReauthRequired` so startHermes latches; `needsOauthLogin` alone only
+ * `isReauthRequired` so startMax latches; `needsOauthLogin` alone only
  * drives Sign in copy and would retry after #88070, hiding the overlay.
  */
 export function makeUnsignedOauthError(): Error {
@@ -228,7 +228,7 @@ function supersededError() {
   return error
 }
 
-export async function waitForHermesReady(baseUrl: string, options: HermesReadyOptions): Promise<void> {
+export async function waitForMaxReady(baseUrl: string, options: MaxReadyOptions): Promise<void> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_BACKEND_READY_TIMEOUT_MS
   const pollMs = options.pollMs ?? DEFAULT_BACKEND_READY_POLL_MS
   const healthProbeTimeoutMs = options.healthProbeTimeoutMs ?? DEFAULT_HEALTH_PROBE_TIMEOUT_MS
@@ -313,5 +313,5 @@ export async function waitForHermesReady(baseUrl: string, options: HermesReadyOp
     throw cloudError
   }
 
-  throw new Error(`Hermes backend did not become ready: ${detail}`)
+  throw new Error(`Max backend did not become ready: ${detail}`)
 }

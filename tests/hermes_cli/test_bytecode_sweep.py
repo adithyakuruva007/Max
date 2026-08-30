@@ -1,6 +1,6 @@
 """Tests for the launch-time stale-bytecode sweep (checkout fingerprint guard).
 
-Bug class: the checkout's ``.py`` files change (``hermes update``, manual
+Bug class: the checkout's ``.py`` files change (``max update``, manual
 ``git pull``, ZIP update) while ``__pycache__`` retains bytecode compiled
 from the previous revision; the next process to import trusts the stale
 ``.pyc`` and dies with ``cannot import name ...`` (#6207, #60242).
@@ -13,7 +13,7 @@ updaters).
 
 from pathlib import Path
 
-from hermes_cli import main as hermes_main
+from max_cli import main as hermes_main
 
 
 def _make_repo(tmp_path: Path, sha: str = "a" * 40) -> Path:
@@ -26,7 +26,7 @@ def _make_repo(tmp_path: Path, sha: str = "a" * 40) -> Path:
     return repo
 
 
-def _make_pycache(repo: Path, subdir: str = "hermes_cli") -> Path:
+def _make_pycache(repo: Path, subdir: str = "max_cli") -> Path:
     cache = repo / subdir / "__pycache__"
     cache.mkdir(parents=True)
     (cache / "main.cpython-311.pyc").write_bytes(b"stale")
@@ -56,11 +56,11 @@ def test_sweep_clears_pycache_when_checkout_changed(monkeypatch, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Plugin-update sibling site: __pycache__ under ~/.hermes/plugins/<name>
+# Plugin-update sibling site: __pycache__ under ~/.max/plugins/<name>
 # ---------------------------------------------------------------------------
 
 def test_clear_plugin_bytecode_removes_nested_caches(tmp_path):
-    from hermes_cli import plugins_cmd
+    from max_cli import plugins_cmd
 
     plugin = tmp_path / "myplugin"
     top = plugin / "__pycache__"

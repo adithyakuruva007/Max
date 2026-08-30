@@ -1,13 +1,13 @@
 """Interrupted-update fleet-restart obligation (#95294 parts 1+2).
 
-A ``hermes update`` killed after git pull advanced HEAD but before the
+A ``max update`` killed after git pull advanced HEAD but before the
 fleet restart left running gateways on stale code. The next update said
 "Already up to date" and skipped restart. These tests cover:
 
 - ``fleet_restart_pending`` marker written after HEAD advances, cleared
   after a successful (or no-op) fleet restart
 - interrupt between pull and restart leaves the marker
-- next ``hermes update`` with git already up to date still runs the
+- next ``max update`` with git already up to date still runs the
   pending restart when the marker OR a skewed unfinished latest.json is
   present
 
@@ -21,9 +21,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from hermes_cli import main as hermes_main
-from hermes_cli import update_cmd
-from hermes_constants import get_hermes_home
+from max_cli import main as hermes_main
+from max_cli import update_cmd
+from max_constants import get_max_home
 
 
 def _make_head_moved_side_effect(pre_sha="abc123", post_sha="def456"):
@@ -80,7 +80,7 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
     monkeypatch.setattr(
         hermes_main,
         "_get_origin_url",
-        lambda *a, **k: "https://github.com/NousResearch/hermes-agent.git",
+        lambda *a, **k: "https://github.com/NousResearch/max-agent.git",
     )
     monkeypatch.setattr(hermes_main, "_is_fork", lambda *a, **k: False)
     monkeypatch.setattr(
@@ -108,7 +108,7 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
     )
     monkeypatch.setattr(update_cmd, "_update_node_dependencies", lambda: [])
 
-    import hermes_cli.gateway as hermes_gateway
+    import max_cli.gateway as hermes_gateway
 
     monkeypatch.setattr(
         hermes_gateway, "find_gateway_pids", lambda all_profiles=False: []
@@ -118,11 +118,11 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
         hermes_gateway, "find_profile_gateway_processes", lambda *a, **k: []
     )
     monkeypatch.setattr(
-        "hermes_cli.update_receipt.collect_fleet_versions",
+        "max_cli.update_receipt.collect_fleet_versions",
         lambda **k: [],
     )
     monkeypatch.setattr(
-        "hermes_cli.update_inventory.collect_runtime_inventory",
+        "max_cli.update_inventory.collect_runtime_inventory",
         lambda: SimpleNamespace(runtimes=[], to_dict=lambda: {}),
     )
 
@@ -138,7 +138,7 @@ def _update_args():
 
 def test_marker_round_trip_under_hermes_home():
     path = update_cmd._fleet_restart_pending_marker_path()
-    assert path.parent == get_hermes_home()
+    assert path.parent == get_max_home()
     assert path.name == "fleet_restart_pending"
     assert not path.exists()
 
@@ -165,7 +165,7 @@ def test_pending_needed_when_unfinished_receipt_runtime_sha_skews(monkeypatch):
     old_sha = "7" * 40
     monkeypatch.setattr(update_cmd, "_current_checkout_sha", lambda: disk_sha)
 
-    receipt_dir = get_hermes_home() / "logs" / "update_receipts"
+    receipt_dir = get_max_home() / "logs" / "update_receipts"
     receipt_dir.mkdir(parents=True)
     (receipt_dir / "latest.json").write_text(
         json.dumps(
@@ -202,7 +202,7 @@ def test_successful_receipt_with_pre_update_plan_shas_does_not_retrigger(
     old_sha = "o" * 40
     monkeypatch.setattr(update_cmd, "_current_checkout_sha", lambda: disk_sha)
 
-    receipt_dir = get_hermes_home() / "logs" / "update_receipts"
+    receipt_dir = get_max_home() / "logs" / "update_receipts"
     receipt_dir.mkdir(parents=True)
     (receipt_dir / "latest.json").write_text(
         json.dumps(
@@ -241,7 +241,7 @@ def test_stale_fleet_matrix_on_latest_receipt_is_pending(monkeypatch):
     disk_sha = "n" * 40
     monkeypatch.setattr(update_cmd, "_current_checkout_sha", lambda: disk_sha)
 
-    receipt_dir = get_hermes_home() / "logs" / "update_receipts"
+    receipt_dir = get_max_home() / "logs" / "update_receipts"
     receipt_dir.mkdir(parents=True)
     (receipt_dir / "latest.json").write_text(
         json.dumps(
@@ -266,7 +266,7 @@ def test_stale_fleet_matrix_on_latest_receipt_is_pending(monkeypatch):
 
 def test_run_pending_restart_true_when_no_gateways(monkeypatch, capsys):
     monkeypatch.setattr(
-        "hermes_cli.gateway.find_gateway_pids", lambda **k: []
+        "max_cli.gateway.find_gateway_pids", lambda **k: []
     )
     monkeypatch.setattr(hermes_main, "_purge_stale_hermes_modules", lambda: None)
 
@@ -352,7 +352,7 @@ def test_already_up_to_date_runs_pending_restart_when_receipt_skewed(
 
     disk_sha = "e" * 40
     monkeypatch.setattr(update_cmd, "_current_checkout_sha", lambda: disk_sha)
-    receipt_dir = get_hermes_home() / "logs" / "update_receipts"
+    receipt_dir = get_max_home() / "logs" / "update_receipts"
     receipt_dir.mkdir(parents=True)
     (receipt_dir / "latest.json").write_text(
         json.dumps(
@@ -414,7 +414,7 @@ def test_startup_warn_prints_when_marker_present(capsys):
     update_cmd._warn_pending_fleet_restart_on_startup()
     err = capsys.readouterr().err
     assert "did not restart running gateways" in err
-    assert "hermes gateway restart" in err
+    assert "max gateway restart" in err
 
 
 def test_startup_warn_silent_when_nothing_pending(capsys):

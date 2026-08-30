@@ -1,4 +1,4 @@
-"""Shared constants for Hermes Agent.
+"""Shared constants for Max Agent.
 
 Import-safe module with no dependencies — can be imported from anywhere
 without risk of circular imports.
@@ -14,8 +14,8 @@ from pathlib import Path
 
 _profile_fallback_warned: bool = False
 _UNSET = object()
-_HERMES_HOME_OVERRIDE: ContextVar[str | object] = ContextVar(
-    "_HERMES_HOME_OVERRIDE", default=_UNSET
+_MAX_HOME_OVERRIDE: ContextVar[str | object] = ContextVar(
+    "_MAX_HOME_OVERRIDE", default=_UNSET
 )
 
 # ── TUI busy-indicator styles ─────────────────────────────────────────
@@ -27,64 +27,64 @@ INDICATOR_STYLES: tuple[str, ...] = ("ascii", "emoji", "kaomoji", "unicode")
 DEFAULT_INDICATOR_STYLE: str = "kaomoji"
 
 
-def set_hermes_home_override(path: str | Path | None) -> Token:
-    """Set a context-local Hermes home override and return its reset token.
+def set_max_home_override(path: str | Path | None) -> Token:
+    """Set a context-local Max home override and return its reset token.
 
     This is for in-process, per-task scoping.  It deliberately does not mutate
     ``os.environ`` because that is shared by every thread in the process.
     """
     value: str | object = _UNSET if path is None else str(path)
-    return _HERMES_HOME_OVERRIDE.set(value)
+    return _MAX_HOME_OVERRIDE.set(value)
 
 
-def reset_hermes_home_override(token: Token) -> None:
-    """Restore the previous context-local Hermes home override."""
-    _HERMES_HOME_OVERRIDE.reset(token)
+def reset_max_home_override(token: Token) -> None:
+    """Restore the previous context-local Max home override."""
+    _MAX_HOME_OVERRIDE.reset(token)
 
 
-def get_hermes_home_override() -> str | None:
-    """Return the active context-local Hermes home override, if any."""
-    override = _HERMES_HOME_OVERRIDE.get()
+def get_max_home_override() -> str | None:
+    """Return the active context-local Max home override, if any."""
+    override = _MAX_HOME_OVERRIDE.get()
     if override is _UNSET or not override:
         return None
     return str(override)
 
 
-def _get_platform_default_hermes_home() -> Path:
-    """Return the platform-native default Hermes home path."""
+def _get_platform_default_max_home() -> Path:
+    """Return the platform-native default Max home path."""
     if sys.platform == "win32":
         local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
         base = Path(local_appdata) if local_appdata else Path.home() / "AppData" / "Local"
         return base / "hermes"
-    return Path.home() / ".hermes"
+    return Path.home() / ".max"
 
 
 def _hermes_home_from_env() -> Path:
-    """Resolve HERMES_HOME from the process environment only.
+    """Resolve MAX_HOME from the process environment only.
 
-    Reads the ``HERMES_HOME`` env var, falling back to the platform-native
+    Reads the ``MAX_HOME`` env var, falling back to the platform-native
     default.  Deliberately ignores the context-local override installed by
-    :func:`set_hermes_home_override`, so this reflects the process/launch
-    scope rather than a per-task profile.  Shared by :func:`get_hermes_home`
+    :func:`set_max_home_override`, so this reflects the process/launch
+    scope rather than a per-task profile.  Shared by :func:`get_max_home`
     and :func:`get_process_hermes_home` so the two never drift.
     """
-    val = os.environ.get("HERMES_HOME", "").strip()
+    val = os.environ.get("MAX_HOME", "").strip()
     if val:
         return Path(val)
-    return _get_platform_default_hermes_home()
+    return _get_platform_default_max_home()
 
 
 def _warn_profile_fallback_once() -> None:
     """Warn once when falling back to the default home while a profile is active.
 
-    Guard: if a non-default profile is sticky-active but ``HERMES_HOME`` is
+    Guard: if a non-default profile is sticky-active but ``MAX_HOME`` is
     unset, the fallback to the default profile is almost certainly wrong.
     """
     global _profile_fallback_warned
     if _profile_fallback_warned:
         return
     try:
-        fallback_home = _get_platform_default_hermes_home()
+        fallback_home = _get_platform_default_max_home()
         active_path = fallback_home / "active_profile"
         active = active_path.read_text(encoding="utf-8").strip() if active_path.exists() else ""
     except (UnicodeDecodeError, OSError):
@@ -97,11 +97,11 @@ def _warn_profile_fallback_once() -> None:
         # configured, and (b) root-logger propagation would double-emit
         # on consoles where a StreamHandler is already attached.
         msg = (
-            f"[HERMES_HOME fallback] HERMES_HOME is unset but active "
+            f"[MAX_HOME fallback] MAX_HOME is unset but active "
             f"profile is {active!r}. Falling back to {fallback_home}, which "
             f"is the DEFAULT profile — not {active!r}. Any data this "
             f"process writes will land in the wrong profile. The "
-            f"subprocess spawner should pass HERMES_HOME explicitly "
+            f"subprocess spawner should pass MAX_HOME explicitly "
             f"(see issue #18594)."
         )
         try:
@@ -111,52 +111,52 @@ def _warn_profile_fallback_once() -> None:
             pass
 
 
-def get_hermes_home() -> Path:
-    """Return the Hermes home directory (default: platform-native path).
+def get_max_home() -> Path:
+    """Return the Max home directory (default: platform-native path).
 
     Resolution order: context-local override (see
-    :func:`set_hermes_home_override`) → ``HERMES_HOME`` env var → the
+    :func:`set_max_home_override`) → ``MAX_HOME`` env var → the
     platform-native default.  This is the single source of truth — all other
     copies should import this.
 
-    When ``HERMES_HOME`` is unset but an ``active_profile`` file indicates
+    When ``MAX_HOME`` is unset but an ``active_profile`` file indicates
     a non-default profile is active, logs a loud one-shot warning to
     ``errors.log`` so cross-profile data corruption is diagnosable instead
     of silent.  Behavior is unchanged otherwise — we still return
     the platform-native default — because raising here would brick 30+ module-level
     callers that import this at load time.  Subprocess spawners are
-    expected to propagate ``HERMES_HOME`` explicitly (see the systemd
-    template in ``hermes_cli/gateway.py`` and the kanban dispatcher in
-    ``hermes_cli/kanban_db.py``).  See https://github.com/NousResearch/hermes-agent/issues/18594.
+    expected to propagate ``MAX_HOME`` explicitly (see the systemd
+    template in ``max_cli/gateway.py`` and the kanban dispatcher in
+    ``max_cli/kanban_db.py``).  See https://github.com/NousResearch/max-agent/issues/18594.
     """
-    override = get_hermes_home_override()
+    override = get_max_home_override()
     if override:
         return Path(override)
 
-    if not os.environ.get("HERMES_HOME", "").strip():
+    if not os.environ.get("MAX_HOME", "").strip():
         _warn_profile_fallback_once()
 
     return _hermes_home_from_env()
 
 
 def hermes_home_key(path: str | Path | None = None) -> str:
-    """Return a stable key for a Hermes home/profile directory.
+    """Return a stable key for a Max home/profile directory.
 
     Runtime registries use this key to isolate plugin-owned entries while
     keeping built-in registrations process-global.  ``strict=False`` preserves
     useful behavior for profiles whose directories have not been created yet.
     """
-    candidate = Path(path) if path is not None else get_hermes_home()
+    candidate = Path(path) if path is not None else get_max_home()
     resolved = candidate.expanduser().resolve(strict=False)
     return os.path.normcase(str(resolved))
 
 
 def get_process_hermes_home() -> Path:
-    """Return the Hermes home for the running process, ignoring task overrides.
+    """Return the Max home for the running process, ignoring task overrides.
 
-    Unlike :func:`get_hermes_home`, this never follows the context-local
-    override set by :func:`set_hermes_home_override`.  It resolves only the
-    process ``HERMES_HOME`` env var (falling back to the platform default),
+    Unlike :func:`get_max_home`, this never follows the context-local
+    override set by :func:`set_max_home_override`.  It resolves only the
+    process ``MAX_HOME`` env var (falling back to the platform default),
     so it reflects the scope the process was launched under **as long as
     nothing mutates ``os.environ`` in-process**.
 
@@ -171,35 +171,35 @@ def get_process_hermes_home() -> Path:
 
 
 # Process-level memo for get_default_hermes_root(). The function resolves
-# HERMES_HOME against the native home on every call (~80us of path
+# MAX_HOME against the native home on every call (~80us of path
 # resolution), and it is called at 31+ sites — every _load_global_auth_store()
 # (per provider row in the /model picker), kanban, backup, gateway, update.
-# Its result depends only on (HERMES_HOME, platform native home), which are
+# Its result depends only on (MAX_HOME, platform native home), which are
 # compared for free on each call, so the memo is freshness-correct even if a
-# test or plugin mutates HERMES_HOME mid-process.
+# test or plugin mutates MAX_HOME mid-process.
 _default_hermes_root_memo: "tuple[str, str, Path] | None" = None
 
 
 def get_default_hermes_root() -> Path:
-    """Return the root Hermes directory for profile-level operations.
+    """Return the root Max directory for profile-level operations.
 
-    In standard deployments this is the platform-native Hermes home
-    (``~/.hermes`` on POSIX, ``%LOCALAPPDATA%\\hermes`` on native Windows).
+    In standard deployments this is the platform-native Max home
+    (``~/.max`` on POSIX, ``%LOCALAPPDATA%\\hermes`` on native Windows).
 
-    In Docker or custom deployments where ``HERMES_HOME`` points outside
-    ``~/.hermes`` (e.g. ``/opt/data``), returns ``HERMES_HOME`` directly
+    In Docker or custom deployments where ``MAX_HOME`` points outside
+    ``~/.max`` (e.g. ``/opt/data``), returns ``MAX_HOME`` directly
     — that IS the root.
 
-    In profile mode where ``HERMES_HOME`` is ``<root>/profiles/<name>``,
+    In profile mode where ``MAX_HOME`` is ``<root>/profiles/<name>``,
     returns ``<root>`` so that ``profile list`` can see all profiles.
-    Works both for standard (``~/.hermes/profiles/coder``) and Docker
+    Works both for standard (``~/.max/profiles/coder``) and Docker
     (``/opt/data/profiles/coder``) layouts.
 
     Import-safe — no dependencies beyond stdlib.
     """
     global _default_hermes_root_memo
-    native_home = _get_platform_default_hermes_home()
-    env_home = os.environ.get("HERMES_HOME", "")
+    native_home = _get_platform_default_max_home()
+    env_home = os.environ.get("MAX_HOME", "")
     if _default_hermes_root_memo is not None:
         memo_native, memo_env, memo_result = _default_hermes_root_memo
         if memo_native == str(native_home) and memo_env == env_home:
@@ -211,7 +211,7 @@ def get_default_hermes_root() -> Path:
         env_path = Path(env_home)
         try:
             env_path.resolve().relative_to(native_home.resolve())
-            # HERMES_HOME is under ~/.hermes (normal or profile mode)
+            # MAX_HOME is under ~/.max (normal or profile mode)
             result = native_home
         except ValueError:
             # Docker / custom deployment.
@@ -221,7 +221,7 @@ def get_default_hermes_root() -> Path:
             if env_path.parent.name == "profiles":
                 result = env_path.parent.parent
             else:
-                # Not a profile path — HERMES_HOME itself is the root
+                # Not a profile path — MAX_HOME itself is the root
                 result = env_path
     _default_hermes_root_memo = (str(native_home), env_home, result)
     return result
@@ -232,30 +232,30 @@ def get_default_hermes_root() -> Path:
 # erase the fact that the profile was deleted.
 _DELETED_PROFILES_DIR = ".deleted"
 
-# Files whose presence marks a directory as a real Hermes home. A fresh home
+# Files whose presence marks a directory as a real Max home. A fresh home
 # always gains at least one of these on first use (config save, env backfill,
 # session DB), while arbitrary directories that merely contain a ``profiles``
 # path segment (e.g. ``/srv/profiles/buildcache``) do not.
-_HERMES_HOME_MARKERS = ("config.yaml", ".env", "state.db")
+_MAX_HOME_MARKERS = ("config.yaml", ".env", "state.db")
 
 
 def _is_hermes_profiles_root(profiles_dir: Path) -> bool:
     """Return True when *profiles_dir* is a canonical ``<hermes-home>/profiles``.
 
     Anchors named-profile recognition so it only fires for directories that
-    provably live under a Hermes home: the classic ``~/.hermes`` layout, a
-    root carrying Hermes-home marker files (Docker/custom ``HERMES_HOME``
+    provably live under a Max home: the classic ``~/.max`` layout, a
+    root carrying Max-home marker files (Docker/custom ``MAX_HOME``
     like ``/opt/data``), a ``profiles/.deleted`` tombstone directory (only
-    ever created by ``hermes profile delete``), or the process's resolved
-    default Hermes root.
+    ever created by ``max profile delete``), or the process's resolved
+    default Max root.
     """
     root = profiles_dir.parent
-    if root.name == ".hermes":
+    if root.name == ".max":
         return True
     try:
         if (profiles_dir / _DELETED_PROFILES_DIR).is_dir():
             return True
-        if any((root / marker).exists() for marker in _HERMES_HOME_MARKERS):
+        if any((root / marker).exists() for marker in _MAX_HOME_MARKERS):
             return True
     except OSError:
         pass
@@ -272,9 +272,9 @@ def named_profile_home(path: str | Path) -> Path | None:
 
     A named profile home is only ``.../profiles/<id>`` where ``<id>`` does
     not start with ``.`` AND the ``profiles`` directory's parent is a real
-    Hermes home (see :func:`_is_hermes_profiles_root`). A default Hermes home
+    Max home (see :func:`_is_hermes_profiles_root`). A default Max home
     whose path merely contains a ``profiles`` segment
-    (e.g. ``/tmp/foo/profiles/notahome/.hermes``) is not a named profile,
+    (e.g. ``/tmp/foo/profiles/notahome/.max``) is not a named profile,
     and neither is an unrelated custom home like
     ``/srv/profiles/buildcache`` — those must keep mkdir-ing normally.
     ``.../profiles/worker/logs`` still resolves to ``.../profiles/worker``.
@@ -287,9 +287,9 @@ def named_profile_home(path: str | Path) -> Path | None:
             and _is_hermes_profiles_root(candidate.parent)
         ):
             return candidate
-        # Stop at a default Hermes home so a coincidental ``profiles/``
+        # Stop at a default Max home so a coincidental ``profiles/``
         # ancestor is not treated as a named-profile root.
-        if candidate.name == ".hermes":
+        if candidate.name == ".max":
             return None
     return None
 
@@ -315,7 +315,7 @@ def clear_named_profile_deleted(profile_home: str | Path) -> None:
 def assert_named_profile_home_live(path: str | Path) -> None:
     """Refuse missing or tombstoned named profile homes.
 
-    Default ``HERMES_HOME`` (not under ``profiles/``) is unchanged.
+    Default ``MAX_HOME`` (not under ``profiles/``) is unchanged.
     """
     home = named_profile_home(path)
     if home is None:
@@ -339,14 +339,14 @@ def get_optional_skills_dir(default: Path | None = None) -> Path:
     """Return the optional-skills directory, honoring package-manager wrappers.
 
     Packaged installs may ship ``optional-skills`` outside the Python package
-    tree and expose it via ``HERMES_OPTIONAL_SKILLS``.
+    tree and expose it via ``MAX_OPTIONAL_SKILLS``.
     """
-    override = os.getenv("HERMES_OPTIONAL_SKILLS", "").strip()
+    override = os.getenv("MAX_OPTIONAL_SKILLS", "").strip()
     if override:
         return Path(override)
     if default is not None:
         return default
-    return get_hermes_home() / "optional-skills"
+    return get_max_home() / "optional-skills"
 
 
 def get_optional_mcps_dir(default: Path | None = None) -> Path:
@@ -355,30 +355,30 @@ def get_optional_mcps_dir(default: Path | None = None) -> Path:
     Mirrors :func:`get_optional_skills_dir` for the MCP catalog (Nous-approved
     Model Context Protocol servers shipped with the repo but disabled by
     default). Packaged installs may ship ``optional-mcps`` outside the Python
-    package tree and expose it via ``HERMES_OPTIONAL_MCPS``.
+    package tree and expose it via ``MAX_OPTIONAL_MCPS``.
     """
-    override = os.getenv("HERMES_OPTIONAL_MCPS", "").strip()
+    override = os.getenv("MAX_OPTIONAL_MCPS", "").strip()
     if override:
         return Path(override)
     if default is not None:
         return default
-    return get_hermes_home() / "optional-mcps"
+    return get_max_home() / "optional-mcps"
 
 
 def get_bundled_skills_dir(default: Path | None = None) -> Path:
     """Return the bundled skills directory for source and packaged installs.
 
     Resolution order:
-        1. ``HERMES_BUNDLED_SKILLS`` env var (Nix wrapper / explicit override)
+        1. ``MAX_BUNDLED_SKILLS`` env var (Nix wrapper / explicit override)
         2. Caller-supplied ``default`` (typically the source-checkout path)
-        3. ``<HERMES_HOME>/skills`` last-resort
+        3. ``<MAX_HOME>/skills`` last-resort
     """
-    override = os.getenv("HERMES_BUNDLED_SKILLS", "").strip()
+    override = os.getenv("MAX_BUNDLED_SKILLS", "").strip()
     if override:
         return Path(override)
     if default is not None:
         return default
-    return get_hermes_home() / "skills"
+    return get_max_home() / "skills"
 
 
 def get_hermes_dir(
@@ -387,7 +387,7 @@ def get_hermes_dir(
     *,
     home: Path | None = None,
 ) -> Path:
-    """Resolve a Hermes subdirectory with backward compatibility.
+    """Resolve a Max subdirectory with backward compatibility.
 
     New installs get the consolidated layout (e.g. ``cache/images``).
     Existing installs that already have the old path (e.g. ``image_cache``)
@@ -402,17 +402,17 @@ def get_hermes_dir(
     ``platforms/pairing/``.
 
     Args:
-        new_subpath: Preferred path relative to HERMES_HOME (e.g. ``"cache/images"``).
-        old_name: Legacy path relative to HERMES_HOME (e.g. ``"image_cache"``).
-        home: Optional explicit Hermes home. Profile-aware callers that manage
+        new_subpath: Preferred path relative to MAX_HOME (e.g. ``"cache/images"``).
+        old_name: Legacy path relative to MAX_HOME (e.g. ``"image_cache"``).
+        home: Optional explicit Max home. Profile-aware callers that manage
             more than one home in the same process use this instead of
-            temporarily mutating the process or context-local HERMES_HOME.
+            temporarily mutating the process or context-local MAX_HOME.
 
     Returns:
         Absolute ``Path`` — legacy location if it exists with content,
         otherwise the new location.
     """
-    home = home or get_hermes_home()
+    home = home or get_max_home()
     old_path = home / old_name
     if _legacy_path_has_content(old_path):
         return old_path
@@ -420,14 +420,14 @@ def get_hermes_dir(
 
 
 def iter_hermes_node_dirs(home: Path | None = None) -> list[Path]:
-    """Return Hermes-managed Node.js directories in preferred lookup order.
+    """Return Max-managed Node.js directories in preferred lookup order.
 
     Windows installs from ``scripts/install.ps1`` unpack portable Node directly
     into ``%LOCALAPPDATA%\\hermes\\node``. POSIX installs use
-    ``$HERMES_HOME/node/bin``. Include both shapes on every platform so mixed
+    ``$MAX_HOME/node/bin``. Include both shapes on every platform so mixed
     or migrated installs still work.
     """
-    root = home or get_hermes_home()
+    root = home or get_max_home()
     dirs = [root / "node"]
     bin_dir = root / "node" / "bin"
     # NOTE: keep this ordering in sync with hermesManagedNodePathEntries() in
@@ -454,11 +454,11 @@ def _candidate_node_command_names(command: str) -> list[str]:
     return [f"{base}.cmd", f"{base}.exe", base]
 
 
-_HERMES_NODE_TARGET_MAJOR = int(os.environ.get("HERMES_NODE_TARGET_MAJOR", "22"))
+_MAX_NODE_TARGET_MAJOR = int(os.environ.get("MAX_NODE_TARGET_MAJOR", "22"))
 _managed_node_heal_attempted = False
 _NODE_BOOTSTRAP_SCRIPT = Path(__file__).resolve().parent / "scripts" / "lib" / "node-bootstrap.sh"
 
-# Install tree root (this file lives at <install_root>/hermes_constants.py).
+# Install tree root (this file lives at <install_root>/max_constants.py).
 # Used by secure_parent_dir() to skip chmod on the install dir — chmodding it
 # 0700 breaks hermes-user traversal in Docker (UID 10000). See #25821, #93050.
 _INSTALL_ROOT = Path(__file__).resolve().parent
@@ -467,11 +467,11 @@ _INSTALL_ROOT = Path(__file__).resolve().parent
 def node_tool_runnable(path: str | None) -> bool:
     """Return True only when *path* is a Node/npm/npx binary that actually runs.
 
-    Hermes-managed Node trees live under ``$HERMES_HOME/node`` (or a profile's
-    ``HERMES_HOME``). A partial upgrade or interrupted install can leave
+    Max-managed Node trees live under ``$MAX_HOME/node`` (or a profile's
+    ``MAX_HOME``). A partial upgrade or interrupted install can leave
     ``bin/npm`` behind while ``lib/cli.js`` is missing — the wrapper exists but
     immediately throws ``MODULE_NOT_FOUND``. ``find_hermes_node_executable``
-    used to trust file presence alone, so ``hermes update`` would pick that
+    used to trust file presence alone, so ``max update`` would pick that
     broken npm and fail the Node refresh / web UI build.
 
     Probe with ``--version`` (same pattern as :func:`agent_browser_runnable`) so
@@ -489,7 +489,7 @@ def node_tool_runnable(path: str | None) -> bool:
     import subprocess
 
     try:
-        from hermes_cli._subprocess_compat import windows_hide_flags
+        from max_cli._subprocess_compat import windows_hide_flags
 
         result = subprocess.run(
             [path, "--version"],
@@ -504,7 +504,7 @@ def node_tool_runnable(path: str | None) -> bool:
 
 
 def hermes_managed_node_tree_present(home: Path | None = None) -> bool:
-    """Return True when any Hermes-managed node/npm/npx shim exists on disk."""
+    """Return True when any Max-managed node/npm/npx shim exists on disk."""
     names = set()
     for command in ("node", "npm", "npx"):
         names.update(_candidate_node_command_names(command))
@@ -542,7 +542,7 @@ def managed_node_tree_in_use(home: Path | None = None) -> bool:
 
     Windows locks executables and loaded scripts against deletion or
     overwrite while a process runs them, so the updater must not rewrite
-    ``%HERMES_HOME%\\node`` while the desktop app's Node processes hold it —
+    ``%MAX_HOME%\\node`` while the desktop app's Node processes hold it —
     ``PermissionError: [WinError 5]`` on ``npm.cmd`` is the classic symptom
     (#80926). Always ``False`` on POSIX, which has no equivalent lock
     semantics.
@@ -598,14 +598,14 @@ def _print_managed_node_in_use_notice() -> None:
         return
     _managed_node_in_use_notice_printed = True
     print(
-        "→ Hermes-managed Node.js is in use by a running app; deferring its "
-        "upgrade until the app is closed (re-run `hermes update` afterwards).",
+        "→ Max-managed Node.js is in use by a running app; deferring its "
+        "upgrade until the app is closed (re-run `max update` afterwards).",
         flush=True,
     )
 
 
 def _heal_managed_node_windows(home: Path | None = None) -> bool | None:
-    """Redownload the portable Node zip into ``%HERMES_HOME%\\node`` on Windows.
+    """Redownload the portable Node zip into ``%MAX_HOME%\\node`` on Windows.
 
     Returns ``True`` on success, ``False`` on a genuine failure (offline,
     download error, bad archive), and ``None`` when the tree is in use and the
@@ -640,7 +640,7 @@ def _heal_managed_node_windows(home: Path | None = None) -> bool | None:
     else:
         return False
 
-    home = home or get_hermes_home()
+    home = home or get_max_home()
     target = home / "node"
 
     # Cheap pre-check: skip the download and staging work when the tree is
@@ -669,7 +669,7 @@ def _heal_managed_node_windows(home: Path | None = None) -> bool | None:
         except OSError:
             continue
 
-    index_url = f"https://nodejs.org/dist/latest-v{_HERMES_NODE_TARGET_MAJOR}.x/"
+    index_url = f"https://nodejs.org/dist/latest-v{_MAX_NODE_TARGET_MAJOR}.x/"
     try:
         with urllib.request.urlopen(index_url, timeout=60) as response:
             index_html = response.read().decode("utf-8", errors="replace")
@@ -677,7 +677,7 @@ def _heal_managed_node_windows(home: Path | None = None) -> bool | None:
         return False
 
     match = re.search(
-        rf"node-v{_HERMES_NODE_TARGET_MAJOR}\.\d+\.\d+-win-{node_arch}\.zip",
+        rf"node-v{_MAX_NODE_TARGET_MAJOR}\.\d+\.\d+-win-{node_arch}\.zip",
         index_html,
     )
     if not match:
@@ -755,12 +755,12 @@ def _heal_managed_node_windows(home: Path | None = None) -> bool | None:
 
 
 def _bootstrap_managed_node_posix() -> bool:
-    """Install a fresh managed Node under ``$HERMES_HOME/node`` on POSIX.
+    """Install a fresh managed Node under ``$MAX_HOME/node`` on POSIX.
 
     Shells out to ``_nb_install_bundled_node`` in ``scripts/lib/node-bootstrap.sh``
     (the same pinned-nodejs.org path ``install.sh`` uses), so the resulting
     tree matches what a normal install would have produced. Runs with
-    ``HERMES_NODE_SKIP_LINKS=1`` so the user's own node/npm on PATH is not
+    ``MAX_NODE_SKIP_LINKS=1`` so the user's own node/npm on PATH is not
     shadowed by ``~/.local/bin`` symlinks.
     """
     if not _NODE_BOOTSTRAP_SCRIPT.is_file():
@@ -777,11 +777,11 @@ def _bootstrap_managed_node_posix() -> bool:
             ],
             env={
                 **os.environ,
-                "HERMES_HOME": str(get_hermes_home()),
+                "MAX_HOME": str(get_max_home()),
                 # Private provisioning: do not symlink node/npm/npx into
                 # ~/.local/bin — the user has their own toolchain on PATH and
                 # this tree must not shadow it.
-                "HERMES_NODE_SKIP_LINKS": "1",
+                "MAX_NODE_SKIP_LINKS": "1",
             },
             capture_output=True,
             timeout=600,
@@ -793,12 +793,12 @@ def _bootstrap_managed_node_posix() -> bool:
 
 
 def bootstrap_hermes_managed_node() -> str | None:
-    """Install a Hermes-managed Node tree and return its npm path.
+    """Install a Max-managed Node tree and return its npm path.
 
     Used when the only Node/npm on the machine belongs to the user (system,
     nvm, brew, Nix) and cannot satisfy the repo's ``engines`` requirements —
-    Hermes never modifies a toolchain it does not own, so instead it provisions
-    its own tree under ``$HERMES_HOME/node`` (the same tree a fresh install
+    Max never modifies a toolchain it does not own, so instead it provisions
+    its own tree under ``$MAX_HOME/node`` (the same tree a fresh install
     creates) and works with that.
 
     Returns the managed npm executable path on success, ``None`` on failure.
@@ -829,7 +829,7 @@ def bootstrap_hermes_managed_node() -> str | None:
 
 
 def heal_hermes_managed_node() -> bool:
-    """Redownload Hermes-managed Node when the tree exists but is broken.
+    """Redownload Max-managed Node when the tree exists but is broken.
 
     Runs at most once per process. POSIX installs shell out to
     ``heal_managed_node`` in ``scripts/lib/node-bootstrap.sh``; Windows
@@ -867,7 +867,7 @@ def heal_hermes_managed_node() -> bool:
                 "-c",
                 f'source "{_NODE_BOOTSTRAP_SCRIPT}" && heal_managed_node',
             ],
-            env={**os.environ, "HERMES_HOME": str(get_hermes_home())},
+            env={**os.environ, "MAX_HOME": str(get_max_home())},
             capture_output=True,
             timeout=300,
             check=False,
@@ -883,7 +883,7 @@ def _managed_node_tree_outdated(home: Path | None = None) -> bool:
     An outdated managed Node (e.g. a 22 tree from an older install) heals the
     same way a broken one does: :func:`find_hermes_node_executable` triggers
     the once-per-process heal, which redownloads
-    ``latest-v{_HERMES_NODE_TARGET_MAJOR}.x`` — so existing users are upgraded
+    ``latest-v{_MAX_NODE_TARGET_MAJOR}.x`` — so existing users are upgraded
     on next launch, not just on the next installer re-run. Mirrors
     ``_nb_managed_node_outdated`` in ``scripts/lib/node-bootstrap.sh``.
     """
@@ -897,7 +897,7 @@ def _managed_node_tree_outdated(home: Path | None = None) -> bool:
             ):
                 continue
             try:
-                from hermes_cli._subprocess_compat import windows_hide_flags
+                from max_cli._subprocess_compat import windows_hide_flags
 
                 result = subprocess.run(
                     [str(candidate), "--version"],
@@ -908,14 +908,14 @@ def _managed_node_tree_outdated(home: Path | None = None) -> bool:
                 major = int(result.stdout.decode().strip().lstrip("v").split(".")[0])
             except (OSError, subprocess.TimeoutExpired, ValueError, IndexError):
                 return False  # broken, not outdated — the runnable probe handles it
-            return major < _HERMES_NODE_TARGET_MAJOR
+            return major < _MAX_NODE_TARGET_MAJOR
     return False
 
 
 def find_hermes_node_executable(command: str) -> str | None:
-    """Return a Hermes-managed Node/npm executable path, healing broken trees.
+    """Return a Max-managed Node/npm executable path, healing broken trees.
 
-    Outdated trees (node major below ``_HERMES_NODE_TARGET_MAJOR``) heal the
+    Outdated trees (node major below ``_MAX_NODE_TARGET_MAJOR``) heal the
     same way broken ones do — the once-per-process heal redownloads the target
     major, upgrading existing users on next launch rather than next reinstall.
     When the heal fails (offline, download error), an outdated-but-runnable
@@ -953,7 +953,7 @@ def find_node_executable_on_path(command: str) -> str | None:
 
     ``shutil.which("npm")`` can resolve an extensionless npm shim before the
     ``.cmd`` shim on Windows. Python's CreateProcess cannot execute that shim
-    directly, so prefer the launchable variants explicitly for Hermes-owned
+    directly, so prefer the launchable variants explicitly for Max-owned
     subprocesses.
     """
     if sys.platform != "win32":
@@ -977,9 +977,9 @@ def find_node_executable_on_path(command: str) -> str | None:
 
 
 def find_node_executable(command: str) -> str | None:
-    """Resolve a Node.js command, preferring healthy Hermes-managed installs.
+    """Resolve a Node.js command, preferring healthy Max-managed installs.
 
-    This is for Hermes-owned subprocesses that should not be broken by a bad,
+    This is for Max-owned subprocesses that should not be broken by a bad,
     missing, or elevation-triggering system Node/npm on PATH. When a managed
     tree exists but cannot be healed, returns ``None`` instead of falling back
     to system npm on PATH.
@@ -993,7 +993,7 @@ def find_node_executable(command: str) -> str | None:
 
 
 def with_hermes_node_path(env: dict[str, str] | None = None) -> dict[str, str]:
-    """Return *env* with Hermes-managed Node directories prepended to PATH."""
+    """Return *env* with Max-managed Node directories prepended to PATH."""
     merged = dict(os.environ if env is None else env)
     existing = merged.get("PATH", "")
     parts = [p for p in existing.split(os.pathsep) if p]
@@ -1012,7 +1012,7 @@ def agent_browser_runnable(path: str | None) -> bool:
     agent-browser's npm ``postinstall`` re-points a *global* install symlink
     (e.g. ``/opt/homebrew/bin/agent-browser``) at our local
     ``node_modules/agent-browser/bin/...`` binary, which then disappears on the
-    next ``hermes update`` — leaving a **dangling symlink** that ``which`` still
+    next ``max update`` — leaving a **dangling symlink** that ``which`` still
     reports but exec fails on with exit 127 (issue #48521). Callers that trust
     such a path silently break every browser tool.
 
@@ -1039,7 +1039,7 @@ def agent_browser_runnable(path: str | None) -> bool:
     import subprocess
 
     try:
-        from hermes_cli._subprocess_compat import windows_hide_flags
+        from max_cli._subprocess_compat import windows_hide_flags
 
         result = subprocess.run(
             [path, "--version"],
@@ -1102,20 +1102,20 @@ def _legacy_path_has_content(path: Path) -> bool:
     return True
 
 
-def display_hermes_home() -> str:
-    """Return a user-friendly display string for the current HERMES_HOME.
+def display_max_home() -> str:
+    """Return a user-friendly display string for the current MAX_HOME.
 
     Uses ``~/`` shorthand for readability::
 
-        default:  ``~/.hermes``
-        profile:  ``~/.hermes/profiles/coder``
-        custom:   ``/opt/hermes-custom``
+        default:  ``~/.max``
+        profile:  ``~/.max/profiles/coder``
+        custom:   ``/opt/max-custom``
 
     Use this in **user-facing** print/log messages instead of hardcoding
-    ``~/.hermes``.  For code that needs a real ``Path``, use
-    :func:`get_hermes_home` instead.
+    ``~/.max``.  For code that needs a real ``Path``, use
+    :func:`get_max_home` instead.
     """
-    home = get_hermes_home()
+    home = get_max_home()
     try:
         # as_posix(): on Windows, str() of a relative Path renders
         # backslashes, producing mixed-separator chimeras like
@@ -1133,16 +1133,16 @@ def secure_parent_dir(path: Path) -> None:
 
     Refuses to chmod ``/`` or any top-level directory (resolved parent with
     fewer than 3 parts, i.e. ``/`` or any direct child like ``/usr``) to
-    prevent catastrophic host bricking when ``HERMES_HOME`` or other path
+    prevent catastrophic host bricking when ``MAX_HOME`` or other path
     env vars resolve to an unexpected location.
 
-    Also refuses to chmod the hermes-agent install tree (the directory this
+    Also refuses to chmod the max-agent install tree (the directory this
     module lives in, and anything below it): restricting the install dir to
     0700 locks the runtime user out of traversing it when it does not own
     the dir, as in the Docker image. A warning is logged when this happens.
 
-    See https://github.com/NousResearch/hermes-agent/issues/25821 and
-    https://github.com/NousResearch/hermes-agent/pull/93050.
+    See https://github.com/NousResearch/max-agent/issues/25821 and
+    https://github.com/NousResearch/max-agent/pull/93050.
     """
     parent = path.parent.resolve()
     # Refuse root and its direct children (/usr, /home, /var, /tmp, …).
@@ -1152,7 +1152,7 @@ def secure_parent_dir(path: Path) -> None:
     # traversal in Docker (UID 10000) and any other install where the
     # runtime user doesn't own the install dir. See #25821, #93050.
     if parent == _INSTALL_ROOT or _INSTALL_ROOT in parent.parents:
-        # A credential file inside the install tree usually means HERMES_HOME
+        # A credential file inside the install tree usually means MAX_HOME
         # resolved somewhere unexpected — surface it instead of skipping
         # silently, since this same misconfiguration previously caused
         # production lockouts.
@@ -1160,8 +1160,8 @@ def secure_parent_dir(path: Path) -> None:
 
         logging.getLogger(__name__).warning(
             "Not restricting permissions on %s: it is inside the "
-            "hermes-agent install directory (%s). Credential files are "
-            "normally stored under the hermes home directory instead.",
+            "max-agent install directory (%s). Credential files are "
+            "normally stored under the max home directory instead.",
             parent,
             _INSTALL_ROOT,
         )
@@ -1184,8 +1184,8 @@ def _norm_home_path(path: str | None) -> str:
 
 
 def _profile_home_path(env: dict[str, str] | None = None) -> str | None:
-    """Return ``{HERMES_HOME}/home`` when the profile-home directory exists."""
-    hermes_home = get_hermes_home_override() or (env or {}).get("HERMES_HOME") or os.getenv("HERMES_HOME")
+    """Return ``{MAX_HOME}/home`` when the profile-home directory exists."""
+    hermes_home = get_max_home_override() or (env or {}).get("MAX_HOME") or os.getenv("MAX_HOME")
     if not hermes_home:
         return None
     profile_home = os.path.join(hermes_home, "home")
@@ -1202,7 +1202,7 @@ def _iter_real_home_candidates(env: dict[str, str] | None = None) -> list[str]:
     """Return likely OS-user home candidates in trust order."""
     env = env or {}
     candidates: list[str] = []
-    explicit = str(env.get("HERMES_REAL_HOME") or os.getenv("HERMES_REAL_HOME", "")).strip()
+    explicit = str(env.get("MAX_REAL_HOME") or os.getenv("MAX_REAL_HOME", "")).strip()
     if explicit:
         candidates.append(explicit)
     home = str(env.get("HOME") or os.getenv("HOME", "")).strip()
@@ -1230,11 +1230,11 @@ def _iter_real_home_candidates(env: dict[str, str] | None = None) -> list[str]:
 
 
 def get_real_home(env: dict[str, str] | None = None) -> str:
-    """Return the OS user's real home directory, avoiding Hermes profile HOME.
+    """Return the OS user's real home directory, avoiding Max profile HOME.
 
-    ``HERMES_HOME`` scopes Hermes state. ``HOME`` is reserved for the OS/user
+    ``MAX_HOME`` scopes Max state. ``HOME`` is reserved for the OS/user
     account and the many external CLIs that store credentials under ``~``.
-    If a parent process is already running with ``HOME={HERMES_HOME}/home``,
+    If a parent process is already running with ``HOME={MAX_HOME}/home``,
     this helper repairs back to the account home when possible.
     """
     profile_home = _profile_home_path(env)
@@ -1256,10 +1256,10 @@ def get_subprocess_home(env: dict[str, str] | None = None) -> str | None:
     ``TERMINAL_HOME_MODE``):
 
     * ``auto`` (default): host installs keep the real user HOME; containers use
-      ``{HERMES_HOME}/home`` for persistent state. If a host parent already has
+      ``{MAX_HOME}/home`` for persistent state. If a host parent already has
       HOME pointed at the profile home, repair subprocesses back to real HOME.
     * ``real``: always prefer the real OS-user HOME.
-    * ``profile``: use ``{HERMES_HOME}/home`` when it exists, preserving the
+    * ``profile``: use ``{MAX_HOME}/home`` when it exists, preserving the
       older strict per-profile tool-config isolation.
     """
     env = env or {}
@@ -1286,10 +1286,10 @@ def get_subprocess_home(env: dict[str, str] | None = None) -> str | None:
 
 
 def apply_subprocess_home_env(env: dict[str, str]) -> None:
-    """Apply Hermes' subprocess HOME contract to *env* in-place."""
+    """Apply Max' subprocess HOME contract to *env* in-place."""
     real_home = get_real_home(env)
     if real_home:
-        env["HERMES_REAL_HOME"] = real_home
+        env["MAX_REAL_HOME"] = real_home
     home = get_subprocess_home(env)
     if home:
         env["HOME"] = home
@@ -1570,7 +1570,7 @@ def wsl_unc_path_to_posix(path: str) -> str | None:
 
 
 def translate_cwd_for_wsl_backend(cwd: str) -> str:
-    """Normalize a cross-boundary cwd when Hermes itself runs inside WSL.
+    """Normalize a cross-boundary cwd when Max itself runs inside WSL.
 
     A Windows-host UI (native picker / drive path / ``\\\\wsl.localhost\\`` UNC)
     can hand the WSL backend a path it can't ``chdir`` into. Map it to the POSIX
@@ -1604,7 +1604,7 @@ def is_container() -> bool:
 
     Result is cached for the process lifetime.  Import-safe — no heavy deps.
 
-    See: NousResearch/hermes-agent#47111
+    See: NousResearch/max-agent#47111
     """
     global _container_detected
     if _container_detected is not None:
@@ -1647,23 +1647,23 @@ def is_container() -> bool:
 
 
 def get_config_path() -> Path:
-    """Return the path to ``config.yaml`` under HERMES_HOME.
+    """Return the path to ``config.yaml`` under MAX_HOME.
 
-    Replaces the ``get_hermes_home() / "config.yaml"`` pattern repeated
-    in 7+ files (skill_utils.py, hermes_logging.py, hermes_time.py, etc.).
+    Replaces the ``get_max_home() / "config.yaml"`` pattern repeated
+    in 7+ files (skill_utils.py, max_logging.py, max_time.py, etc.).
     """
-    return get_hermes_home() / "config.yaml"
+    return get_max_home() / "config.yaml"
 
 
 def get_skills_dir() -> Path:
-    """Return the path to the skills directory under HERMES_HOME."""
-    return get_hermes_home() / "skills"
+    """Return the path to the skills directory under MAX_HOME."""
+    return get_max_home() / "skills"
 
 
 
 def get_env_path() -> Path:
-    """Return the path to the ``.env`` file under HERMES_HOME."""
-    return get_hermes_home() / ".env"
+    """Return the path to the ``.env`` file under MAX_HOME."""
+    return get_max_home() / ".env"
 
 
 # ─── Network Preferences ─────────────────────────────────────────────────────
@@ -1731,17 +1731,17 @@ def venv_bin_dir(venv_dir, *, windows: bool | None = None) -> Path:
     """Directory holding a venv's executables (``Scripts`` / ``bin``).
 
     Canonical helper for venv layout. This was open-coded in seven places
-    across four ``hermes_cli`` modules using three different Windows
+    across four ``max_cli`` modules using three different Windows
     predicates (``platform.system()``, ``is_windows()``, ``_is_windows()``);
     each new call site had to re-derive it, and #76091 shipped an eighth copy
     because the correct behaviour lived 2400 lines away in another function.
-    A few sites outside ``hermes_cli`` (``tools/code_execution_tool.py``,
+    A few sites outside ``max_cli`` (``tools/code_execution_tool.py``,
     ``agent/lsp/install.py``, ``agent/lsp/servers.py``) still hand-roll it —
     convert them as they are touched.
 
     *windows* lets a caller pass its own platform verdict. Several callers
     resolve this through predicates the test-suite patches to exercise
-    Windows paths on Linux CI (``hermes_cli.main._is_windows`` and friends);
+    Windows paths on Linux CI (``max_cli.main._is_windows`` and friends);
     reading ``sys.platform`` unconditionally here would silently drop those
     paths out of coverage. Defaults to the host platform.
 
@@ -1780,10 +1780,10 @@ def venv_python_path(venv_dir, *, windows: bool | None = None) -> Path:
 
 # ─── Partial-update diagnostics ──────────────────────────────────────────────
 
-# Top-level packages/modules that ship as part of Hermes itself. An ImportError
+# Top-level packages/modules that ship as part of Max itself. An ImportError
 # naming one of these means our own tree is inconsistent; anything else is a
 # third-party problem with different remediation. Single source of truth —
-# `hermes_cli.update_cmd`'s post-update probe consumes this same set so the
+# `max_cli.update_cmd`'s post-update probe consumes this same set so the
 # guard that BLOCKS and the hint that EXPLAINS can never disagree.
 FIRST_PARTY_MODULE_ROOTS = frozenset(
     {
@@ -1805,7 +1805,7 @@ FIRST_PARTY_MODULE_ROOTS = frozenset(
 
 
 def is_first_party_module(name: str | None) -> bool:
-    """True when *name* is a module that ships with Hermes.
+    """True when *name* is a module that ships with Max.
 
     Matches on the first dotted segment against an exact set — a substring or
     ``startswith`` test would also claim third-party ``agents``, ``agentops``,
@@ -1827,7 +1827,7 @@ def partial_update_hint(exc: BaseException) -> list[str]:
     ``ImportError: cannot import name 'X' from 'y'`` on every startup.
 
     Users hit this as an opaque crash with no indication that the *install*,
-    rather than their config, is the problem — and `hermes update` is exactly
+    rather than their config, is the problem — and `max update` is exactly
     the command they need but are least likely to trust after a failed update.
     Return the guidance so callers can print it alongside the raw error.
 
@@ -1848,6 +1848,6 @@ def partial_update_hint(exc: BaseException) -> list[str]:
         "This looks like a partially-updated install: one module was refreshed "
         "and a related one was not.",
         "Re-run the update to bring the whole tree to the same version:",
-        "    hermes update",
-        "If that also fails, reinstall: https://hermes-agent.nousresearch.com",
+        "    max update",
+        "If that also fails, reinstall: https://max-agent.stardustresearch.com",
     ]

@@ -16,8 +16,8 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli import main as hermes_main
-from hermes_cli import update_cmd
+from max_cli import main as hermes_main
+from max_cli import update_cmd
 
 
 def _cpe(cmd, returncode=2, stderr="", stdout="") -> subprocess.CalledProcessError:
@@ -124,7 +124,7 @@ def test_zip_overlay_allowed_without_git(tmp_path):
 def test_zip_overlay_blocked_on_modified_file(tmp_path, monkeypatch):
     (tmp_path / ".git").mkdir()
     monkeypatch.setattr(
-        update_cmd.subprocess, "run", _porcelain_run(" M hermes_cli/update_cmd.py\n")
+        update_cmd.subprocess, "run", _porcelain_run(" M max_cli/update_cmd.py\n")
     )
     reason = update_cmd._zip_overlay_block_reason(tmp_path)
     assert reason is not None
@@ -211,14 +211,14 @@ def test_status_uses_untracked_files_all(tmp_path, monkeypatch):
 
 def test_staging_artifact_lines_are_recognized():
     is_artifact = update_cmd._is_zip_staging_artifact_status_line
-    assert is_artifact("?? agent.hermes-update-staging/")
-    assert is_artifact("?? cli.py.hermes-update-staging")
-    assert is_artifact("?? tools.hermes-update-old/")
+    assert is_artifact("?? agent.max-update-staging/")
+    assert is_artifact("?? cli.py.max-update-staging")
+    assert is_artifact("?? tools.max-update-old/")
     # Nested user files under a staging-lookalike directory don't match the
     # top-level test only when the TOP level itself is not an artifact.
     assert not is_artifact("?? agent/scratch/wip.py")
-    assert not is_artifact(" M hermes_cli/update_cmd.py")
-    assert not is_artifact("?? notes.hermes-update-staging.txt")
+    assert not is_artifact(" M max_cli/update_cmd.py")
+    assert not is_artifact("?? notes.max-update-staging.txt")
 
 
 def test_recheck_ignores_own_staging_artifacts(tmp_path, monkeypatch):
@@ -226,7 +226,7 @@ def test_recheck_ignores_own_staging_artifacts(tmp_path, monkeypatch):
     monkeypatch.setattr(
         update_cmd.subprocess,
         "run",
-        _porcelain_run("?? agent.hermes-update-staging/\n?? cli.py.hermes-update-old\n"),
+        _porcelain_run("?? agent.max-update-staging/\n?? cli.py.max-update-old\n"),
     )
     assert (
         update_cmd._zip_overlay_block_reason(tmp_path, ignore_staging_artifacts=True)
@@ -241,7 +241,7 @@ def test_recheck_still_blocks_user_files_amid_staging_artifacts(tmp_path, monkey
     monkeypatch.setattr(
         update_cmd.subprocess,
         "run",
-        _porcelain_run("?? agent.hermes-update-staging/\n?? my-notes.md\n"),
+        _porcelain_run("?? agent.max-update-staging/\n?? my-notes.md\n"),
     )
     reason = update_cmd._zip_overlay_block_reason(
         tmp_path, ignore_staging_artifacts=True

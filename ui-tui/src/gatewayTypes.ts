@@ -1,11 +1,11 @@
 import type { BillingBlock, UsageModelData } from '@hermes/shared/billing'
-import type { HermesSkin } from '@hermes/shared/skin'
+import type { MaxSkin } from '@hermes/shared/skin'
 
 import type { SessionInfo, SlashCategory, SubagentStatus, Usage } from './types.js'
 
 /** The cross-surface skin contract (canonical shape in `@hermes/shared`).
  *  Includes the paired light_colors/dark_colors overlays from #20379. */
-export type GatewaySkin = HermesSkin
+export type GatewaySkin = MaxSkin
 
 export interface GatewayCompletionItem {
   display: string

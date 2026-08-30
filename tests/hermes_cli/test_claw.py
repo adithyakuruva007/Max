@@ -1,4 +1,4 @@
-"""Tests for hermes claw commands."""
+"""Tests for max claw commands."""
 
 from argparse import Namespace
 import subprocess
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hermes_cli import claw as claw_mod
+from max_cli import claw as claw_mod
 
 
 # ---------------------------------------------------------------------------
@@ -324,8 +324,8 @@ class TestPrintMigrationReport:
         report = {
             "summary": {"migrated": 2, "skipped": 1, "conflict": 1, "error": 0},
             "items": [
-                {"kind": "soul", "status": "migrated", "destination": "/home/user/.hermes/SOUL.md"},
-                {"kind": "memory", "status": "migrated", "destination": "/home/user/.hermes/memories/MEMORY.md"},
+                {"kind": "soul", "status": "migrated", "destination": "/home/user/.max/SOUL.md"},
+                {"kind": "memory", "status": "migrated", "destination": "/home/user/.max/memories/MEMORY.md"},
                 {"kind": "skills", "status": "conflict", "reason": "already exists"},
                 {"kind": "tts-assets", "status": "skipped", "reason": "not found"},
             ],

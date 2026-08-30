@@ -1,12 +1,12 @@
 from pathlib import Path
 from types import SimpleNamespace
 
-from hermes_cli import uninstall
+from max_cli import uninstall
 
 
 def test_dry_run_prints_plan_without_mutating(monkeypatch, tmp_path, capsys):
-    project_root = tmp_path / "hermes-agent"
-    hermes_home = tmp_path / ".hermes"
+    project_root = tmp_path / "max-agent"
+    hermes_home = tmp_path / ".max"
     project_root.mkdir()
     hermes_home.mkdir()
     (hermes_home / "config.yaml").write_text("model: {}\n")
@@ -18,7 +18,7 @@ def test_dry_run_prints_plan_without_mutating(monkeypatch, tmp_path, capsys):
         called = True
 
     monkeypatch.setattr(uninstall, "get_project_root", lambda: project_root)
-    monkeypatch.setattr(uninstall, "get_hermes_home", lambda: hermes_home)
+    monkeypatch.setattr(uninstall, "get_max_home", lambda: hermes_home)
     monkeypatch.setattr(uninstall, "_is_default_hermes_home", lambda home: False)
     monkeypatch.setattr(uninstall, "_discover_named_profiles", lambda: [])
     monkeypatch.setattr(uninstall, "_perform_uninstall", _fail_if_called)
@@ -36,7 +36,7 @@ def test_dry_run_prints_plan_without_mutating(monkeypatch, tmp_path, capsys):
 
 def test_build_uninstall_parser_accepts_dry_run():
     import argparse
-    from hermes_cli.subcommands.uninstall import build_uninstall_parser
+    from max_cli.subcommands.uninstall import build_uninstall_parser
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")

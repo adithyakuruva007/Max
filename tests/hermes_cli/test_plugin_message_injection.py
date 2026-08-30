@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 
-from hermes_cli.plugins import PluginContext, PluginManager, PluginManifest
+from max_cli.plugins import PluginContext, PluginManager, PluginManifest
 
 
 def _context(name: str = "notify-plugin") -> tuple[PluginContext, PluginManager]:
@@ -21,7 +21,7 @@ def _write_plugin_config(tmp_path, monkeypatch, entry: dict) -> None:
     (hermes_home / "config.yaml").write_text(
         yaml.safe_dump({"plugins": {"entries": {"notify-plugin": entry}}})
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
 
 def test_cli_idle_injection_keeps_existing_queue_behaviour():
@@ -108,7 +108,7 @@ def test_gateway_injection_fails_closed_when_config_cannot_be_read():
     manager.set_gateway_message_injector(object(), injector)
 
     with patch(
-        "hermes_cli.plugins.load_config_readonly",
+        "max_cli.plugins.load_config_readonly",
         side_effect=OSError("config unavailable"),
     ):
         assert (

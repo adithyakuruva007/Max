@@ -1,6 +1,6 @@
 """Tests for the Windows half-updated-venv hardening (July 2026 incident).
 
-Covers three additions to ``hermes update``:
+Covers three additions to ``max update``:
 
 1. ``_venv_core_imports_healthy`` — the venv health probe that lets an
    "Already up to date" checkout still repair a broken dependency install.
@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hermes_cli import main as cli_main
+from max_cli import main as cli_main
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +132,7 @@ def _run_update_until_guard(args):
     ), patch.object(
         cli_main,
         "_detect_venv_python_processes",
-        return_value=[(101, "python.exe", "python.exe -m hermes_cli.main serve")],
+        return_value=[(101, "python.exe", "python.exe -m max_cli.main serve")],
     ), patch.object(
         # Pin the orphan classifier: this test exercises --force/--force-venv
         # gating, not orphan detection (covered in

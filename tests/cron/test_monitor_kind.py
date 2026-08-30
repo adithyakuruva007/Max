@@ -30,18 +30,18 @@ import pytest
 
 @pytest.fixture
 def hermes_env(tmp_path, monkeypatch):
-    """Isolate HERMES_HOME for each test so jobs/scripts/snapshots don't leak."""
-    home = tmp_path / ".hermes"
+    """Isolate MAX_HOME for each test so jobs/scripts/snapshots don't leak."""
+    home = tmp_path / ".max"
     home.mkdir()
     (home / "scripts").mkdir()
     (home / "cron").mkdir()
 
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
 
-    # Reload modules that cache get_hermes_home() at import time.
+    # Reload modules that cache get_max_home() at import time.
     import importlib
-    import hermes_constants
-    importlib.reload(hermes_constants)
+    import max_constants
+    importlib.reload(max_constants)
     import cron.jobs
     importlib.reload(cron.jobs)
     import cron.monitor
@@ -85,7 +85,7 @@ def _install_agent_stubs(monkeypatch, observed: dict):
     fake_mod.AIAgent = FakeAgent
     monkeypatch.setitem(sys.modules, "run_agent", fake_mod)
 
-    from hermes_cli import runtime_provider as _rtp
+    from max_cli import runtime_provider as _rtp
     monkeypatch.setattr(
         _rtp,
         "resolve_runtime_provider",
@@ -100,7 +100,7 @@ def _install_agent_stubs(monkeypatch, observed: dict):
     monkeypatch.setattr(sched, "_resolve_origin", lambda job: None)
     monkeypatch.setattr(sched, "_resolve_delivery_target", lambda job: None)
     monkeypatch.setattr(sched, "_resolve_cron_enabled_toolsets", lambda job, cfg: None)
-    monkeypatch.setenv("HERMES_CRON_TIMEOUT", "0")
+    monkeypatch.setenv("MAX_CRON_TIMEOUT", "0")
 
     import dotenv
     monkeypatch.setattr(dotenv, "load_dotenv", lambda *_a, **_kw: True)

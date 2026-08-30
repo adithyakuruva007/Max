@@ -14,8 +14,8 @@ import uuid
 from contextlib import contextmanager
 from typing import Any, Dict, Iterator, List, Optional
 
-from hermes_constants import get_hermes_home
-from hermes_time import now as _hermes_now
+from max_constants import get_max_home
+from max_time import now as _hermes_now
 
 # Optional test override. Production resolves the path at transaction time so
 # dashboard operations that temporarily enter another profile cannot leak that
@@ -30,13 +30,13 @@ _PROCESS_ID = uuid.uuid4().hex
 def _connect() -> sqlite3.Connection:
     from cron.jobs import _ensure_cron_dir
 
-    path = EXECUTIONS_FILE or (get_hermes_home().resolve() / "cron" / "executions.db")
+    path = EXECUTIONS_FILE or (get_max_home().resolve() / "cron" / "executions.db")
     _ensure_cron_dir(path.parent)
     return sqlite3.connect(path, timeout=5)
 
 
 def _initialize_schema(conn: sqlite3.Connection) -> None:
-    from hermes_state import apply_wal_with_fallback
+    from max_state import apply_wal_with_fallback
 
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA busy_timeout=5000")

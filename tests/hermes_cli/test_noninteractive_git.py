@@ -7,7 +7,7 @@ prompt is an indefinite hang (or a dead wait until the timeout).
 
 Two layers of coverage:
 
-1. Unit contract on :func:`hermes_cli._subprocess_compat.noninteractive_git_env`.
+1. Unit contract on :func:`max_cli._subprocess_compat.noninteractive_git_env`.
 2. A real-git E2E proving the env actually disables the prompt: a local HTTP
    server answers 401 with a Basic challenge; ``git clone`` against it with
    the hardened env fails *fast* with "terminal prompts disabled" instead of
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli._subprocess_compat import noninteractive_git_env
+from max_cli._subprocess_compat import noninteractive_git_env
 
 
 # ---------------------------------------------------------------------------
@@ -43,9 +43,9 @@ class TestNoninteractiveGitEnv:
         assert env["GCM_INTERACTIVE"] == "Never"
 
     def test_defaults_to_process_environ_copy(self, monkeypatch):
-        monkeypatch.setenv("HERMES_TEST_SENTINEL", "xyz")
+        monkeypatch.setenv("MAX_TEST_SENTINEL", "xyz")
         env = noninteractive_git_env()
-        assert env["HERMES_TEST_SENTINEL"] == "xyz"
+        assert env["MAX_TEST_SENTINEL"] == "xyz"
         assert env["GIT_TERMINAL_PROMPT"] == "0"
         # Never mutates the live process environment.
         assert os.environ.get("GIT_TERMINAL_PROMPT") != "0" or True
@@ -154,7 +154,7 @@ def _assert_noninteractive(call: dict):
 
 
 def test_mcp_catalog_git_install_runs_noninteractively(monkeypatch, tmp_path):
-    from hermes_cli import mcp_catalog
+    from max_cli import mcp_catalog
 
     calls = _capture_run(monkeypatch, mcp_catalog)
     monkeypatch.setattr(mcp_catalog.shutil, "which", lambda name: "/usr/bin/git")

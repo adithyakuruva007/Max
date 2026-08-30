@@ -5,7 +5,7 @@
  * maps, while this file owns the security-sensitive ordering and the remote
  * wire protocol:
  *
- *   gate dials -> drain every captured scope -> detached `hermes update`
+ *   gate dials -> drain every captured scope -> detached `max update`
  *   -> correlated terminal marker + durable receipt -> restore every scope
  *   -> lift the gate
  *
@@ -210,8 +210,8 @@ function windowsChildPath(home: string, name: string): string {
  */
 function buildPosixManagedUpdateLaunch(target: RemoteUpdateTarget, correlationId: string): string {
   const correlation = validateCorrelationId(correlationId)
-  const home = validateRemoteValue(target.hermesHome, 'Hermes home')
-  const hermesPath = validateRemoteValue(target.hermesPath, 'launcher path')
+  const home = validateRemoteValue(target.maxHome, 'Max home')
+  const hermesPath = validateRemoteValue(target.maxPath, 'launcher path')
   const statusPath = posixChildPath(home, `.update_exit_code.${correlation}`)
   const intentPath = posixChildPath(home, `.update_launch_intent.${correlation}`)
   const outputPath = posixChildPath(home, `logs/desktop-update-${correlation}.log`)
@@ -222,11 +222,11 @@ function buildPosixManagedUpdateLaunch(target: RemoteUpdateTarget, correlationId
   const launcherWord = expandRemotePath(hermesPath)
 
   const updateCommand =
-    `env HERMES_HOME=${homeWord} ` +
-    `HERMES_UPDATE_CORRELATION_ID=${shq(correlation)} ` +
-    'HERMES_UPDATE_ORIGIN_PROFILE=default ' +
-    `HERMES_UPDATE_ORIGIN_HOME=${homeWord} ` +
-    `HERMES_UPDATE_OUTPUT_PATH=${outputWord} ` +
+    `env MAX_HOME=${homeWord} ` +
+    `MAX_UPDATE_CORRELATION_ID=${shq(correlation)} ` +
+    'MAX_UPDATE_ORIGIN_PROFILE=default ' +
+    `MAX_UPDATE_ORIGIN_HOME=${homeWord} ` +
+    `MAX_UPDATE_OUTPUT_PATH=${outputWord} ` +
     `${launcherWord} update --yes`
 
   const inner =
@@ -255,8 +255,8 @@ function buildPosixManagedUpdateLaunch(target: RemoteUpdateTarget, correlationId
 /** Windows equivalent of buildPosixManagedUpdateLaunch. */
 function buildWindowsManagedUpdateLaunch(target: RemoteUpdateTarget, correlationId: string): string {
   const correlation = validateCorrelationId(correlationId)
-  const home = validateRemoteValue(target.hermesHome, 'Hermes home')
-  const hermesPath = validateRemoteValue(target.hermesPath, 'launcher path')
+  const home = validateRemoteValue(target.maxHome, 'Max home')
+  const hermesPath = validateRemoteValue(target.maxPath, 'launcher path')
   const statusPath = windowsChildPath(home, `.update_exit_code.${correlation}`)
   const readyPath = windowsChildPath(home, `.update_coordinator_ready.${correlation}`)
   const intentPath = windowsChildPath(home, `.update_launch_intent.${correlation}`)
@@ -264,16 +264,16 @@ function buildWindowsManagedUpdateLaunch(target: RemoteUpdateTarget, correlation
 
   const wrapper = [
     '$ErrorActionPreference="Continue"',
-    `$env:HERMES_HOME=${psLiteral(home)}`,
-    `$env:HERMES_UPDATE_CORRELATION_ID=${psLiteral(correlation)}`,
-    '$env:HERMES_UPDATE_ORIGIN_PROFILE="default"',
-    `$env:HERMES_UPDATE_ORIGIN_HOME=${psLiteral(home)}`,
-    `$env:HERMES_UPDATE_OUTPUT_PATH=${psLiteral(outputPath)}`,
+    `$env:MAX_HOME=${psLiteral(home)}`,
+    `$env:MAX_UPDATE_CORRELATION_ID=${psLiteral(correlation)}`,
+    '$env:MAX_UPDATE_ORIGIN_PROFILE="default"',
+    `$env:MAX_UPDATE_ORIGIN_HOME=${psLiteral(home)}`,
+    `$env:MAX_UPDATE_OUTPUT_PATH=${psLiteral(outputPath)}`,
     // The copied Windows coordinator verifies this correlation AND its actual
     // breakaway state before accepting it; the string alone grants nothing.
-    `$env:HERMES_UPDATE_WINDOWS_DETACHED=${psLiteral(correlation)}`,
-    `$env:HERMES_UPDATE_TAURI_OUTCOME_PATH=${psLiteral(statusPath)}`,
-    `$env:HERMES_UPDATE_TAURI_READY_PATH=${psLiteral(readyPath)}`,
+    `$env:MAX_UPDATE_WINDOWS_DETACHED=${psLiteral(correlation)}`,
+    `$env:MAX_UPDATE_TAURI_OUTCOME_PATH=${psLiteral(statusPath)}`,
+    `$env:MAX_UPDATE_TAURI_READY_PATH=${psLiteral(readyPath)}`,
     `$intentTmp=${psLiteral(intentPath)}+"."+$PID+".tmp"`,
     '$intentCreation="windows:"+[string]([Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().ToFileTimeUtc())',
     `$intentPayload=[ordered]@{correlation=${psLiteral(correlation)};pid=$PID;creation=$intentCreation}|ConvertTo-Json -Compress`,
@@ -322,7 +322,7 @@ correlation=sys.argv[2]
 profile_parent=home.parent.name
 is_profile_home=(profile_parent.lower()=='profiles') if os.name=='nt' else (profile_parent=='profiles')
 install_root=home.parent.parent if is_profile_home else home
-marker_path=install_root/'.hermes-update-in-progress'
+marker_path=install_root/'.max-update-in-progress'
 status_path=home/('.update_exit_code.'+correlation)
 ready_path=home/('.update_coordinator_ready.'+correlation)
 intent_path=home/('.update_launch_intent.'+correlation)
@@ -455,7 +455,7 @@ print(json.dumps({'marker':state['state'],'markerPid':state.get('pid'),'launchIn
 
 function buildRemoteUpdateObservationCommand(target: RemoteUpdateTarget, correlationId: string): string {
   const correlation = validateCorrelationId(correlationId)
-  const home = validateRemoteValue(target.hermesHome, 'Hermes home')
+  const home = validateRemoteValue(target.maxHome, 'Max home')
 
   if (target.platform === 'Windows') {
     const python = validateRemoteValue(target.pythonPath || '', 'Python path')
@@ -888,7 +888,7 @@ async function runManagedSshUpdate<TScope extends ManagedSshScope>(
     ...(error ? { error } : {}),
     message:
       outcome === 'updated'
-        ? 'Remote Hermes updated and every managed SSH profile is ready.'
+        ? 'Remote Max updated and every managed SSH profile is ready.'
         : restoreOk
           ? 'The remote update failed, but every managed SSH profile was restored.'
           : 'The remote update transaction could not restore every managed SSH profile.'

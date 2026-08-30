@@ -22,7 +22,7 @@ function createTempGitRepo() {
     git('init', '--quiet')
     git('config', 'commit.gpgSign', 'false')
     git('config', 'core.hooksPath', '.git/no-hooks')
-    git('config', 'user.name', 'Hermes Test')
+    git('config', 'user.name', 'Max Test')
     git('config', 'user.email', 'hermes@example.invalid')
 
     return { cwd, git }
@@ -261,22 +261,22 @@ test('compareApiUrl builds the GitHub compare URL for HTTPS origins', () => {
   assert.equal(
     compareApiUrl({
       currentSha: SHA_A,
-      originUrl: 'https://github.com/NousResearch/hermes-agent.git',
+      originUrl: 'https://github.com/NousResearch/max-agent.git',
       targetSha: SHA_B
     }),
-    `https://api.github.com/repos/NousResearch/hermes-agent/compare/${SHA_A}...${SHA_B}`
+    `https://api.github.com/repos/NousResearch/max-agent/compare/${SHA_A}...${SHA_B}`
   )
 })
 
 test('compareApiUrl handles SSH origin forms', () => {
   for (const originUrl of [
-    'git@github.com:NousResearch/hermes-agent.git',
-    'ssh://git@github.com/NousResearch/hermes-agent.git',
-    'git@github.com:NousResearch/hermes-agent'
+    'git@github.com:NousResearch/max-agent.git',
+    'ssh://git@github.com/NousResearch/max-agent.git',
+    'git@github.com:NousResearch/max-agent'
   ]) {
     assert.equal(
       compareApiUrl({ currentSha: SHA_A, originUrl, targetSha: SHA_B }),
-      `https://api.github.com/repos/NousResearch/hermes-agent/compare/${SHA_A}...${SHA_B}`
+      `https://api.github.com/repos/NousResearch/max-agent/compare/${SHA_A}...${SHA_B}`
     )
   }
 })

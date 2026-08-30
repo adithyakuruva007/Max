@@ -10,7 +10,7 @@ import pytest
 
 @pytest.fixture
 def main_mod():
-    import hermes_cli.main as m
+    import max_cli.main as m
 
     return m
 
@@ -50,7 +50,7 @@ def test_make_tui_argv_uses_bundled_tui_when_workspace_missing(
 ) -> None:
     """Prebuilt-install regression (#56665): a prebuilt install (Docker
     image, Nix build, or prior `npm run build`) ships
-    hermes_cli/tui_dist/entry.js but never ships ui-tui/ (that directory only
+    max_cli/tui_dist/entry.js but never ships ui-tui/ (that directory only
     exists in a git checkout). _make_tui_argv must try the bundled entry.js
     BEFORE _ensure_tui_workspace() — requiring the workspace first hard-exits
     every prebuilt dashboard Chat tab connection with `sys.exit(1)` (surfaced
@@ -126,7 +126,7 @@ def _write_ws(root: Path, ws_lock: str, hidden_lock: str) -> Path:
     tui_dir.mkdir(parents=True, exist_ok=True)
     # package.json (and no own lockfile) is what makes _workspace_root treat the
     # parent as the workspace root and the launch scope to --workspace ui-tui.
-    (tui_dir / "package.json").write_text('{"name":"hermes-tui"}')
+    (tui_dir / "package.json").write_text('{"name":"max-tui"}')
     return tui_dir
 
 
@@ -523,7 +523,7 @@ def test_make_tui_argv_exits_with_recovery_hint_when_workspace_unrecoverable(
     tmp_path: Path, main_mod, monkeypatch, capsys
 ) -> None:
     """Missing ui-tui + no git checkout → clean error, never touches node/npm."""
-    monkeypatch.delenv("HERMES_TUI_DIR", raising=False)
+    monkeypatch.delenv("MAX_TUI_DIR", raising=False)
     monkeypatch.setattr(main_mod, "_ensure_tui_node", lambda: None)
 
     bundled_entry = tmp_path / "bundled" / "entry.js"

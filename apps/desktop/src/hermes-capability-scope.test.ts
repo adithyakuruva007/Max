@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  getHermesConfigRecord,
+  getMaxConfigRecord,
   getMcpCatalog,
   getSkillContent,
   getSkills,
@@ -28,14 +28,14 @@ describe('capability helpers are connection-scoped', () => {
   const api = vi.fn(async (_req: { connectionId?: string; path: string; profile?: string }) => ({}) as never)
 
   beforeEach(() => {
-    ;(window as { hermesDesktop?: unknown }).hermesDesktop = { api }
+    ;(window as { hermesDesktop?: unknown }).maxDesktop = { api }
     api.mockClear()
   })
 
   afterEach(() => {
     setApiRequestProfile(null)
     setApiRequestConnection(null)
-    delete (window as { hermesDesktop?: unknown }).hermesDesktop
+    delete (window as { hermesDesktop?: unknown }).maxDesktop
   })
 
   const last = () => api.mock.calls.at(-1)?.[0] as { connectionId?: string; profile?: string }
@@ -54,7 +54,7 @@ describe('capability helpers are connection-scoped', () => {
 
     void getSkills()
     void getToolsets()
-    void getHermesConfigRecord()
+    void getMaxConfigRecord()
     void getMcpCatalog()
     void getUsageAnalytics(30)
 

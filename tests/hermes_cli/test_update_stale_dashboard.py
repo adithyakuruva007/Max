@@ -1,6 +1,6 @@
-"""Tests for the stale-dashboard handling run at the end of ``hermes update``.
+"""Tests for the stale-dashboard handling run at the end of ``max update``.
 
-``hermes update`` detects ``hermes dashboard`` processes left over from the
+``max update`` detects ``max dashboard`` processes left over from the
 previous version and kills them (SIGTERM + SIGKILL grace, or ``taskkill /F``
 on Windows).  Without this, the running backend silently serves stale Python
 against a freshly-updated JS bundle, producing 401s / empty data.
@@ -22,7 +22,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from hermes_cli.main import (
+from max_cli.main import (
     _finish_dashboard_update_cleanup,
     _find_stale_dashboard_pids,
     _kill_stale_dashboard_processes,
@@ -33,13 +33,13 @@ from hermes_cli.main import (
 
 @pytest.fixture(autouse=True)
 def _refresh_bindings_against_live_module():
-    """Rebind module-level names to the *current* ``hermes_cli.main``.
+    """Rebind module-level names to the *current* ``max_cli.main``.
 
     Other tests in the suite (notably ``test_env_loader.py`` and
-    ``test_skills_subparser.py``) reload or delete ``hermes_cli.main`` from
+    ``test_skills_subparser.py``) reload or delete ``max_cli.main`` from
     ``sys.modules``.  When that happens on the same xdist worker before we
-    run, our top-of-file ``from hermes_cli.main import ...`` bindings end
-    up pointing at the *old* module object.  ``patch(\"hermes_cli.main.X\")``
+    run, our top-of-file ``from max_cli.main import ...`` bindings end
+    up pointing at the *old* module object.  ``patch(\"max_cli.main.X\")``
     then patches the *new* module, but the function we call still resolves
     ``_find_stale_dashboard_pids`` via its stale ``__globals__``, so every
     patch becomes a no-op and the kill path silently returns early.
@@ -55,9 +55,9 @@ def _refresh_bindings_against_live_module():
     global _restart_managed_dashboard_service
     global _warn_stale_dashboard_processes
 
-    live = sys.modules.get("hermes_cli.main")
+    live = sys.modules.get("max_cli.main")
     if live is None:
-        live = importlib.import_module("hermes_cli.main")
+        live = importlib.import_module("max_cli.main")
 
     _finish_dashboard_update_cleanup = live._finish_dashboard_update_cleanup
     _find_stale_dashboard_pids = live._find_stale_dashboard_pids
@@ -103,13 +103,13 @@ def _write_valid_ssh_backend_lock(tmp_path, monkeypatch) -> int:
         "pid": pid,
         "port": 46369,
         "profile": "default",
-        "hermesPath": "/opt/hermes/bin/hermes",
+        "hermesPath": "/opt/max/bin/hermes",
         "hermesHome": str(tmp_path),
         "logPath": f"{tmp_path}/desktop-ssh/{ownership_id}/{spawn_nonce}.log",
         "startedAt": "2026-08-21T15:27:39Z",
     }))
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    monkeypatch.delenv("HERMES_DESKTOP_CHILD_PID", raising=False)
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
+    monkeypatch.delenv("MAX_DESKTOP_CHILD_PID", raising=False)
     return pid
 
 
@@ -122,7 +122,7 @@ def test_update_cleanup_spares_backend_owned_by_valid_ssh_lock(tmp_path, monkeyp
         return []
 
     with patch(
-        "hermes_cli.main._find_stale_dashboard_pids",
+        "max_cli.main._find_stale_dashboard_pids",
         side_effect=assert_owned_pid_is_excluded,
     ):
         result = _kill_stale_dashboard_processes(restart_managed=True)
@@ -141,7 +141,7 @@ def test_explicit_stop_does_not_spare_backend_owned_by_valid_ssh_lock(
         return []
 
     with patch(
-        "hermes_cli.main._find_stale_dashboard_pids",
+        "max_cli.main._find_stale_dashboard_pids",
         side_effect=assert_owned_pid_is_not_excluded,
     ):
         result = _kill_stale_dashboard_processes(restart_managed=False)
@@ -160,8 +160,8 @@ class TestFindStaleDashboardPids:
             mock_run.return_value = MagicMock(
                 returncode=0,
                 stdout="\n".join([
-                    _ps_line(os.getpid(), "python3 -m hermes_cli.main dashboard"),
-                    _ps_line(12345, "hermes dashboard --port 9119"),
+                    _ps_line(os.getpid(), "python3 -m max_cli.main dashboard"),
+                    _ps_line(12345, "max dashboard --port 9119"),
                 ]) + "\n",
                 stderr="",
             )
@@ -197,7 +197,7 @@ class TestKillStaleDashboardPosix:
                 raise ProcessLookupError
             # SIGTERM itself: succeed silently.
 
-        with patch("hermes_cli.main._find_stale_dashboard_pids",
+        with patch("max_cli.main._find_stale_dashboard_pids",
                    return_value=[12345, 12346]), \
              patch("os.kill", side_effect=fake_kill), \
              patch("time.sleep"):
@@ -239,7 +239,7 @@ class TestKillStaleDashboardPosix:
             raise AssertionError(f"unexpected subprocess.run call: {args}")
 
         with patch("subprocess.run", side_effect=fake_run), \
-             patch("hermes_cli.main._find_stale_dashboard_pids", return_value=[12345]) as find_pids, \
+             patch("max_cli.main._find_stale_dashboard_pids", return_value=[12345]) as find_pids, \
              patch("os.kill") as kill:
             _kill_stale_dashboard_processes(restart_managed=True)
 
@@ -271,7 +271,7 @@ class TestKillStaleDashboardWindows:
             # taskkill returns 0 on success
             return MagicMock(returncode=0, stdout="", stderr="")
 
-        with patch("hermes_cli.main._find_stale_dashboard_pids",
+        with patch("max_cli.main._find_stale_dashboard_pids",
                    return_value=[12345, 12346]), \
              patch("subprocess.run", side_effect=fake_run) as mock_run:
             _kill_stale_dashboard_processes()
@@ -303,7 +303,7 @@ class TestDashboardUpdateCleanup:
 
     def test_all_failed_stops_do_not_claim_the_dashboard_was_stopped(self, capsys):
         with patch(
-            "hermes_cli.main._kill_stale_dashboard_processes",
+            "max_cli.main._kill_stale_dashboard_processes",
             return_value={"matched": [12345], "killed": [], "failed": [(12345, "denied")],
                           "unrecovered": []},
         ):
@@ -314,7 +314,7 @@ class TestDashboardUpdateCleanup:
 
 class TestWindowsWmicEncoding:
     """Regression tests for #17049 — the Windows wmic branch must not crash
-    `hermes update` on non-UTF-8 system locales (e.g. cp936 on zh-CN).
+    `max update` on non-UTF-8 system locales (e.g. cp936 on zh-CN).
     """
 
     def test_wmic_routed_through_bounded_probe_run_with_ignore_errors(self):
@@ -329,12 +329,12 @@ class TestWindowsWmicEncoding:
         to the Windows-only CI job.
         """
         with patch("sys.platform", "win32"), \
-             patch("hermes_cli._subprocess_compat.bounded_probe_run") as mock_probe:
+             patch("max_cli._subprocess_compat.bounded_probe_run") as mock_probe:
             mock_probe.return_value = subprocess.CompletedProcess(
                 args=["wmic"],
                 returncode=0,
                 stdout=(
-                    "CommandLine=python -m hermes_cli.main dashboard\n"
+                    "CommandLine=python -m max_cli.main dashboard\n"
                     "ProcessId=12345\n"
                 ),
                 stderr="",
@@ -359,7 +359,7 @@ class TestWindowsWmicEncoding:
         """A spawn failure or timeout (bounded_probe_run → None) must yield
         an empty scan, not an AttributeError on result.stdout (#87134)."""
         with patch("sys.platform", "win32"), \
-             patch("hermes_cli._subprocess_compat.bounded_probe_run",
+             patch("max_cli._subprocess_compat.bounded_probe_run",
                    return_value=None):
             assert _find_stale_dashboard_pids() == []
 
@@ -371,7 +371,7 @@ class TestSupervisedBackendRestart:
     Restart=on-failure never fires on its own."""
 
     def _live(self):
-        return sys.modules["hermes_cli.main"]
+        return sys.modules["max_cli.main"]
 
     def test_supervised_pid_restarts_owning_unit(self, capsys):
         """A killed PID whose cgroup names a custom unit → systemctl restart."""
@@ -401,7 +401,7 @@ class TestSupervisedBackendRestart:
         assert "when you're ready" not in out
 
     def test_already_restarted_unit_is_left_untouched(self):
-        """Review on #83595: hermes update's systemd fleet-restart loop may
+        """Review on #83595: max update's systemd fleet-restart loop may
         already have restarted this PID's owning unit directly (e.g. a
         Serve-only install). Passing it via already_restarted_units must
         skip killing/restarting it again here."""
@@ -430,7 +430,7 @@ class TestManualBackendRespawn:
     kill and are respawned detached after the update (#40449)."""
 
     def _live(self):
-        return sys.modules["hermes_cli.main"]
+        return sys.modules["max_cli.main"]
 
 
     @pytest.mark.skipif(sys.platform == "win32", reason="POSIX cmdline capture + respawn")
@@ -470,7 +470,7 @@ class TestManualBackendRespawn:
              patch.object(live, "_get_pid_cgroup_path", return_value=None), \
              patch.object(live, "_get_systemd_service_for_pid", return_value=None), \
              patch.object(live, "_dashboard_cmdline_for_pid", return_value=argv), \
-             patch("hermes_cli.dashboard_procs._hermes_home_for_pid", return_value=None), \
+             patch("max_cli.dashboard_procs._hermes_home_for_pid", return_value=None), \
              patch.object(live, "_respawn_dashboard_processes", return_value=[]) as respawn, \
              patch("os.kill", side_effect=fake_kill), \
              patch("time.sleep"):
@@ -484,7 +484,7 @@ class TestManualBackendRespawn:
         """``serve --port 0`` backends are stopped but not resurrected (#78821)."""
         live = self._live()
         argv = [
-            "python", "-m", "hermes_cli.main",
+            "python", "-m", "max_cli.main",
             "serve", "--host", "127.0.0.1", "--port", "0",
         ]
 
@@ -498,7 +498,7 @@ class TestManualBackendRespawn:
              patch.object(live, "_get_pid_cgroup_path", return_value=None), \
              patch.object(live, "_get_systemd_service_for_pid", return_value=None), \
              patch.object(live, "_dashboard_cmdline_for_pid", return_value=argv), \
-             patch("hermes_cli.dashboard_procs._hermes_home_for_pid", return_value=None), \
+             patch("max_cli.dashboard_procs._hermes_home_for_pid", return_value=None), \
              patch.object(live, "_respawn_dashboard_processes") as respawn, \
              patch("os.kill", side_effect=fake_kill), \
              patch("time.sleep"):
@@ -525,7 +525,7 @@ class TestManualBackendRespawn:
              patch.object(live, "_get_pid_cgroup_path", return_value=None), \
              patch.object(live, "_get_systemd_service_for_pid", return_value=None), \
              patch.object(live, "_dashboard_cmdline_for_pid", return_value=argv), \
-             patch("hermes_cli.dashboard_procs._hermes_home_for_pid", return_value=None), \
+             patch("max_cli.dashboard_procs._hermes_home_for_pid", return_value=None), \
              patch.object(live, "_respawn_dashboard_processes", return_value=[]) as respawn, \
              patch("os.kill", side_effect=fake_kill), \
              patch("time.sleep"):
@@ -537,7 +537,7 @@ class TestManualBackendRespawn:
     def test_respawn_adds_no_open_to_dashboard_commands(self, tmp_path, monkeypatch):
         """Respawned `dashboard` argv gains --no-open; `serve` argv untouched."""
         live = self._live()
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
         spawned: list[list[str]] = []
 
         class _FakePopen:
@@ -556,7 +556,7 @@ class TestManualBackendRespawn:
 
     def test_respawn_failure_returned(self, tmp_path, monkeypatch, capsys):
         live = self._live()
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
 
         with patch.object(live.subprocess, "Popen", side_effect=OSError("no such file")):
             failed = live._respawn_dashboard_processes([["hermes", "serve"]])
@@ -570,19 +570,19 @@ class TestFilterDashboardRespawnCandidates:
     """Unit tests for respawn filtering / dedupe / orphan skip (#78821)."""
 
     def test_skips_serve_port_zero(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = [
-            "python", "-m", "hermes_cli.main",
+            "python", "-m", "max_cli.main",
             "--profile", "mini-cat",
             "serve", "--host", "127.0.0.1", "--port", "0",
         ]
         assert _filter_dashboard_respawn_candidates([
-            (42, argv, "/home/u/.hermes/profiles/mini-cat"),
+            (42, argv, "/home/u/.max/profiles/mini-cat"),
         ]) == []
 
     def test_skips_legacy_dashboard_port_zero(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = [
             "hermes", "--profile", "coder",
@@ -591,23 +591,23 @@ class TestFilterDashboardRespawnCandidates:
         assert _filter_dashboard_respawn_candidates([(7, argv, None)]) == []
 
     def test_skips_serve_port_equals_zero(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = ["hermes", "serve", "--port=0"]
         assert _filter_dashboard_respawn_candidates([(1, argv, None)]) == []
 
     def test_keeps_ppid1_fixed_port_for_repeat_update(self):
         """Detached prior-update respawns (PPID 1) must remain restartable (#40449)."""
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = ["hermes", "dashboard", "--port", "9119"]
         assert _filter_dashboard_respawn_candidates([(10, argv, None)]) == [argv]
 
     def test_dedupes_identical_normalized_cmdlines(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
-        a = ["/usr/bin/python3", "-m", "hermes_cli.main", "dashboard", "--port", "8300"]
-        b = ["/other/python", "-m", "hermes_cli.main", "dashboard", "--port", "8300"]
+        a = ["/usr/bin/python3", "-m", "max_cli.main", "dashboard", "--port", "8300"]
+        b = ["/other/python", "-m", "max_cli.main", "dashboard", "--port", "8300"]
         out = _filter_dashboard_respawn_candidates([
             (1, a, None),
             (2, b, None),
@@ -615,7 +615,7 @@ class TestFilterDashboardRespawnCandidates:
         assert out == [a]
 
     def test_caps_one_per_profile(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         a = ["hermes", "--profile", "coder", "dashboard", "--port", "8300"]
         b = ["hermes", "--profile", "coder", "dashboard", "--port", "8301"]
@@ -628,7 +628,7 @@ class TestFilterDashboardRespawnCandidates:
         assert out == [a, c]
 
     def test_caps_one_per_hermes_home(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         home = "/tmp/hermes-home-a"
         a = ["hermes", "dashboard", "--port", "8300"]
@@ -643,22 +643,22 @@ class TestFilterDashboardRespawnCandidates:
         assert out == [a]
 
     def test_profile_flag_and_profiles_home_share_cap(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         a = ["hermes", "--profile", "coder", "dashboard", "--port", "8300"]
         b = ["hermes", "dashboard", "--port", "8301"]
         out = _filter_dashboard_respawn_candidates([
             (1, a, None),
-            (2, b, "/home/u/.hermes/profiles/coder"),
+            (2, b, "/home/u/.max/profiles/coder"),
         ])
         assert out == [a]
 
     def test_default_profile_same_root_home_caps(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         a = ["hermes", "--profile", "default", "dashboard", "--port", "8300"]
         b = ["hermes", "dashboard", "--port", "8301"]
-        home = "/home/u/.hermes"
+        home = "/home/u/.max"
         out = _filter_dashboard_respawn_candidates(
             [
                 (1, a, home),
@@ -669,53 +669,53 @@ class TestFilterDashboardRespawnCandidates:
         assert out == [a]
 
     def test_foreign_home_backend_is_not_replayed(self):
-        """A backend from another HERMES_HOME is never respawned (#94030).
+        """A backend from another MAX_HOME is never respawned (#94030).
 
         Its supervisor/user owns its lifecycle; an argv-only replay would
         run on the updating install's home and steal the foreign install's
         fixed port.  Supersedes the old "distinct homes don't share a cap"
         pin — a foreign home is no longer replayed at all.
         """
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         a = ["hermes", "dashboard", "--port", "8300"]
         b = ["hermes", "dashboard", "--port", "8301"]
         out = _filter_dashboard_respawn_candidates(
             [
-                (1, a, "/home/u/.hermes"),
-                (2, b, "/work/project/.hermes"),
+                (1, a, "/home/u/.max"),
+                (2, b, "/work/project/.max"),
             ],
-            own_home="/home/u/.hermes",
+            own_home="/home/u/.max",
         )
         assert out == [a]
 
     def test_skips_sidecar_fixed_port_serve_on_foreign_home(self):
         """The reported case: launchd-supervised sidecar serve, fixed port."""
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = [
-            "/Users/u/.hermes-sidecar/hermes-agent/venv/bin/python",
-            "-m", "hermes_cli.main",
+            "/Users/u/.max-sidecar/max-agent/venv/bin/python",
+            "-m", "max_cli.main",
             "serve", "--host", "127.0.0.1", "--port", "9118", "--skip-build",
         ]
         out = _filter_dashboard_respawn_candidates(
-            [(15364, argv, "/Users/u/.hermes-lifeos")],
-            own_home="/Users/u/.hermes",
+            [(15364, argv, "/Users/u/.max-lifeos")],
+            own_home="/Users/u/.max",
         )
         assert out == []
 
     def test_matching_hermes_home_is_kept(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = ["hermes", "serve", "--host", "127.0.0.1", "--port", "9118"]
         out = _filter_dashboard_respawn_candidates(
-            [(15364, argv, "/Users/u/.hermes")],
-            own_home="/Users/u/.hermes",
+            [(15364, argv, "/Users/u/.max")],
+            own_home="/Users/u/.max",
         )
         assert out == [argv]
 
     def test_symlinked_hermes_home_compares_equal(self, tmp_path):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         real = tmp_path / "real-home"
         real.mkdir()
@@ -733,37 +733,37 @@ class TestFilterDashboardRespawnCandidates:
         assert out == [argv]
 
     def test_unknown_home_stays_eligible(self):
-        """Unreadable HERMES_HOME (env probe failed) keeps pre-#94030 behaviour."""
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        """Unreadable MAX_HOME (env probe failed) keeps pre-#94030 behaviour."""
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = ["hermes", "dashboard", "--port", "8300"]
         out = _filter_dashboard_respawn_candidates(
             [(1, argv, None)],
-            own_home="/home/u/.hermes",
+            own_home="/home/u/.max",
         )
         assert out == [argv]
 
-    def test_own_home_defaults_to_get_hermes_home(self, monkeypatch):
+    def test_own_home_defaults_to_get_max_home(self, monkeypatch):
         from pathlib import Path
 
-        import hermes_constants
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        import max_constants
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         monkeypatch.setattr(
-            hermes_constants, "get_hermes_home", lambda: Path("/home/u/.hermes")
+            max_constants, "get_max_home", lambda: Path("/home/u/.max")
         )
         argv = ["hermes", "serve", "--port", "9118"]
         foreign = _filter_dashboard_respawn_candidates([
-            (1, argv, "/Users/u/.hermes-lifeos"),
+            (1, argv, "/Users/u/.max-lifeos"),
         ])
         assert foreign == []
         own = _filter_dashboard_respawn_candidates([
-            (1, argv, "/home/u/.hermes"),
+            (1, argv, "/home/u/.max"),
         ])
         assert own == [argv]
 
     def test_keeps_fixed_port_serve(self):
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = ["hermes", "serve", "--host", "0.0.0.0", "--port", "9119"]
         assert _filter_dashboard_respawn_candidates([
@@ -772,10 +772,10 @@ class TestFilterDashboardRespawnCandidates:
 
     def test_seventeen_port_zero_orphans_collapse_to_zero(self):
         """The reported accumulation case: many identical serve --port 0 → none."""
-        from hermes_cli.dashboard_procs import _filter_dashboard_respawn_candidates
+        from max_cli.dashboard_procs import _filter_dashboard_respawn_candidates
 
         argv = [
-            "python", "-m", "hermes_cli.main",
+            "python", "-m", "max_cli.main",
             "serve", "--host", "127.0.0.1", "--port", "0",
         ]
         candidates = [(i, argv, None) for i in range(17)]
@@ -786,13 +786,13 @@ class TestCmdlineCapture:
     """_dashboard_cmdline_for_pid reads /proc on Linux, ps on macOS."""
 
     def _live(self):
-        return sys.modules["hermes_cli.main"]
+        return sys.modules["max_cli.main"]
 
     @pytest.mark.skipif(sys.platform == "win32", reason="POSIX /proc cmdline path")
     def test_reads_proc_cmdline_when_available(self, tmp_path, monkeypatch):
         live = self._live()
         proc_file = tmp_path / "cmdline"
-        proc_file.write_bytes(b"/usr/bin/python3\x00-m\x00hermes_cli.main\x00serve\x00")
+        proc_file.write_bytes(b"/usr/bin/python3\x00-m\x00max_cli.main\x00serve\x00")
 
         real_exists = os.path.exists
 
@@ -812,7 +812,7 @@ class TestCmdlineCapture:
              patch("builtins.open", fake_open):
             argv = live._dashboard_cmdline_for_pid(777)
 
-        assert argv == ["/usr/bin/python3", "-m", "hermes_cli.main", "serve"]
+        assert argv == ["/usr/bin/python3", "-m", "max_cli.main", "serve"]
 
     @pytest.mark.skipif(sys.platform == "win32", reason="POSIX ps cmdline fallback")
     def test_falls_back_to_ps_without_proc(self, monkeypatch):
@@ -820,7 +820,7 @@ class TestCmdlineCapture:
 
         def fake_run(args, *a, **kw):
             assert args == ["ps", "-p", "888", "-o", "command="]
-            return MagicMock(returncode=0, stdout="hermes serve --port 8300\n", stderr="")
+            return MagicMock(returncode=0, stdout="max serve --port 8300\n", stderr="")
 
         with patch.object(live.os.path, "exists", return_value=False), \
              patch("subprocess.run", side_effect=fake_run):
@@ -841,10 +841,10 @@ class TestCmdlineCapture:
 class TestPostUpdateStaleModuleReload:
     """Regression tests for the post-update stale-module ImportError.
 
-    ``hermes update`` runs in the PRE-pull Python process. When the update
-    adds a new symbol to ``hermes_cli._subprocess_compat`` (as #87134 added
+    ``max update`` runs in the PRE-pull Python process. When the update
+    adds a new symbol to ``max_cli._subprocess_compat`` (as #87134 added
     ``bounded_probe_run``), the post-update dashboard cleanup's lazy
-    ``from hermes_cli._subprocess_compat import bounded_probe_run`` hits the
+    ``from max_cli._subprocess_compat import bounded_probe_run`` hits the
     stale cached module and crashes with ImportError — after the code update
     itself already succeeded. The cleanup entry point must force-reload the
     process-scan modules first (PR #87757 + ZIP-path widening).
@@ -854,14 +854,14 @@ class TestPostUpdateStaleModuleReload:
         """_finish_dashboard_update_cleanup must reload the process-scan
         modules BEFORE calling _kill_stale_dashboard_processes, on every
         call path (git update and ZIP fallback both route here)."""
-        from hermes_cli import update_cmd
+        from max_cli import update_cmd
 
         order: list[str] = []
         with patch.object(
             update_cmd, "_reload_process_scan_modules",
             side_effect=lambda: order.append("reload"),
         ), patch(
-            "hermes_cli.main._kill_stale_dashboard_processes",
+            "max_cli.main._kill_stale_dashboard_processes",
             side_effect=lambda **kw: order.append("kill") or {"unrecovered": []},
         ):
             update_cmd._finish_dashboard_update_cleanup([])
@@ -871,10 +871,10 @@ class TestPostUpdateStaleModuleReload:
     def test_node_failures_skip_reload_and_kill(self):
         """A failed Node refresh leaves the running dashboard untouched —
         no reload, no kill (existing safety rule preserved)."""
-        from hermes_cli import update_cmd
+        from max_cli import update_cmd
 
         with patch.object(update_cmd, "_reload_process_scan_modules") as mock_reload, \
-             patch("hermes_cli.main._kill_stale_dashboard_processes") as mock_kill:
+             patch("max_cli.main._kill_stale_dashboard_processes") as mock_kill:
             update_cmd._finish_dashboard_update_cleanup(["dashboard"])
 
         mock_reload.assert_not_called()
@@ -885,8 +885,8 @@ class TestPostUpdateStaleModuleReload:
         the cached module object (what an old pre-#87134 module looks like)
         and verify the reload restores it from disk — the exact state the
         Windows update crash came from."""
-        import hermes_cli._subprocess_compat as compat
-        from hermes_cli import update_cmd
+        import max_cli._subprocess_compat as compat
+        from max_cli import update_cmd
 
         assert hasattr(compat, "bounded_probe_run")
         try:
@@ -895,16 +895,16 @@ class TestPostUpdateStaleModuleReload:
 
             update_cmd._reload_process_scan_modules()
 
-            stale = sys.modules["hermes_cli._subprocess_compat"]
+            stale = sys.modules["max_cli._subprocess_compat"]
             assert hasattr(stale, "bounded_probe_run")
         finally:
-            importlib.reload(sys.modules["hermes_cli._subprocess_compat"])
-            importlib.reload(sys.modules["hermes_cli.dashboard_procs"])
+            importlib.reload(sys.modules["max_cli._subprocess_compat"])
+            importlib.reload(sys.modules["max_cli.dashboard_procs"])
 
     def test_reload_failure_is_nonfatal(self):
         """A reload failure must log and continue, never raise — the cleanup
         step runs after the update already succeeded."""
-        from hermes_cli import update_cmd
+        from max_cli import update_cmd
 
         with patch("importlib.reload", side_effect=RuntimeError("boom")):
             update_cmd._reload_process_scan_modules()  # must not raise
@@ -912,11 +912,11 @@ class TestPostUpdateStaleModuleReload:
     def test_config_reload_list_includes_process_scan_modules(self):
         """PR #87757's half: the git-path pre-cleanup reload also refreshes
         the process-scan modules (belt to the entry-point suspenders)."""
-        from hermes_cli import update_cmd
+        from max_cli import update_cmd
 
         reloaded: list[str] = []
         with patch("importlib.reload", side_effect=lambda m: reloaded.append(m.__name__)):
             update_cmd._reload_config_modules()
 
-        assert "hermes_cli._subprocess_compat" in reloaded
-        assert "hermes_cli.dashboard_procs" in reloaded
+        assert "max_cli._subprocess_compat" in reloaded
+        assert "max_cli.dashboard_procs" in reloaded

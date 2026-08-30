@@ -5,10 +5,10 @@ with entity resolution, trust scoring, and HRR-based compositional retrieval.
 
 Original plugin by dusterbloom (PR #2351), adapted to the MemoryProvider ABC.
 
-Config in $HERMES_HOME/config.yaml (profile-scoped):
+Config in $MAX_HOME/config.yaml (profile-scoped):
   plugins:
     hermes-memory-store:
-      db_path: $HERMES_HOME/memory_store.db   # omit to use the default
+      db_path: $MAX_HOME/memory_store.db   # omit to use the default
       auto_extract: false
       default_trust: 0.5
       min_trust_threshold: 0.3
@@ -27,7 +27,7 @@ from tools.registry import tool_error
 from utils import is_truthy_value
 from .store import MemoryStore
 from .retrieval import FactRetriever
-from hermes_cli.config import cfg_get
+from max_cli.config import cfg_get
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ def _load_plugin_config() -> dict:
     try:
         # Canonical loader: behavioral read now honors the managed-scope
         # overlay + ${VAR} expansion (e.g. an api key template) too.
-        from hermes_cli.config import load_config_readonly
+        from max_cli.config import load_config_readonly
         all_config = load_config_readonly()
         return cfg_get(all_config, "plugins", "hermes-memory-store", default={}) or {}
     except Exception:
@@ -127,14 +127,14 @@ class HolographicMemoryProvider(MemoryProvider):
         return True  # SQLite is always available, numpy is optional
 
     def save_config(self, values, hermes_home):
-        """Write config to config.yaml under plugins.hermes-memory-store."""
+        """Write config to config.yaml under plugins.max-memory-store."""
         from pathlib import Path
         config_path = Path(hermes_home) / "config.yaml"
         try:
             import yaml
             # Write-back round-trip: raw read is correct (merged defaults
             # must not be persisted back into the user's file).
-            from hermes_cli.config import read_user_config_raw
+            from max_cli.config import read_user_config_raw
             existing = read_user_config_raw(config_path)
             existing.setdefault("plugins", {})
             existing["plugins"]["hermes-memory-store"] = values
@@ -144,8 +144,8 @@ class HolographicMemoryProvider(MemoryProvider):
             pass
 
     def get_config_schema(self):
-        from hermes_constants import display_hermes_home
-        _default_db = f"{display_hermes_home()}/memory_store.db"
+        from max_constants import display_max_home
+        _default_db = f"{display_max_home()}/memory_store.db"
         return [
             {"key": "db_path", "description": "SQLite database path", "default": _default_db},
             {"key": "auto_extract", "description": "Auto-extract facts at session end", "default": "false", "choices": ["true", "false"]},
@@ -154,16 +154,16 @@ class HolographicMemoryProvider(MemoryProvider):
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
-        from hermes_constants import get_hermes_home
-        _hermes_home = str(get_hermes_home())
+        from max_constants import get_max_home
+        _hermes_home = str(get_max_home())
         _default_db = _hermes_home + "/memory_store.db"
         db_path = self._config.get("db_path", _default_db)
-        # Expand $HERMES_HOME in user-supplied paths so config values like
-        # "$HERMES_HOME/memory_store.db" or "~/.hermes/memory_store.db" both
+        # Expand $MAX_HOME in user-supplied paths so config values like
+        # "$MAX_HOME/memory_store.db" or "~/.max/memory_store.db" both
         # resolve to the active profile's directory.
         if isinstance(db_path, str):
-            db_path = db_path.replace("$HERMES_HOME", _hermes_home)
-            db_path = db_path.replace("${HERMES_HOME}", _hermes_home)
+            db_path = db_path.replace("$MAX_HOME", _hermes_home)
+            db_path = db_path.replace("${MAX_HOME}", _hermes_home)
         default_trust = float(self._config.get("default_trust", 0.5))
         hrr_dim = int(self._config.get("hrr_dim", 1024))
         hrr_weight = float(self._config.get("hrr_weight", 0.3))

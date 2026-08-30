@@ -207,10 +207,10 @@ test('primary SSH reuse rejects a descriptor with different effective dialing co
   )
 })
 
-test('primary SSH reuse rejects a descriptor with a different remote Hermes path', async () => {
+test('primary SSH reuse rejects a descriptor with a different remote Max path', async () => {
   const registry = migrateV1ToRegistry({
     mode: 'ssh',
-    remote: { mode: 'ssh', host: 'build-host', remoteHermesPath: '/srv/hermes', user: 'alice' },
+    remote: { mode: 'ssh', host: 'build-host', remoteMaxPath: '/srv/hermes', user: 'alice' },
     profiles: {}
   })
 
@@ -226,7 +226,7 @@ test('primary SSH reuse rejects a descriptor with a different remote Hermes path
         ssh: {
           effectiveConfigFingerprint: 'same-effective-config',
           host: 'build-host',
-          remoteHermesPath: '/opt/hermes',
+          remoteMaxPath: '/opt/max',
           remoteProfile: '',
           user: 'alice'
         }
@@ -247,7 +247,7 @@ test('registry primary reuses a matching primary backend descriptor', () => {
     lastUsed: 'hermes-vps',
     connections: [
       { id: LOCAL_CONNECTION_ID, kind: 'local', label: 'This device' },
-      { id: 'hermes-vps', kind: 'ssh', label: 'Hermes VPS', host: 'hermes-vps' }
+      { id: 'hermes-vps', kind: 'ssh', label: 'Max VPS', host: 'hermes-vps' }
     ]
   })
 
@@ -529,7 +529,7 @@ test('resolvedConnectionId keeps same-host SSH routes distinct by port, key, pat
     host: 'work-host',
     keyPath: '/keys/a',
     kind: 'ssh' as const,
-    remoteHermesPath: '/srv/hermes',
+    remoteMaxPath: '/srv/hermes',
     remoteProfile: 'alpha',
     user: 'root'
   }
@@ -544,7 +544,7 @@ test('resolvedConnectionId keeps same-host SSH routes distinct by port, key, pat
       { ...base, id: 'ssh-base', label: 'SSH base' },
       { ...base, id: 'ssh-port', label: 'SSH port', port: 2222 },
       { ...base, id: 'ssh-key', keyPath: '/keys/b', label: 'SSH key' },
-      { ...base, id: 'ssh-path', label: 'SSH path', remoteHermesPath: '/opt/hermes' },
+      { ...base, id: 'ssh-path', label: 'SSH path', remoteMaxPath: '/opt/max' },
       { ...base, id: 'ssh-profile', label: 'SSH profile', remoteProfile: 'beta' }
     ]
   }
@@ -555,7 +555,7 @@ test('resolvedConnectionId keeps same-host SSH routes distinct by port, key, pat
   assert.equal(resolve(base), 'ssh-base')
   assert.equal(resolve({ ...base, port: 2222 }), 'ssh-port')
   assert.equal(resolve({ ...base, keyPath: '/keys/b' }), 'ssh-key')
-  assert.equal(resolve({ ...base, remoteHermesPath: '/opt/hermes' }), 'ssh-path')
+  assert.equal(resolve({ ...base, remoteMaxPath: '/opt/max' }), 'ssh-path')
   assert.equal(resolve({ ...base, remoteProfile: 'beta' }), 'ssh-profile')
   assert.equal(
     resolvedConnectionId(registry, {
@@ -1034,7 +1034,7 @@ test('token only persists on token-auth remotes; oauth/cloud drop it', () => {
   assert.equal(oauth.token, undefined)
 
   const cloud = normalizeConnectionInput(
-    { kind: 'cloud', label: 'C', url: 'https://c.hermes.cloud', authMode: 'oauth', token: { enc: 'x' } },
+    { kind: 'cloud', label: 'C', url: 'https://c.max.cloud', authMode: 'oauth', token: { enc: 'x' } },
     registry
   )
 
@@ -1064,14 +1064,14 @@ test('merge preserves fields the editor does not carry (org, ssh extras)', () =>
     kind: 'ssh' as const,
     label: 'Box',
     port: 2222,
-    remoteHermesPath: '/opt/hermes',
+    remoteMaxPath: '/opt/max',
     remoteProfile: 'research',
     user: 'k'
   }
 
   const labelOnly = mergeConnectionInput({ id: 's', kind: 'ssh', label: 'Renamed box' }, ssh)
 
-  assert.equal(labelOnly.remoteHermesPath, '/opt/hermes')
+  assert.equal(labelOnly.remoteMaxPath, '/opt/max')
   assert.equal(labelOnly.remoteProfile, 'research')
   assert.equal(labelOnly.host, 'homelab.lan')
   assert.equal(labelOnly.user, 'k')
@@ -1191,7 +1191,7 @@ test('remote input normalizes URL and auth mode; cloud keeps org', () => {
   assert.equal(remote.authMode, 'token')
 
   const cloud = normalizeConnectionInput(
-    { kind: 'cloud', label: 'Cloud', url: 'https://foo.hermes.cloud', authMode: 'oauth', org: 'nous' },
+    { kind: 'cloud', label: 'Cloud', url: 'https://foo.max.cloud', authMode: 'oauth', org: 'nous' },
     registry
   )
 
@@ -1273,8 +1273,8 @@ test('normalizeRegistry round-trips a valid registry unchanged in shape', () => 
       {
         id: 'cloud-1',
         kind: 'cloud',
-        label: 'Hermes Cloud',
-        url: 'https://a.hermes.cloud',
+        label: 'Max Cloud',
+        url: 'https://a.max.cloud',
         authMode: 'oauth',
         org: 'nous'
       },
@@ -1338,7 +1338,7 @@ test('migrate: v1 global remote becomes a labeled entry and the primary', () => 
 test('migrate: v1 cloud keeps cloud provenance + org', () => {
   const registry = migrateV1ToRegistry({
     mode: 'cloud',
-    remote: { url: 'https://a.hermes.cloud', authMode: 'oauth', org: 'nous' }
+    remote: { url: 'https://a.max.cloud', authMode: 'oauth', org: 'nous' }
   })
 
   const cloud = registry.connections.find(c => c.kind === 'cloud')

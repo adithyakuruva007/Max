@@ -43,7 +43,7 @@ def test_waiter_windows_path_compiles_after_backslash_folding():
     """A Windows reply path must survive the execution layer folding the
     repr-escaped double backslash back to a single one — the exact shape
     that SyntaxErrored with ``\\U`` on #93590's reporter setup."""
-    code = _waiter_code("C:\\Users\\joshu\\.hermes")
+    code = _waiter_code("C:\\Users\\joshu\\.max")
     assert "C:" in code  # sanity: the Windows path made it into the payload
     folded = code.replace("\\\\", "\\")
     # Raw literals: `p = r'C:\Users\joshu\...'` — no unicode-escape crash.
@@ -142,7 +142,7 @@ def test_delivery_lock_recognizes_resolved_cli_paths(tmp_path, monkeypatch):
             return False
 
     monkeypatch.setattr(bot_relay, "acquire_turn_lock", lambda root, profile: _Ctx())
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
 
     with bot_mode_dm._delivery_lock(
         [str(tmp_path / "venv" / "bin" / "hermes"), "-p", "ops", "chat"],

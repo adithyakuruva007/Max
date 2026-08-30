@@ -1,10 +1,10 @@
 """Fleet-wide config migration (#91277 Phase 2 — #20438/#54926/#79048 class).
 
-`hermes update` migrated only the active profile's config.yaml; sibling
+`max update` migrated only the active profile's config.yaml; sibling
 profiles silently drifted config versions until their gateway hit a config
 the new code couldn't read. `_migrate_sibling_profile_configs()` runs the
 same non-interactive safe migration for every sibling home, scoped via the
-context-local HERMES_HOME override.
+context-local MAX_HOME override.
 
 These tests use REAL config files on disk and the REAL migration pipeline —
 only the profile-root location is pointed at tmp_path.
@@ -13,7 +13,7 @@ only the profile-root location is pointed at tmp_path.
 import yaml
 from pathlib import Path
 
-import hermes_cli.update_cmd as update_cmd
+import max_cli.update_cmd as update_cmd
 
 
 def _write_profile(root: Path, name: str, version: int) -> Path:
@@ -27,19 +27,19 @@ def _write_profile(root: Path, name: str, version: int) -> Path:
 
 
 def _latest_version() -> int:
-    from hermes_cli.config import DEFAULT_CONFIG
+    from max_cli.config import DEFAULT_CONFIG
 
     return int(DEFAULT_CONFIG["_config_version"])
 
 
 def _setup(monkeypatch, tmp_path, active_home: Path):
-    import hermes_cli.profiles as profiles_mod
+    import max_cli.profiles as profiles_mod
 
     monkeypatch.setattr(profiles_mod, "_get_profiles_root", lambda: tmp_path / "profiles")
-    import hermes_constants
+    import max_constants
 
     monkeypatch.setattr(
-        hermes_constants, "get_process_hermes_home", lambda: active_home
+        max_constants, "get_process_hermes_home", lambda: active_home
     )
     monkeypatch.setattr(
         update_cmd, "_reload_config_modules", lambda: None
@@ -113,12 +113,12 @@ def test_one_broken_profile_does_not_block_others(monkeypatch, tmp_path):
 
 def test_override_is_reset_after_run(monkeypatch, tmp_path):
     """The ContextVar override must not leak past the sweep."""
-    from hermes_constants import get_hermes_home_override
+    from max_constants import get_max_home_override
 
     active = _write_profile(tmp_path / "profiles", "active", _latest_version())
     _write_profile(tmp_path / "profiles", "research", 12)
     _setup(monkeypatch, tmp_path, active)
 
-    before = get_hermes_home_override()
+    before = get_max_home_override()
     update_cmd._migrate_sibling_profile_configs()
-    assert get_hermes_home_override() == before
+    assert get_max_home_override() == before

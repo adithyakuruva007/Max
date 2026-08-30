@@ -108,10 +108,10 @@ async function seedBot(hermesHome: string, mockUrl: string, name: string): Promi
 test.beforeAll(async () => {
   const mock = await startMockServer()
   const sandbox = createSandbox('bots')
-  writeMockProviderConfig(sandbox.hermesHome, mock.url)
-  writeEnvFile(sandbox.hermesHome)
-  await seedBot(sandbox.hermesHome, mock.url, 'alpha')
-  await seedBot(sandbox.hermesHome, mock.url, 'beta')
+  writeMockProviderConfig(sandbox.maxHome, mock.url)
+  writeEnvFile(sandbox.maxHome)
+  await seedBot(sandbox.maxHome, mock.url, 'alpha')
+  await seedBot(sandbox.maxHome, mock.url, 'beta')
 
   const { app, page } = await launchDesktop(buildAppEnv(sandbox))
 

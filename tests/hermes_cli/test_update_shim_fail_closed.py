@@ -23,9 +23,9 @@ from unittest import mock
 
 import pytest
 
-import hermes_cli.main as cli_main
-import hermes_cli._install_repair as ir
-import hermes_cli.update_cmd as update_cmd
+import max_cli.main as cli_main
+import max_cli._install_repair as ir
+import max_cli.update_cmd as update_cmd
 
 
 def _make_shims(scripts_dir: Path, names=("hermes", "hermes-gateway")) -> list[Path]:

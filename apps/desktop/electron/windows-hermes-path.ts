@@ -1,22 +1,22 @@
 /**
  * windows-hermes-path.ts
  *
- * Pure, dependency-injected pieces of Windows `hermes` resolution pulled out
+ * Pure, dependency-injected pieces of Windows `max` resolution pulled out
  * of main.ts's findOnPath(), handOffWindowsBootstrapRecovery(), and
- * unwrapWindowsVenvHermesCommand(). Each of the three functions here pins one
+ * unwrapWindowsVenvMaxCommand(). Each of the three functions here pins one
  * of the Windows resolution bugs that caused desktop reinstall loops:
  *
  *   1. buildPathExtCandidates() — findOnPath() tried the empty extension
- *      FIRST, so an extensionless Git-Bash `hermes` shim shadowed the real
+ *      FIRST, so an extensionless Git-Bash `max` shim shadowed the real
  *      hermes.cmd/hermes.exe; the shim then failed the --version probe and
  *      the desktop fell through to a spurious bootstrap/repair. The fix:
  *      PATHEXT extensions first, empty extension LAST.
  *   2. chooseUpdaterArgs() — handOffWindowsBootstrapRecovery() must separate
  *      install provenance from updater viability. A bootstrap-complete marker
  *      can outlive a deleted venv, while the updater needs BOTH the venv Python
- *      and Hermes launcher. Marker-only or partial runtimes must use --repair;
+ *      and Max launcher. Marker-only or partial runtimes must use --repair;
  *      only a runnable pair can use --update.
- *   3. resolveVenvHermesCommand() — unwrapWindowsVenvHermesCommand() returned
+ *   3. resolveVenvMaxCommand() — unwrapWindowsVenvMaxCommand() returned
  *      the venv python with NO runtime probe (bypassing the caller's
  *      --version check too), so a venv broken mid-update (e.g. missing
  *      python-dotenv) was re-selected forever: Retry / "Repair install"
@@ -39,7 +39,7 @@ import path from 'node:path'
  * On Windows this MUST try PATHEXT extensions (.COM;.EXE;.BAT;.CMD by
  * default) BEFORE the bare/empty-extension name: a real command resolves via
  * its .exe/.cmd per Windows command-resolution semantics, and an
- * extensionless file (e.g. a Git-Bash shell-script shim named `hermes`) must
+ * extensionless file (e.g. a Git-Bash shell-script shim named `max`) must
  * not shadow `hermes.cmd`/`hermes.exe`. The empty entry is kept LAST so
  * callers that already include the extension (py.exe, pwsh.exe,
  * powershell.exe) still resolve.
@@ -62,7 +62,7 @@ export function buildPathExtCandidates(pathext: string | undefined, isWindows: b
 /**
  * Choose the Windows bootstrap-recovery invocation. The gentle in-place
  * updater can only start when both pieces of its runtime contract exist: the
- * venv Python interpreter and the Hermes launcher that drives `hermes update`.
+ * venv Python interpreter and the Max launcher that drives `max update`.
  * A bootstrap-complete marker proves install provenance, not current runtime
  * usability, and may remain after the venv is removed or quarantined.
  *
@@ -72,12 +72,12 @@ export function buildPathExtCandidates(pathext: string | undefined, isWindows: b
  */
 export interface BootstrapRecoverySignals {
   hasBootstrapMarker: boolean
-  hasVenvHermes: boolean
+  hasVenvMax: boolean
   hasVenvPython: boolean
 }
 
 export function chooseUpdaterArgs(signals: BootstrapRecoverySignals, branch: string): string[] {
-  const canRunUpdater = signals.hasVenvHermes && signals.hasVenvPython
+  const canRunUpdater = signals.hasVenvMax && signals.hasVenvPython
 
   return canRunUpdater ? ['--update', '--branch', branch] : ['--repair', '--branch', branch]
 }
@@ -166,12 +166,12 @@ export function getVenvSitePackagesEntries(
   return entries
 }
 
-export interface ResolveVenvHermesCommandDeps {
+export interface ResolveVenvMaxCommandDeps {
   isWindows: boolean
   isCommandScript: (command: string) => boolean
   fileExists: (filePath: string) => boolean
   directoryExists: (filePath: string) => boolean
-  canImportHermesCli: (python: string, opts?: { env?: Record<string, string> }) => boolean
+  canImportMaxCli: (python: string, opts?: { env?: Record<string, string> }) => boolean
   getVenvPython: (venvRoot: string) => string
   getVenvSitePackagesEntries: (venvRoot: string) => string[]
   buildDesktopBackendEnv: (opts: {
@@ -187,10 +187,10 @@ export interface ResolveVenvHermesCommandDeps {
 }
 
 /**
- * If `command` is a Windows venv `hermes`/`hermes.exe` console-script shim
+ * If `command` is a Windows venv `max`/`hermes.exe` console-script shim
  * (i.e. `<venvRoot>/Scripts/hermes(.exe)`), resolve it to the underlying
- * venv python invoked as `python -m hermes_cli.main <backendArgs>` — but
- * ONLY after smoke-testing that interpreter with canImportHermesCli(). A
+ * venv python invoked as `python -m max_cli.main <backendArgs>` — but
+ * ONLY after smoke-testing that interpreter with canImportMaxCli(). A
  * venv whose update died mid-`pip install` still has python.exe + hermes.exe
  * on disk, but the backend dies on its first import (e.g.
  * ModuleNotFoundError: dotenv) before the gateway ever binds. Returning it
@@ -201,14 +201,14 @@ export interface ResolveVenvHermesCommandDeps {
  * Mirrors isActiveRuntimeUsable(): probes with the checkout on PYTHONPATH so
  * a healthy source-tree venv passes.
  *
- * Returns null when `command` is not a venv hermes shim, the underlying
+ * Returns null when `command` is not a venv max shim, the underlying
  * python doesn't exist, or the import probe fails. Otherwise returns the
  * resolved backend descriptor.
  */
-export function resolveVenvHermesCommand(
+export function resolveVenvMaxCommand(
   command: string,
   backendArgs: string[],
-  deps: ResolveVenvHermesCommandDeps
+  deps: ResolveVenvMaxCommandDeps
 ): {
   label: string
   command: string
@@ -224,7 +224,7 @@ export function resolveVenvHermesCommand(
     isCommandScript,
     fileExists,
     directoryExists,
-    canImportHermesCli,
+    canImportMaxCli,
     getVenvPython,
     getVenvSitePackagesEntries,
     buildDesktopBackendEnv,
@@ -261,7 +261,7 @@ export function resolveVenvHermesCommand(
   const root = dirname(venvRoot)
 
   if (
-    !canImportHermesCli(python, {
+    !canImportMaxCli(python, {
       env: {
         PYTHONPATH: [...(directoryExists(root) ? [root] : []), process.env.PYTHONPATH]
           .filter((entry): entry is string => Boolean(entry))
@@ -270,16 +270,16 @@ export function resolveVenvHermesCommand(
     })
   ) {
     rememberLog?.(
-      `Ignoring venv Hermes at ${python}: runtime import probe failed (broken/partial venv); falling through to bootstrap.`
+      `Ignoring venv Max at ${python}: runtime import probe failed (broken/partial venv); falling through to bootstrap.`
     )
 
     return null
   }
 
   return {
-    label: `existing Hermes Python at ${python}`,
+    label: `existing Max Python at ${python}`,
     command: python,
-    args: ['-m', 'hermes_cli.main', ...backendArgs],
+    args: ['-m', 'max_cli.main', ...backendArgs],
     bootstrap: false,
     env: buildDesktopBackendEnv({
       hermesHome,

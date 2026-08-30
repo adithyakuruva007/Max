@@ -1,10 +1,10 @@
-"""Tests for ``hermes update`` / ``--check`` inside the Docker container.
+"""Tests for ``max update`` / ``--check`` inside the Docker container.
 
 Background: ``.dockerignore`` excludes ``.git``, so the existing git-pull
 update path can never succeed inside the published image.  Before this
-fix, ``hermes update`` would fall through to ``"✗ Not a git repository.
+fix, ``max update`` would fall through to ``"✗ Not a git repository.
 Please reinstall: curl ... install.sh"`` — that script installs a *new*
-host-side Hermes, not an update to the running container, so the message
+host-side Max, not an update to the running container, so the message
 was actively misleading.
 
 These tests pin the new behaviour: when ``detect_install_method`` reports
@@ -21,19 +21,19 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli.main import _cmd_update_check, cmd_update
+from max_cli.main import _cmd_update_check, cmd_update
 
 
 # ---------- cmd_update (apply path) ----------
 
 
-@patch("hermes_cli.config.is_managed", return_value=False)
-@patch("hermes_cli.config.detect_install_method", return_value="docker")
+@patch("max_cli.config.is_managed", return_value=False)
+@patch("max_cli.config.detect_install_method", return_value="docker")
 @patch("subprocess.run")
 def test_cmd_update_in_docker_prints_guidance_and_exits(
     mock_run, _mock_method, _mock_managed, capsys
 ):
-    """``hermes update`` inside Docker → friendly message + exit 2, no git calls.
+    """``max update`` inside Docker → friendly message + exit 2, no git calls.
 
     Exit 2 = refused-by-contract (#91277 Phase 3), distinct from exit-1 errors.
     """
@@ -45,7 +45,7 @@ def test_cmd_update_in_docker_prints_guidance_and_exits(
     # Spot-check the key guidance — exhaustive wording is locked in by the
     # config-module test below to keep these CLI tests resilient to copy edits.
     assert "doesn't apply inside the Docker container" in out
-    assert "docker pull nousresearch/hermes-agent:latest" in out
+    assert "docker pull stardustresearch/max-agent:latest" in out
 
     # No git invocations — the early-return must beat every git command.
     git_calls = [c for c in mock_run.call_args_list if c.args and c.args[0] and "git" in str(c.args[0][0])]
@@ -72,18 +72,18 @@ def test_format_docker_update_message_contents():
     disappear in a copy edit, the message has lost its value.  Specific
     wording around them is free to evolve (we don't assert full text).
     """
-    from hermes_cli.config import format_docker_update_message
+    from max_cli.config import format_docker_update_message
 
     msg = format_docker_update_message()
 
     # Primary command — the entire reason this message exists.
-    assert "docker pull nousresearch/hermes-agent:latest" in msg
+    assert "docker pull stardustresearch/max-agent:latest" in msg
 
     # The four key concepts the message must cover:
     assert "restart" in msg.lower(), "must explain that a restart is required"
     assert "--version" in msg, "must show how to verify the new version"
     assert ":latest" in msg, "must mention tag pinning caveat"
-    assert "HERMES_HOME" in msg or "/opt/data" in msg, (
+    assert "MAX_HOME" in msg or "/opt/data" in msg, (
         "must address config persistence across upgrades"
     )
 

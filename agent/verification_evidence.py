@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from hermes_constants import get_hermes_home
+from max_constants import get_max_home
 
 
 _DB_LOCK = threading.Lock()
@@ -61,11 +61,11 @@ def _retention_cutoff() -> str:
 
 
 def _db_path() -> Path:
-    return get_hermes_home() / "verification_evidence.db"
+    return get_max_home() / "verification_evidence.db"
 
 
 def _connect() -> sqlite3.Connection:
-    from hermes_state import apply_wal_with_fallback
+    from max_state import apply_wal_with_fallback
 
     path = _db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -587,14 +587,14 @@ def record_verify_run(
     root: str | Path,
     session_id: str | None = None,
     ok: bool,
-    command: str = "hermes verify",
+    command: str = "max verify",
     scope: str = "full",
     output: str = "",
 ) -> Optional[dict[str, Any]]:
-    """Record a completed ``hermes verify`` run as verification evidence.
+    """Record a completed ``max verify`` run as verification evidence.
 
     Explicit CLI-side write: unlike :func:`record_terminal_result` there is
-    nothing to classify — the caller (the ``hermes verify`` command) already
+    nothing to classify — the caller (the ``max verify`` command) already
     knows the run was a verification pass and whether it succeeded. A passing
     run marks the workspace ``passed`` for the verify-on-stop guard exactly
     like a passing canonical test command would; a failing run records the
@@ -614,7 +614,7 @@ def record_verify_run(
     resolved = str(Path(root).resolve())
     evidence = VerificationEvidence(
         command=command,
-        canonical_command="hermes verify",
+        canonical_command="max verify",
         kind="verify",
         scope=scope if scope in {"full", "targeted"} else "full",
         status="passed" if ok else "failed",

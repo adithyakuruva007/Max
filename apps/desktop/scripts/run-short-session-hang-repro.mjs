@@ -29,7 +29,7 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const DESKTOP_ROOT = resolve(HERE, '..')
 const REPO_ROOT = resolve(DESKTOP_ROOT, '..', '..')
 const HARNESS_SOURCE = resolve(DESKTOP_ROOT, 'src/app/chat/short-session-hang-repro.tsx')
-const UPSTREAM_URL = 'https://github.com/NousResearch/hermes-agent.git'
+const UPSTREAM_URL = 'https://github.com/NousResearch/max-agent.git'
 const DEFAULT_BASELINE = '3651627d88858912e8460e6f949b7125725600c3'
 const DEFAULT_CANDIDATE = '3651627d88858912e8460e6f949b7125725600c3'
 const FREEZE_MS = 5_000
@@ -802,7 +802,7 @@ async function verifyInteractiveSurfaces(cdp, timed, measure, label) {
     throw new Error(`composer did not paint sentinel at ${label}`)
   }
 
-  const version = await timed(`version.ipc.${label}`, () => cdp.eval('window.hermesDesktop.getVersion()'))
+  const version = await timed(`version.ipc.${label}`, () => cdp.eval('window.maxDesktop.getVersion()'))
 
   if (typeof version?.appVersion !== 'string' || version.appVersion.length === 0) {
     throw new Error(`version IPC returned no appVersion at ${label}: ${JSON.stringify(version)}`)
@@ -1283,11 +1283,11 @@ async function executeRunInSandboxAttempt(target, index, warmup, mock, output, s
     {
       cwd: target.targetDesktop,
       env: sanitizedEnv({
-        HERMES_DESKTOP_APP_NAME: `HermesShortSession-${target.label}-${process.pid}-${index}-${warmup ? 'w' : 'm'}-${attempt}`,
-        HERMES_DESKTOP_HERMES_ROOT: target.targetRoot,
-        HERMES_DESKTOP_IGNORE_EXISTING: '1',
-        HERMES_DESKTOP_USER_DATA_DIR: userData,
-        HERMES_HOME: hermesHome,
+        MAX_DESKTOP_APP_NAME: `MaxShortSession-${target.label}-${process.pid}-${index}-${warmup ? 'w' : 'm'}-${attempt}`,
+        MAX_DESKTOP_MAX_ROOT: target.targetRoot,
+        MAX_DESKTOP_IGNORE_EXISTING: '1',
+        MAX_DESKTOP_USER_DATA_DIR: userData,
+        MAX_HOME: hermesHome,
         SHORT_SESSION_API_KEY: 'local-diagnostic-only'
       }),
       stdio: ['ignore', 'pipe', 'pipe']

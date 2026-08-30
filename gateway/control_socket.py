@@ -2,7 +2,7 @@
 Gateway control socket — the gateway-owned local coordination surface.
 
 Migration step 1 of the #92091 design: every other process on the machine
-(the updater, `hermes serve`/dashboard, the Desktop app) currently discovers
+(the updater, `max serve`/dashboard, the Desktop app) currently discovers
 gateway identity/state by scanning the process table and string-matching argv
 or by reading ``gateway_state.json`` (which can outlive its writer). This
 module gives the gateway an OWNED contract instead: a local-only socket the
@@ -20,10 +20,10 @@ v1 verbs (observation only — no behavior change for the gateway):
 
 Transport:
 
-- POSIX: Unix domain socket at ``$HERMES_HOME/gateway.sock``. When the home
+- POSIX: Unix domain socket at ``$MAX_HOME/gateway.sock``. When the home
   path is too long for ``sun_path`` (~104 bytes on macOS/BSD), the socket is
   bound in the system temp dir and a pointer file
-  ``$HERMES_HOME/gateway.sock.path`` records the real location; clients
+  ``$MAX_HOME/gateway.sock.path`` records the real location; clients
   follow the pointer transparently.
 - Windows: named pipe ``\\\\.\\pipe\\hermes-gateway-<home-hash>`` served via
   the proactor event loop. Same trust model (per-user namespace).
@@ -36,7 +36,7 @@ single JSON line out, then the server closes. Clients must not rely on
 keep-alive or pipelining. Verb handlers may touch disk (they run in an
 executor server-side) but must stay fast; the client budget is small.
 
-Consumers (``hermes update --plan`` inventory, the post-update fleet version
+Consumers (``max update --plan`` inventory, the post-update fleet version
 matrix) PREFER the socket when it answers and fall back to the existing
 state-file/scan layer when it doesn't — old gateways mid-upgrade and crashed
 processes keep working exactly as before. The scan layer is demoted, not
@@ -88,7 +88,7 @@ def _home_hash(home: Path) -> str:
 
 
 def windows_pipe_name(home: Path) -> str:
-    """Per-HERMES_HOME named pipe path (Windows transport)."""
+    """Per-MAX_HOME named pipe path (Windows transport)."""
     return rf"\\.\pipe\hermes-gateway-{_home_hash(home)}"
 
 
@@ -164,11 +164,11 @@ def _detect_supervisor() -> str:
     if env.get("INVOCATION_ID"):
         return "systemd"
     if sys.platform == "darwin" and (
-        env.get("XPC_SERVICE_NAME", "").startswith("ai.hermes")
+        env.get("XPC_SERVICE_NAME", "").startswith("ai.max")
         or env.get("LAUNCHD_SOCKET")
     ):
         return "launchd"
-    if env.get("HERMES_DESKTOP_MANAGED"):
+    if env.get("MAX_DESKTOP_MANAGED"):
         return "desktop"
     if "--external-supervisor" in sys.argv:
         return "external"
@@ -228,7 +228,7 @@ class GatewayControlServer:
 
     Lifecycle is owned by the gateway process: ``start()`` after the PID-file
     claim (the point where this process becomes the authoritative gateway for
-    its HERMES_HOME), ``stop()`` on shutdown. All failures are non-fatal —
+    its MAX_HOME), ``stop()`` on shutdown. All failures are non-fatal —
     the gateway never refuses to serve messaging because its control socket
     couldn't bind; consumers simply fall back to the scan layer.
     """
@@ -272,7 +272,7 @@ class GatewayControlServer:
         # Clear a stale socket left by a crashed predecessor. We only get
         # here after winning the PID-file O_EXCL race, so any existing file
         # is either stale or a plain collision — never a live sibling for
-        # this HERMES_HOME.
+        # this MAX_HOME.
         with contextlib.suppress(OSError):
             if bind_path.exists():
                 bind_path.unlink()

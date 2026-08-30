@@ -1,13 +1,13 @@
-"""Tests for hermes_cli.relaunch — unified self-relaunch utility."""
+"""Tests for max_cli.relaunch — unified self-relaunch utility."""
 
 import sys
 
 import pytest
 
-from hermes_cli import relaunch as relaunch_mod
+from max_cli import relaunch as relaunch_mod
 
 
-class TestResolveHermesBin:
+class TestResolveMaxBin:
     def test_prefers_absolute_argv0_when_executable(self, monkeypatch):
         fake = "/nix/store/abc/bin/hermes"
         monkeypatch.setattr(sys, "argv", [fake])
@@ -183,7 +183,7 @@ class TestRelaunch:
         assert exc_info.value.code == 42
 
 
-class TestResolveHermesBinWindowsPyGuard:
+class TestResolveMaxBinWindowsPyGuard:
     """On Windows, resolve_hermes_bin MUST NOT return a .py path.
     os.access(x, os.X_OK) returns True for .py files on Windows because
     PATHEXT includes .py when the Python launcher is installed — but
@@ -230,7 +230,7 @@ class TestResolveHermesBinWindowsPyGuard:
     def test_windows_py_argv0_with_no_hermes_on_path_returns_none(self, monkeypatch, tmp_path):
         """Bulletproof fallback: if argv0 is .py on Windows AND hermes.exe
         isn't on PATH, return None so the caller falls back to
-        python -m hermes_cli.main."""
+        python -m max_cli.main."""
         script = tmp_path / "main.py"
         script.write_text("# stub")
 

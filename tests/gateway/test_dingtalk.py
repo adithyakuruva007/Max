@@ -164,7 +164,7 @@ class TestSend:
         assert call_args[0][0] == "https://dingtalk.example/webhook"
         payload = call_args[1]["json"]
         assert payload["msgtype"] == "markdown"
-        assert payload["markdown"]["title"] == "Hermes"
+        assert payload["markdown"]["title"] == "Max"
         assert payload["markdown"]["text"] == "Hello!"
 
 
@@ -483,8 +483,8 @@ class TestMentionPatterns:
         adapter = _make_gating_adapter(
             monkeypatch, extra={"mention_patterns": ["^hermes"]}
         )
-        assert adapter._message_matches_mention_patterns("hermes please help") is True
-        assert adapter._message_matches_mention_patterns("please hermes help") is False
+        assert adapter._message_matches_mention_patterns("max please help") is True
+        assert adapter._message_matches_mention_patterns("please max help") is False
 
 
     def test_env_var_json_populates_patterns(self, monkeypatch):

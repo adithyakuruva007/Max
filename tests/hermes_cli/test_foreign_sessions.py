@@ -1,14 +1,14 @@
-"""Tests for hermes_cli.foreign_sessions — Claude Code / Codex CLI import.
+"""Tests for max_cli.foreign_sessions — Claude Code / Codex CLI import.
 
 Fixture JSONL is synthesized inline (tmp_path); the SessionDB is opened
-against a temp path so nothing touches the real HERMES_HOME store.
+against a temp path so nothing touches the real MAX_HOME store.
 """
 
 import json
 
 import pytest
 
-from hermes_cli.foreign_sessions import (
+from max_cli.foreign_sessions import (
     gather_foreign_sessions,
     import_foreign_session,
     list_claude_sessions,
@@ -97,7 +97,7 @@ def _write_codex_fixture(tmp_path, extra_lines=None):
 
 @pytest.fixture
 def session_db(tmp_path):
-    from hermes_state import SessionDB
+    from max_state import SessionDB
 
     db = SessionDB(db_path=tmp_path / "state.db")
     yield db

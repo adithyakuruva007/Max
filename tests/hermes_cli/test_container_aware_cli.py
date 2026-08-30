@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hermes_cli.config import (
+from max_cli.config import (
     get_container_exec_info,
 )
 
@@ -23,17 +23,17 @@ from hermes_cli.config import (
 
 @pytest.fixture
 def container_env(tmp_path, monkeypatch):
-    """Set up a fake HERMES_HOME with .container-mode file."""
-    hermes_home = tmp_path / ".hermes"
+    """Set up a fake MAX_HOME with .container-mode file."""
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-    monkeypatch.delenv("HERMES_DEV", raising=False)
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
+    monkeypatch.delenv("MAX_DEV", raising=False)
 
     container_mode = hermes_home / ".container-mode"
     container_mode.write_text(
         "# Written by NixOS activation script. Do not edit manually.\n"
         "backend=podman\n"
-        "container_name=hermes-agent\n"
+        "container_name=max-agent\n"
         "exec_user=hermes\n"
         "hermes_bin=/data/current-package/bin/hermes\n"
     )
@@ -42,12 +42,12 @@ def container_env(tmp_path, monkeypatch):
 
 def test_get_container_exec_info_returns_metadata(container_env):
     """Reads .container-mode and returns all fields including exec_user."""
-    with patch("hermes_constants.is_container", return_value=False):
+    with patch("max_constants.is_container", return_value=False):
         info = get_container_exec_info()
 
     assert info is not None
     assert info["backend"] == "podman"
-    assert info["container_name"] == "hermes-agent"
+    assert info["container_name"] == "max-agent"
     assert info["exec_user"] == "hermes"
     assert info["hermes_bin"] == "/data/current-package/bin/hermes"
 
@@ -67,7 +67,7 @@ def test_get_container_exec_info_returns_metadata(container_env):
 def docker_container_info():
     return {
         "backend": "docker",
-        "container_name": "hermes-agent",
+        "container_name": "max-agent",
         "exec_user": "hermes",
         "hermes_bin": "/data/current-package/bin/hermes",
     }
@@ -77,7 +77,7 @@ def docker_container_info():
 def podman_container_info():
     return {
         "backend": "podman",
-        "container_name": "hermes-agent",
+        "container_name": "max-agent",
         "exec_user": "hermes",
         "hermes_bin": "/data/current-package/bin/hermes",
     }
@@ -86,7 +86,7 @@ def podman_container_info():
 def test_exec_in_container_calls_execvp(docker_container_info):
     """Verifies os.execvp is called with correct args: runtime, tty flags,
     user, env vars, container name, binary, and CLI args."""
-    from hermes_cli.main import _exec_in_container
+    from max_cli.main import _exec_in_container
 
     with patch("shutil.which", return_value="/usr/bin/docker"), \
          patch("subprocess.run") as mock_run, \
@@ -110,7 +110,7 @@ def test_exec_in_container_calls_execvp(docker_container_info):
     e_values = [cmd[i + 1] for i in e_indices]
     assert "TERM=xterm-256color" in e_values
     assert "LANG=en_US.UTF-8" in e_values
-    assert "hermes-agent" in cmd
+    assert "max-agent" in cmd
     assert "/data/current-package/bin/hermes" in cmd
     assert "chat" in cmd
 

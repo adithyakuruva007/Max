@@ -16,7 +16,7 @@ let fetchedAt = 0
 let inflight: null | Promise<void> = null
 
 export async function refreshFleetRoster(options: { force?: boolean } = {}): Promise<void> {
-  const bridge = window.hermesDesktop?.getAgentRoster
+  const bridge = window.maxDesktop?.getAgentRoster
 
   if (!bridge) {
     return

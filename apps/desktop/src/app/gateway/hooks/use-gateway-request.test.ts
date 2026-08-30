@@ -12,9 +12,9 @@ const gatewayMocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/hermes', async importOriginal => {
-  const actual = await importOriginal<typeof HermesModule>()
+  const actual = await importOriginal<typeof MaxModule>()
 
-  class FakeHermesGateway {
+  class FakeMaxGateway {
     connectionState = 'closed'
     wsUrl = ''
     request = vi.fn()
@@ -47,11 +47,11 @@ vi.mock('@/hermes', async importOriginal => {
     }
   }
 
-  return { ...actual, HermesGateway: FakeHermesGateway }
+  return { ...actual, MaxGateway: FakeMaxGateway }
 })
 
-import type * as HermesModule from '@/hermes'
-import type { HermesGateway } from '@/hermes'
+import type * as MaxModule from '@/hermes'
+import type { MaxGateway } from '@/hermes'
 import {
   $gateway,
   closeSecondaryGateways,
@@ -71,7 +71,7 @@ interface TestGateway {
   wsUrl?: string
 }
 
-const fakeGateway = { connectionState: 'open' } as unknown as HermesGateway
+const fakeGateway = { connectionState: 'open' } as unknown as MaxGateway
 
 const remoteConnection = {
   authMode: 'oauth' as const,
@@ -168,8 +168,8 @@ async function activateRemoteGateway() {
   const desktop = installRemoteDesktop()
   const primary = makePrimaryGateway()
 
-  setPrimaryGateway(primary as unknown as HermesGateway, 'default')
-  $gateway.set(primary as unknown as HermesGateway)
+  setPrimaryGateway(primary as unknown as MaxGateway, 'default')
+  $gateway.set(primary as unknown as MaxGateway)
   await ensureGatewayForAgent('ssh-source', 'research')
 
   const gateway = $gateway.get() as unknown as TestGateway
@@ -324,7 +324,7 @@ describe('useGatewayRequest', () => {
 
   it('surfaces a missing optional scoped mint bridge without falling back to a stale ticket or local lookup', async () => {
     const { desktop, gateway } = await activateRemoteGateway()
-    Reflect.deleteProperty(window.hermesDesktop, 'getGatewayWsUrlFor')
+    Reflect.deleteProperty(window.maxDesktop, 'getGatewayWsUrlFor')
 
     const { result } = renderHook(() => useGatewayRequest())
 
@@ -343,8 +343,8 @@ describe('useGatewayRequest', () => {
     const primary = makePrimaryGateway()
     primary.request.mockRejectedValueOnce(new Error('connection closed')).mockResolvedValueOnce({ recovered: true })
 
-    setPrimaryGateway(primary as unknown as HermesGateway, 'default')
-    $gateway.set(primary as unknown as HermesGateway)
+    setPrimaryGateway(primary as unknown as MaxGateway, 'default')
+    $gateway.set(primary as unknown as MaxGateway)
     $gatewayState.set('closed')
 
     const { result } = renderHook(() => useGatewayRequest())
@@ -371,11 +371,11 @@ describe('useGatewayRequest', () => {
     const dropped = {
       connectionState: 'closed',
       request: vi.fn().mockRejectedValue(new Error('connection closed'))
-    } as unknown as HermesGateway
+    } as unknown as MaxGateway
 
     const getConnection = vi.fn(() => new Promise(() => undefined))
 
-    ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = { getConnection }
+    ;(window as unknown as { hermesDesktop: unknown }).maxDesktop = { getConnection }
     $gateway.set(dropped)
 
     const { result } = renderHook(() => useGatewayRequest())

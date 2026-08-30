@@ -22,17 +22,17 @@ import pytest
 
 @pytest.fixture
 def hermes_env(tmp_path, monkeypatch):
-    """Isolate HERMES_HOME for each test so jobs/scripts don't leak."""
-    home = tmp_path / ".hermes"
+    """Isolate MAX_HOME for each test so jobs/scripts don't leak."""
+    home = tmp_path / ".max"
     home.mkdir()
     (home / "scripts").mkdir()
     (home / "cron").mkdir()
 
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
 
     import importlib
-    import hermes_constants
-    importlib.reload(hermes_constants)
+    import max_constants
+    importlib.reload(max_constants)
     import cron.jobs
     importlib.reload(cron.jobs)
     import cron.scheduler

@@ -53,7 +53,7 @@ class TestHeredocMarker:
         content = f"some text with {HEREDOC_MARKER} embedded"
         marker = _heredoc_marker(content)
         assert marker != HEREDOC_MARKER
-        assert marker.startswith("HERMES_PERSIST_")
+        assert marker.startswith("MAX_PERSIST_")
         assert marker not in content
 
 
@@ -332,12 +332,12 @@ class TestPerToolThresholds:
             pytest.skip("file_tools not importable in test env")
 
 
-# ── Host-side spillover ($HERMES_HOME/cache/spillover) ────────────────
+# ── Host-side spillover ($MAX_HOME/cache/spillover) ────────────────
 
 class TestSpillover:
     @pytest.fixture(autouse=True)
     def _isolated_home(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
         # Reset the once-per-process prune flag so each test is independent.
         import tools.tool_result_storage as trs
         monkeypatch.setattr(trs, "_spillover_pruned_once", False)

@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 from toolsets import resolve_toolset, get_toolset, validate_toolset
 
 
-class TestHermesApiServerToolset:
+class TestMaxApiServerToolset:
     """Tests for the hermes-api-server toolset definition."""
 
 
@@ -44,7 +44,7 @@ class TestApiServerPlatformConfig:
         'terminal' entirely. Its static membership (terminal, process) IS in the
         composite, so it must stay enabled."""
         from tools.registry import discover_builtin_tools
-        from hermes_cli.tools_config import _get_platform_tools
+        from max_cli.tools_config import _get_platform_tools
         discover_builtin_tools()
         assert "terminal" in _get_platform_tools({}, "api_server")
 

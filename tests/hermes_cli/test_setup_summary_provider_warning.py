@@ -8,11 +8,11 @@ working model configured (consumer-onboarding audit finding #7, Aug 2026).
 
 from unittest.mock import patch
 
-from hermes_cli.auth import AuthError
+from max_cli.auth import AuthError
 
 
 def _summary_output(capsys, provider_ready: bool):
-    from hermes_cli import setup as setup_mod
+    from max_cli import setup as setup_mod
 
     if provider_ready:
         resolver = lambda *a, **k: "openrouter"  # noqa: E731
@@ -24,7 +24,7 @@ def _summary_output(capsys, provider_ready: bool):
             )
 
     # Keep the summary fast/hermetic: stub the heavier feature probes.
-    with patch("hermes_cli.auth.resolve_provider", resolver), \
+    with patch("max_cli.auth.resolve_provider", resolver), \
          patch.object(setup_mod, "get_nous_subscription_features") as feats:
         feats.side_effect = Exception("stubbed")
         try:
@@ -40,8 +40,8 @@ def _summary_output(capsys, provider_ready: bool):
 def test_summary_warns_when_no_provider(capsys):
     out = _summary_output(capsys, provider_ready=False)
     assert "No inference provider is configured" in out
-    assert "hermes model" in out
-    assert "hermes setup --portal" in out
+    assert "max model" in out
+    assert "max setup --portal" in out
 
 
 def test_summary_quiet_when_provider_ready(capsys):

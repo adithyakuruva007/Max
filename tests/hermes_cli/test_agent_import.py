@@ -1,13 +1,13 @@
-"""Tests for hermes_cli.agent_import — ``hermes import-agent``.
+"""Tests for max_cli.agent_import — ``max import-agent``.
 
 Covers: source detection, Claude Code and Codex parsing, mapping into the
-real Hermes stores (memories/MEMORY.md, config.yaml command_allowlist /
+real Max stores (memories/MEMORY.md, config.yaml command_allowlist /
 approvals.deny / mcp_servers, skills/), dry-run write-nothing guarantees,
 malformed-input skip reports, and the never-import-secrets rule.
 
-Uses the profile_env fixture pattern from tests/hermes_cli/test_profiles.py:
-Path.home() and HERMES_HOME are redirected to tmp_path so nothing touches
-the real ~/.hermes.
+Uses the profile_env fixture pattern from tests/max_cli/test_profiles.py:
+Path.home() and MAX_HOME are redirected to tmp_path so nothing touches
+the real ~/.max.
 """
 
 import json
@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from hermes_cli.agent_import import (
+from max_cli.agent_import import (
     ENTRY_DELIMITER,
     AgentImporter,
     claude_rule_to_command_pattern,
@@ -29,22 +29,22 @@ from hermes_cli.agent_import import (
 
 
 # ---------------------------------------------------------------------------
-# Shared fixture: redirect Path.home() and HERMES_HOME (profile_env pattern)
+# Shared fixture: redirect Path.home() and MAX_HOME (profile_env pattern)
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
 def profile_env(tmp_path, monkeypatch):
-    """Isolated environment: Path.home() -> tmp_path, HERMES_HOME -> tmp/.hermes."""
+    """Isolated environment: Path.home() -> tmp_path, MAX_HOME -> tmp/.max."""
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    default_home = tmp_path / ".hermes"
+    default_home = tmp_path / ".max"
     default_home.mkdir(exist_ok=True)
-    monkeypatch.setenv("HERMES_HOME", str(default_home))
+    monkeypatch.setenv("MAX_HOME", str(default_home))
     return tmp_path
 
 
 @pytest.fixture()
 def hermes_home(profile_env):
-    return profile_env / ".hermes"
+    return profile_env / ".max"
 
 
 # ---------------------------------------------------------------------------
@@ -541,7 +541,7 @@ class TestExistingConfigPreserved:
             assert str(config_path) in reason
             assert "not valid YAML" in reason
             # Points the user at a way out.
-            assert "hermes config edit" in reason
+            assert "max config edit" in reason
 
     def test_unreadable_config_is_left_byte_identical(
             self, claude_tree, hermes_home, config_path):
@@ -659,7 +659,7 @@ class TestExistingConfigPreserved:
     def test_failed_write_does_not_truncate_the_existing_config(
             self, hermes_home, config_path, monkeypatch):
         """An interrupted dump leaves the previous file complete."""
-        from hermes_cli import agent_import
+        from max_cli import agent_import
 
         config_path.write_text(EXISTING_CONFIG, encoding="utf-8")
         before = config_path.read_bytes()
@@ -681,7 +681,7 @@ class TestExistingConfigPreserved:
 class TestCliWiring:
     def test_parser_builds_and_parses(self):
         import argparse
-        from hermes_cli.subcommands.import_agent import build_import_agent_parser
+        from max_cli.subcommands.import_agent import build_import_agent_parser
 
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers(dest="command")
@@ -698,7 +698,7 @@ class TestCliWiring:
 
     def test_rejects_unknown_agent(self):
         import argparse
-        from hermes_cli.subcommands.import_agent import build_import_agent_parser
+        from max_cli.subcommands.import_agent import build_import_agent_parser
 
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers(dest="command")
@@ -710,7 +710,7 @@ class TestCliWiring:
             self, claude_tree, hermes_home, capsys):
         """End-to-end through import_agent_command with --dry-run."""
         import types
-        from hermes_cli.agent_import import import_agent_command
+        from max_cli.agent_import import import_agent_command
 
         args = types.SimpleNamespace(
             agent="claude-code", source=str(claude_tree), dry_run=True,

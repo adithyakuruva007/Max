@@ -11,7 +11,7 @@ import logging
 import pytest
 import yaml
 
-from hermes_cli.plugins import (
+from max_cli.plugins import (
     PluginManager,
     PluginManifest,
     SUPPORTED_MANIFEST_VERSION,
@@ -44,10 +44,10 @@ def _enable(home, names, entries=None):
 def hermes_home(tmp_path, monkeypatch):
     home = tmp_path / "hermes_home"
     (home / "plugins").mkdir(parents=True)
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    monkeypatch.setenv("HERMES_ENABLE_PROJECT_PLUGINS", "0")
+    monkeypatch.setenv("MAX_HOME", str(home))
+    monkeypatch.setenv("MAX_ENABLE_PROJECT_PLUGINS", "0")
     monkeypatch.setenv(
-        "HERMES_BUNDLED_PLUGINS", str(tmp_path / "empty-bundled")
+        "MAX_BUNDLED_PLUGINS", str(tmp_path / "empty-bundled")
     )
     (tmp_path / "empty-bundled").mkdir()
     return home
@@ -77,7 +77,7 @@ class TestV1Regression:
             manifest_extra={"mystery_field": True},
         )
         _enable(hermes_home, ["oldie"])
-        with caplog.at_level(logging.WARNING, logger="hermes_cli.plugins"):
+        with caplog.at_level(logging.WARNING, logger="max_cli.plugins"):
             mgr = PluginManager()
             mgr.discover_and_load()
         assert mgr._plugins["oldie"].enabled
@@ -146,7 +146,7 @@ class TestV2Parsing:
             mgr = PluginManager()
             mgr.discover_and_load()
         assert mgr._plugins["fromfuture"].enabled
-        assert "newer than this Hermes" in caplog.text
+        assert "newer than this Max" in caplog.text
 
     def test_malformed_v2_fields_warn_and_degrade(self, hermes_home, caplog):
         _write_plugin(

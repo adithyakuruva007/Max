@@ -1,4 +1,4 @@
-"""Tests for `hermes memory status` CLI command.
+"""Tests for `max memory status` CLI command.
 
 Covers:
 - Status output shows config-aware indicators instead of hardcoded 'always active'
@@ -19,16 +19,16 @@ def _run_cmd_status(capfd, mem_config=None, memory_tools=None):
         memory_tools: Set of tool names returned by _get_platform_tools.
                       Defaults to {"memory"} (tool enabled).
     """
-    from hermes_cli.memory_setup import cmd_status
+    from max_cli.memory_setup import cmd_status
 
     config = {"memory": mem_config or {}}
     if memory_tools is None:
         memory_tools = {"memory"}
 
-    with patch("hermes_cli.config.load_config", return_value=config):
-        with patch("hermes_cli.memory_setup._get_available_providers", return_value=[]):
+    with patch("max_cli.config.load_config", return_value=config):
+        with patch("max_cli.memory_setup._get_available_providers", return_value=[]):
             with patch(
-                "hermes_cli.tools_config._get_platform_tools",
+                "max_cli.tools_config._get_platform_tools",
                 return_value=memory_tools,
             ):
                 cmd_status(args=None)

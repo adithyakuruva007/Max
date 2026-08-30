@@ -1,7 +1,7 @@
 """Bot Mode cross-connection relay — connections ARE the peer set.
 
 Every gateway connected to the user's Desktop (local, remote URL, SSH,
-Hermes Cloud, docker) is a persistent line. This module is the gateway-side
+Max Cloud, docker) is a persistent line. This module is the gateway-side
 half of the relay that rides those lines so agents on ANY connected gateway
 can find and message agents on ANY other, with `message_agent` as the one
 send path (Teknium ruling, Aug 2026 — the peers-vs-connections split was
@@ -68,7 +68,7 @@ REPLY_WAIT_SECONDS = 900
 STALE_AFTER_SECONDS = 6 * 3600
 
 # Fallback envelope TTL when config is unreachable — mirrors the
-# ``bot_mode.envelope_ttl_seconds`` default in hermes_cli/config_defaults.py.
+# ``bot_mode.envelope_ttl_seconds`` default in max_cli/config_defaults.py.
 # Envelopes older than the TTL are refused at drain time with a
 # 'queued_expired' error reply instead of being delivered late.
 DEFAULT_ENVELOPE_TTL_SECONDS = 900
@@ -254,7 +254,7 @@ def _envelope_ttl_seconds() -> int:
     drain-time expiry.
     """
     try:
-        from hermes_cli.config import load_config_readonly
+        from max_cli.config import load_config_readonly
 
         cfg = load_config_readonly() or {}
         val = (cfg.get("bot_mode") or {}).get("envelope_ttl_seconds")
@@ -468,7 +468,7 @@ def cleanup_bot_relay_artifacts(max_age_hours: float | None = None) -> int:
     """
     del max_age_hours  # relay staleness is governed by STALE_AFTER_SECONDS
     try:
-        home = Path(os.getenv("HERMES_HOME") or os.path.expanduser("~/.hermes"))
+        home = Path(os.getenv("MAX_HOME") or os.path.expanduser("~/.max"))
         root = home.parent.parent if home.parent.name == "profiles" else home
         base = relay_root(root)
         if not base.is_dir():
@@ -535,11 +535,11 @@ def waiter_command(root: Path | str, envelope: dict) -> str:
 # ── delivery command (used by the deliver RPC on the TARGET gateway) ────────
 
 
-def _hermes_cli() -> str:
-    """Resolve the hermes CLI beside this gateway's own interpreter.
+def _max_cli() -> str:
+    """Resolve the max CLI beside this gateway's own interpreter.
 
     The deliver RPC runs on the target gateway, whose process is the venv
-    python — its bin/Scripts directory holds the matching ``hermes``
+    python — its bin/Scripts directory holds the matching ``max``
     entrypoint. A bare ``"hermes"`` relies on PATH, which is exactly what
     service contexts (systemd units, desktop launchers, non-login SSH
     shells) do not provide, so delivery died with ENOENT there (#93590).
@@ -561,7 +561,7 @@ def _hermes_cli() -> str:
 def local_delivery_command(profile: str, query_file: str) -> list[str]:
     """argv that delivers a DM into ``profile``'s Bot Chat on THIS gateway."""
     return [
-        _hermes_cli(),
+        _max_cli(),
         "-p",
         profile,
         "chat",
@@ -579,7 +579,7 @@ def local_delivery_command(profile: str, query_file: str) -> list[str]:
 # ── per-profile turn lock (#93091) ───────────────────────────────────────────
 #
 # Two deliveries into the SAME target profile must never run their Bot Chat
-# turns concurrently: deliveries spawn separate ``hermes`` subprocesses, so
+# turns concurrently: deliveries spawn separate ``max`` subprocesses, so
 # an in-memory mutex is useless — the lock is a per-profile lockfile under
 # ``<root>/bot_relay/locks/`` held with ``fcntl.flock`` for exactly the turn
 # execution window. flock is released by the kernel when the holder's fd
@@ -612,7 +612,7 @@ class TurnBusyError(RuntimeError):
 def turn_wait_seconds() -> float:
     """Wait budget for a queued delivery turn (config, lazily read)."""
     try:
-        from hermes_cli.config import cfg_get, load_config
+        from max_cli.config import cfg_get, load_config
 
         val = cfg_get(load_config(), "bot_mode", "turn_wait_seconds", default=None)
         if val is not None:

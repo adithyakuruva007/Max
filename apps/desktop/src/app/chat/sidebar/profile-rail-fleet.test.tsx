@@ -197,7 +197,7 @@ async function renderFleet() {
 beforeEach(() => {
   getAgentRoster.mockResolvedValue(roster)
   selectConnection.mockResolvedValue(undefined)
-  ;(window as { hermesDesktop?: unknown }).hermesDesktop = { getAgentRoster }
+  ;(window as { hermesDesktop?: unknown }).maxDesktop = { getAgentRoster }
 })
 
 afterEach(() => {
@@ -209,7 +209,7 @@ afterEach(() => {
   activeConnectionId.set(null)
   profileScope.set('default')
   profiles.set([{ is_default: true, name: 'default' }])
-  delete (window as { hermesDesktop?: unknown }).hermesDesktop
+  delete (window as { hermesDesktop?: unknown }).maxDesktop
 })
 
 describe('ProfileRail fleet mode', () => {

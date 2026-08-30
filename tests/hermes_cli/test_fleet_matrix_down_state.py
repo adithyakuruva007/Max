@@ -12,19 +12,19 @@ import json
 import os
 from pathlib import Path
 
-import hermes_cli.update_receipt as ur
+import max_cli.update_receipt as ur
 
 
 def _setup(monkeypatch, tmp_path, record: dict):
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     home.mkdir(exist_ok=True)
     monkeypatch.setattr(
-        "hermes_cli.build_info.get_code_identity",
+        "max_cli.build_info.get_code_identity",
         lambda refresh=False: {"sha": "HEADSHA", "version": "1.0"},
     )
-    monkeypatch.setattr("hermes_cli.profiles._get_default_hermes_home", lambda: home)
+    monkeypatch.setattr("max_cli.profiles._get_default_hermes_home", lambda: home)
     monkeypatch.setattr(
-        "hermes_cli.profiles._get_profiles_root", lambda: tmp_path / "no-profiles"
+        "max_cli.profiles._get_profiles_root", lambda: tmp_path / "no-profiles"
     )
     monkeypatch.setattr("gateway.control_socket.identify_gateway", lambda h, **k: None)
     (home / "gateway_state.json").write_text(json.dumps(record), encoding="utf-8")
@@ -139,4 +139,4 @@ def test_down_and_stale_both_escalate_with_remediation(capsys):
     out = capsys.readouterr().out
     assert "STALE" in out
     assert "DOWN" in out
-    assert "hermes gateway restart" in out
+    assert "max gateway restart" in out

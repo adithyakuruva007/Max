@@ -12,7 +12,7 @@ Features:
 - Shared file store tools (upload, list, read, ingest, delete)
 - Explicit memory tools (profile, search, context, remember, forget)
 
-Config (env vars or hermes config.yaml under retaindb:):
+Config (env vars or max config.yaml under retaindb:):
   RETAINDB_API_KEY     — API key (required)
   RETAINDB_BASE_URL    — API endpoint (default: https://api.retaindb.com)
   RETAINDB_PROJECT     — Project identifier (optional — defaults to "default")
@@ -53,7 +53,7 @@ def _load_retaindb_config() -> Dict[str, Any]:
     secret resolution rather than config.yaml.
     """
     try:
-        from hermes_cli.config import load_config_readonly
+        from max_cli.config import load_config_readonly
 
         config = load_config_readonly()
         memory_config = config.get("memory", {}) if isinstance(config, dict) else {}
@@ -581,15 +581,15 @@ class RetainDBMemoryProvider(MemoryProvider):
         else:
             hermes_home = str(kwargs.get("hermes_home", ""))
             profile_name = os.path.basename(hermes_home) if hermes_home else ""
-            project = f"hermes-{profile_name}" if (profile_name and profile_name not in {"", ".hermes"}) else "default"
+            project = f"hermes-{profile_name}" if (profile_name and profile_name not in {"", ".max"}) else "default"
 
         self._client = _Client(api_key, base_url, project)
         self._session_id = session_id
         self._user_id = kwargs.get("user_id", "default") or "default"
         self._agent_id = kwargs.get("agent_id", "hermes") or "hermes"
 
-        from hermes_constants import get_hermes_home
-        hermes_home_path = get_hermes_home()
+        from max_constants import get_max_home
+        hermes_home_path = get_max_home()
         db_path = hermes_home_path / "retaindb_queue.db"
         self._queue = _WriteQueue(self._client, db_path)
 

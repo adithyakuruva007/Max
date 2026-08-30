@@ -1,18 +1,18 @@
 /**
- * Hermes Bot Mode — a "one chat per agent" roster for the Hermes desktop.
+ * Max Bot Mode — a "one chat per agent" roster for the Max desktop.
  *
- * Left pane "Bots": one row per Hermes profile (a bot = an agent profile) with
+ * Left pane "Bots": one row per Max profile (a bot = an agent profile) with
  * a customizable avatar (shape + color + eyes, image, or pet). Click opens that
  * bot's chat; right-click → Edit Profile (avatar, title, description).
  * "New Bot" creates a profile — Name / Title / Description with an
  * "Advanced" disclosure for full profile config.
  *
- * Right tile "Routines": scheduled tasks (Hermes cron jobs) scoped to the
+ * Right tile "Routines": scheduled tasks (Max cron jobs) scoped to the
  * bot you're currently chatting with — follows the live gateway profile.
  *
  * Bots message each other straight into each bot's ONE canonical "Bot
  * Chat" — @-mentions deliver over gateway RPCs (no CLI relay), and
- * bot-initiated sends use `hermes -p <bot> chat --in ~ -c "Bot Chat"`.
+ * bot-initiated sends use `max -p <bot> chat --in ~ -c "Bot Chat"`.
  */
 
 import { CHAT_EMPTY_AREA, COMPOSER_AREAS, host, PALETTE_AREA, translateNow } from '@hermes/plugin-sdk'
@@ -261,7 +261,7 @@ export default {
             try {
               const registry =
                 typeof window !== 'undefined'
-                  ? await Promise.resolve(window.hermesDesktop?.connections?.list?.()).catch(() => null)
+                  ? await Promise.resolve(window.maxDesktop?.connections?.list?.()).catch(() => null)
                   : null
 
               const liveIds = Array.isArray(registry?.connections)
@@ -322,7 +322,7 @@ export default {
     try {
       if (typeof window !== 'undefined') {
         unbindConnectionsChanged =
-          window.hermesDesktop?.connections?.onChanged?.(payload => {
+          window.maxDesktop?.connections?.onChanged?.(payload => {
             if (payload?.reason === 'removed') {
               sweepGroupChatMembersForRemovedConnection(payload.connectionId)
             }
@@ -606,7 +606,7 @@ export default {
       registerRoutinesPane()
     }
 
-    // A bot's chat before it has spoken: core's splash is Hermes' wordmark and
+    // A bot's chat before it has spoken: core's splash is Max' wordmark and
     // stands down for any session that exists, so the bot titles its own.
     ctx.register({
       id: 'chat-empty',

@@ -13,8 +13,8 @@ import {
   getCronJobs,
   getGlobalModelInfo,
   getGlobalModelOptions,
-  getHermesConfig,
-  getHermesConfigDefaults,
+  getMaxConfig,
+  getMaxConfigDefaults,
   getLatestSessionMessages,
   getOlderSessionMessages,
   getProfiles,
@@ -43,7 +43,7 @@ const emptySessionsResponse = {
   total: 0
 }
 
-describe('Hermes REST helpers', () => {
+describe('Max REST helpers', () => {
   let api: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
@@ -419,8 +419,8 @@ describe('Hermes REST helpers', () => {
     api.mockResolvedValue({})
 
     const bootCalls: [() => Promise<unknown>, string][] = [
-      [getHermesConfig, '/api/config'],
-      [getHermesConfigDefaults, '/api/config/defaults'],
+      [getMaxConfig, '/api/config'],
+      [getMaxConfigDefaults, '/api/config/defaults'],
       [getGlobalModelInfo, '/api/model/info'],
       [() => getGlobalModelOptions(), '/api/model/options?explicit_only=1'],
       [getCronJobs, '/api/cron/jobs']

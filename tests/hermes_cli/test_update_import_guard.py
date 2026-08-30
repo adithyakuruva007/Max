@@ -1,4 +1,4 @@
-"""Tests for the post-update *import* guard in ``hermes update``.
+"""Tests for the post-update *import* guard in ``max update``.
 
 ``_validate_critical_files_syntax`` only parses files, so it cannot detect a
 partially-updated tree: when one package is refreshed and a sibling is not,
@@ -20,9 +20,9 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import main as hermes_main
-from hermes_cli import update_cmd
-from hermes_constants import partial_update_hint
+from max_cli import main as hermes_main
+from max_cli import update_cmd
+from max_constants import partial_update_hint
 
 
 def _write_skewed_tree(root: Path, *, skewed: bool) -> None:
@@ -103,7 +103,7 @@ def test_hint_fires_for_first_party_import_error():
     hint = partial_update_hint(exc)
 
     assert hint, "expected recovery guidance for a first-party ImportError"
-    assert any("hermes update" in line for line in hint)
+    assert any("max update" in line for line in hint)
 
 
 @pytest.mark.parametrize(
@@ -123,7 +123,7 @@ def test_hint_stays_silent_for_unrelated_failures(exc):
 
 
 def test_import_guard_prefers_the_project_venv_interpreter(monkeypatch, tmp_path):
-    """``hermes update`` can run under a different Python than the install's.
+    """``max update`` can run under a different Python than the install's.
 
     Probing ``sys.executable`` would then validate a tree the user never
     actually runs -- the same reasoning behind ``_venv_core_imports_healthy``.
@@ -188,7 +188,7 @@ def test_hint_does_not_claim_partial_update_for_lookalike_third_party(modname):
 
 
 @pytest.mark.parametrize("modname", ["tools.todo_tool", "agent.context_compressor",
-                                     "hermes_constants", "cli"])
+                                     "max_constants", "cli"])
 def test_hint_fires_for_each_first_party_root(modname):
     exc = ImportError("cannot import name 'X'")
     exc.name = modname
@@ -205,7 +205,7 @@ def test_probe_and_hint_share_one_first_party_definition():
     detection. Both now derive from FIRST_PARTY_MODULE_ROOTS; this test
     fails if either grows a private copy.
     """
-    from hermes_constants import FIRST_PARTY_MODULE_ROOTS, is_first_party_module
+    from max_constants import FIRST_PARTY_MODULE_ROOTS, is_first_party_module
 
     captured = {}
 

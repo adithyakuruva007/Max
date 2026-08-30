@@ -1,9 +1,9 @@
-"""Meta Model API (Muse Spark) provider plugin for Hermes Agent.
+"""Meta Model API (Muse Spark) provider plugin for Max Agent.
 
 Provider profile for Meta Superintelligence Labs' Muse Spark family, served
 via the OpenAI-compatible Meta Model API at ``https://api.meta.ai/v1``.
 
-Bundled from https://github.com/albertodepaola/hermes-meta-provider. Hermes'
+Bundled from https://github.com/albertodepaola/hermes-meta-provider. Max'
 provider discovery (``providers/__init__.py``) imports it on first
 ``get_provider_profile()`` / ``list_providers()`` call, and the module-level
 ``register_provider()`` below wires it into the registry.
@@ -36,7 +36,7 @@ from providers.base import ProviderProfile
 
 
 def _resolve_effort(reasoning_config: dict | None) -> str:
-    """Map Hermes' reasoning_config to a Meta-safe ``reasoning_effort`` value.
+    """Map Max' reasoning_config to a Meta-safe ``reasoning_effort`` value.
 
     Meta's vocabulary (minimal..xhigh; rejects ``none``) is declared in
     agent.reasoning_effort. Disabled/"none" maps to ``minimal`` (the closest
@@ -93,7 +93,7 @@ meta_ai = MetaAIProfile(
     # Responses API is the wire that engages Muse prompt caching: measured
     # 0 cached tokens on /v1/chat/completions vs 93-99% cache hits on
     # /v1/responses with prompt_cache_retention (see host_mandated_api_mode
-    # in hermes_cli/providers.py and the retention hint in
+    # in max_cli/providers.py and the retention hint in
     # agent/transports/codex.py). The MetaAIProfile chat-completions hook
     # above still covers custom OpenAI-compatible endpoints configured with
     # a non-api.meta.ai base URL, which fall through to chat_completions.

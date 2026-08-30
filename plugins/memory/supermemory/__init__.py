@@ -308,7 +308,7 @@ class _SupermemoryClient:
         )
 
     def _merge_metadata(self, metadata: Optional[dict]) -> dict:
-        # sm_source routes Hermes writes into the "Hermes" Space in the Supermemory
+        # sm_source routes Max writes into the "Max" Space in the Supermemory
         # app so the user can filter / bulk-manage them per source agent. This is a
         # functional routing key for the user, not vendor telemetry.
         merged = {"sm_source": "hermes", **(metadata or {})}
@@ -576,8 +576,8 @@ class SupermemoryMemoryProvider(MemoryProvider):
         return bool(get_secret("SUPERMEMORY_API_KEY", ""))
 
     def get_config_schema(self):
-        # Only prompt for the API key during `hermes memory setup`.
-        # All other options are documented for $HERMES_HOME/supermemory.json
+        # Only prompt for the API key during `max memory setup`.
+        # All other options are documented for $MAX_HOME/supermemory.json
         # or the SUPERMEMORY_CONTAINER_TAG env var.
         return [
             {"key": "api_key", "description": "Supermemory API key", "secret": True, "required": True, "env_var": "SUPERMEMORY_API_KEY", "url": _API_KEY_URL},
@@ -592,17 +592,17 @@ class SupermemoryMemoryProvider(MemoryProvider):
         _save_supermemory_config(sanitized, hermes_home)
 
     def get_status_config(self, provider_config: dict) -> dict:
-        from hermes_constants import get_hermes_home
+        from max_constants import get_max_home
 
         del provider_config
-        hermes_home = str(get_hermes_home())
+        hermes_home = str(get_max_home())
         api_key = get_secret("SUPERMEMORY_API_KEY", "") or ""
         status = _probe_supermemory_connection(api_key, hermes_home)
         return {"summary": _format_connection_summary(status)}
 
     def post_setup(self, hermes_home: str, config: dict) -> None:
-        from hermes_cli.config import save_config
-        from hermes_cli.memory_setup import _prompt, _write_env_vars
+        from max_cli.config import save_config
+        from max_cli.memory_setup import _prompt, _write_env_vars
 
         print("\n  Configuring supermemory:\n")
         print(f"  Get your API key at {_API_KEY_URL}\n")
@@ -649,8 +649,8 @@ class SupermemoryMemoryProvider(MemoryProvider):
         print("\n  Start a new session to activate.\n")
 
     def initialize(self, session_id: str, **kwargs) -> None:
-        from hermes_constants import get_hermes_home
-        self._hermes_home = kwargs.get("hermes_home") or str(get_hermes_home())
+        from max_constants import get_max_home
+        self._hermes_home = kwargs.get("hermes_home") or str(get_max_home())
         self._session_id = session_id
         self._turn_count = 0
         self._config = _load_supermemory_config(self._hermes_home)

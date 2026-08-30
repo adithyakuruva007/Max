@@ -11,7 +11,7 @@ import {
 } from './windows'
 
 const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
-const initialHermesDesktop = desktopWindow.hermesDesktop
+const initialMaxDesktop = desktopWindow.maxDesktop
 
 const notifyError = vi.fn()
 
@@ -24,7 +24,7 @@ function installBridge(
   openWindow?: Window['hermesDesktop']['openWindow'],
   openBrowserWindow?: Window['hermesDesktop']['openBrowserWindow']
 ) {
-  desktopWindow.hermesDesktop = {
+  desktopWindow.maxDesktop = {
     ...(openSessionWindow ? { openSessionWindow } : {}),
     ...(openWindow ? { openWindow } : {}),
     ...(openBrowserWindow ? { openBrowserWindow } : {})
@@ -36,16 +36,16 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (initialHermesDesktop) {
-    desktopWindow.hermesDesktop = initialHermesDesktop
+  if (initialMaxDesktop) {
+    desktopWindow.maxDesktop = initialMaxDesktop
   } else {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
   }
 })
 
 describe('canOpenSessionWindow', () => {
   it('is false when the desktop bridge is absent', () => {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
     expect(canOpenSessionWindow()).toBe(false)
   })
 
@@ -81,7 +81,7 @@ describe('openSessionInNewWindow', () => {
   })
 
   it('no-ops gracefully when the bridge is absent (web fallback)', async () => {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
 
     await openSessionInNewWindow('s1')
 
@@ -127,7 +127,7 @@ describe('openSessionInNewWindow', () => {
 
 describe('canOpenNewWindow', () => {
   it('is false when the desktop bridge is absent', () => {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
     expect(canOpenNewWindow()).toBe(false)
   })
 
@@ -144,7 +144,7 @@ describe('canOpenNewWindow', () => {
 
 describe('openNewWindow', () => {
   it('no-ops gracefully when the bridge is absent (web fallback)', async () => {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
 
     await openNewWindow()
 
@@ -180,7 +180,7 @@ describe('openNewWindow', () => {
 
 describe('canOpenBrowserWindow', () => {
   it('is false when the desktop bridge is absent', () => {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
     expect(canOpenBrowserWindow()).toBe(false)
   })
 
@@ -206,7 +206,7 @@ describe('openBrowserInNewWindow', () => {
   })
 
   it('returns false when the bridge is absent', async () => {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
 
     expect(await openBrowserInNewWindow('tab-1')).toBe(false)
     expect(notifyError).not.toHaveBeenCalled()

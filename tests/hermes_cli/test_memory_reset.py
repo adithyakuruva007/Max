@@ -1,11 +1,11 @@
-"""Tests for the `hermes memory reset` CLI command.
+"""Tests for the `max memory reset` CLI command.
 
 Covers:
 - Reset both stores (MEMORY.md + USER.md)
 - Reset individual stores (--target memory / --target user)
 - Skip confirmation with --yes
 - Graceful handling when no memory files exist
-- Profile-scoped reset (uses HERMES_HOME)
+- Profile-scoped reset (uses MAX_HOME)
 """
 
 import pytest
@@ -13,15 +13,15 @@ import pytest
 
 @pytest.fixture
 def memory_env(tmp_path, monkeypatch):
-    """Set up a fake HERMES_HOME with memory files."""
-    hermes_home = tmp_path / ".hermes"
+    """Set up a fake MAX_HOME with memory files."""
+    hermes_home = tmp_path / ".max"
     memories = hermes_home / "memories"
     memories.mkdir(parents=True)
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     # Create sample memory files
     (memories / "MEMORY.md").write_text(
-        "§\nHermes repo is at ~/.hermes/hermes-agent\n§\nUser prefers dark themes",
+        "§\nMax repo is at ~/.max/max-agent\n§\nUser prefers dark themes",
         encoding="utf-8",
     )
     (memories / "USER.md").write_text(
@@ -34,11 +34,11 @@ def memory_env(tmp_path, monkeypatch):
 def _run_memory_reset(target="all", yes=False, monkeypatch=None, confirm_input="no"):
     """Invoke the memory reset logic from cmd_memory in main.py.
 
-    Simulates what happens when `hermes memory reset` is run.
+    Simulates what happens when `max memory reset` is run.
     """
-    from hermes_constants import get_hermes_home
+    from max_constants import get_max_home
 
-    mem_dir = get_hermes_home() / "memories"
+    mem_dir = get_max_home() / "memories"
     files_to_reset = []
     if target in {"all", "memory"}:
         files_to_reset.append(("MEMORY.md", "agent notes"))
@@ -60,7 +60,7 @@ def _run_memory_reset(target="all", yes=False, monkeypatch=None, confirm_input="
 
 
 class TestMemoryReset:
-    """Tests for `hermes memory reset` subcommand."""
+    """Tests for `max memory reset` subcommand."""
 
     def test_reset_all_with_yes_flag(self, memory_env):
         """--yes flag should skip confirmation and delete both files."""
@@ -76,9 +76,9 @@ class TestMemoryReset:
 
     def test_reset_no_files_exist(self, tmp_path, monkeypatch):
         """Should return 'nothing' when no memory files exist."""
-        hermes_home = tmp_path / ".hermes"
+        hermes_home = tmp_path / ".max"
         (hermes_home / "memories").mkdir(parents=True)
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
         result = _run_memory_reset(target="all", yes=True)
         assert result == "nothing"

@@ -55,7 +55,7 @@ _PHOTON_ENV = (
 def tmp_hermes_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     home = tmp_path / "hermes"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     for key in _PHOTON_ENV:
         monkeypatch.delenv(key, raising=False)
     yield home
@@ -92,7 +92,7 @@ def test_store_project_credentials_round_trip(
         spectrum_project_id="sp-123",
         project_secret="secret-key",
         dashboard_project_id="dash-456",
-        name="Hermes Agent",
+        name="Max Agent",
     )
     for key in _PHOTON_ENV:
         monkeypatch.delenv(key, raising=False)
@@ -109,7 +109,7 @@ def test_store_project_credentials_round_trip(
 def test_load_user_numbers_falls_back_to_home_channel(
     tmp_hermes_home: Path,
 ) -> None:
-    from hermes_cli.config import save_env_value
+    from max_cli.config import save_env_value
 
     save_env_value("PHOTON_HOME_CHANNEL", "+15551234567")
 
@@ -158,12 +158,12 @@ def test_load_project_credentials_env_override(
 
 # ---------------------------------------------------------------------------
 # Cross-process auth.json lock (issue: photon wrote auth.json without the
-# cross-process lock hermes_cli/auth.py's ~15 other writers all use, so a
+# cross-process lock max_cli/auth.py's ~15 other writers all use, so a
 # concurrent refresh from elsewhere could silently lose photon's update or
 # vice versa).
 
 def _hold_auth_lock_then_release(hold_event: threading.Event, release_event: threading.Event) -> None:
-    from hermes_cli.auth import _auth_store_lock
+    from max_cli.auth import _auth_store_lock
 
     with _auth_store_lock():
         hold_event.set()
@@ -222,7 +222,7 @@ def test_poll_for_token_body_access_token(monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_list_projects_unwraps_list(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_get(url: str, **kwargs: Any) -> _FakeResponse:
-        return _FakeResponse(json_body=[{"id": "p1", "name": "Hermes Agent"}])
+        return _FakeResponse(json_body=[{"id": "p1", "name": "Max Agent"}])
 
     monkeypatch.setattr(photon_auth.httpx, "get", fake_get)
     projects = photon_auth.list_projects("tok")
@@ -233,11 +233,11 @@ def test_find_project_by_name_case_insensitive(monkeypatch: pytest.MonkeyPatch) 
     def fake_get(url: str, **kwargs: Any) -> _FakeResponse:
         return _FakeResponse(json_body={"data": [
             {"id": "p1", "name": "Other"},
-            {"id": "p2", "name": "hermes agent"},
+            {"id": "p2", "name": "max agent"},
         ]})
 
     monkeypatch.setattr(photon_auth.httpx, "get", fake_get)
-    proj = photon_auth.find_project_by_name("tok", "Hermes Agent")
+    proj = photon_auth.find_project_by_name("tok", "Max Agent")
     assert proj is not None and proj["id"] == "p2"
 
 
@@ -251,12 +251,12 @@ def test_create_project_omits_spectrum_flag(monkeypatch: pytest.MonkeyPatch) -> 
         return _FakeResponse(json_body={"success": True, "id": "new-proj"})
 
     monkeypatch.setattr(photon_auth.httpx, "post", fake_post)
-    data = photon_auth.create_project("tok", name="Hermes Agent")
+    data = photon_auth.create_project("tok", name="Max Agent")
     assert data["id"] == "new-proj"
     # Spectrum is always provisioned at create-time; the field was dropped
     # from the API schema, so we must not send it.
     assert "spectrum" not in captured["body"]
-    assert captured["body"]["name"] == "Hermes Agent"
+    assert captured["body"]["name"] == "Max Agent"
     assert captured["headers"]["Authorization"] == "Bearer tok"
     assert captured["url"].endswith("/api/projects")
 

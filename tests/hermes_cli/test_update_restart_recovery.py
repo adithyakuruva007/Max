@@ -19,7 +19,7 @@ import sys
 import textwrap
 from types import SimpleNamespace
 
-from hermes_cli import update_cmd
+from max_cli import update_cmd
 
 
 class _Completed:
@@ -84,7 +84,7 @@ def test_abort_recovery_hands_managed_profiles_to_a_fresh_process(monkeypatch):
     assert len(calls) == 1
     argv, kwargs = calls[0]
     assert argv[0] == sys.executable
-    assert argv[1:4] == ["-m", "hermes_cli.update_restart_recovery", "--stdin"]
+    assert argv[1:4] == ["-m", "max_cli.update_restart_recovery", "--stdin"]
     payload = json.loads(kwargs["input"])
     assert payload == {
         "profiles": ["coder", "default"],
@@ -93,7 +93,7 @@ def test_abort_recovery_hands_managed_profiles_to_a_fresh_process(monkeypatch):
     assert kwargs["text"] is True
     assert kwargs["capture_output"] is True
     assert kwargs["check"] is False
-    assert kwargs["env"]["HERMES_UPDATE_RESTART_RECOVERY"] == "1"
+    assert kwargs["env"]["MAX_UPDATE_RESTART_RECOVERY"] == "1"
 
 
 def test_abort_recovery_does_not_claim_success_when_fresh_process_fails(monkeypatch):
@@ -235,22 +235,22 @@ def test_service_matching_is_exact_for_overlapping_profile_names():
         "foo", "hermes-gateway-foobar.service"
     )
     assert update_cmd._gateway_service_matches_profile(
-        "default", "ai.hermes.gateway"
+        "default", "ai.max.gateway"
     )
     assert not update_cmd._gateway_service_matches_profile(
-        "default", "ai.hermes.gateway-foo"
+        "default", "ai.max.gateway-foo"
     )
 
 
 def test_recovery_child_restarts_each_profile_with_a_fresh_main(monkeypatch):
-    recovery = importlib.import_module("hermes_cli.update_restart_recovery")
+    recovery = importlib.import_module("max_cli.update_restart_recovery")
     calls = []
 
     def fake_run(argv, **kwargs):
         calls.append((argv, kwargs))
         return _Completed(0)
 
-    monkeypatch.setenv("_HERMES_GATEWAY", "1")
+    monkeypatch.setenv("_MAX_GATEWAY", "1")
     result = recovery.restart_profiles(["default", "coder"], run=fake_run)
 
     # No supervisor observations were possible → conservative labels only.
@@ -260,20 +260,20 @@ def test_recovery_child_restarts_each_profile_with_a_fresh_main(monkeypatch):
         "failed": [],
     }
     assert [call[0] for call in calls] == [
-        [sys.executable, "-m", "hermes_cli.main", "-p", "coder", "gateway", "restart"],
-        [sys.executable, "-m", "hermes_cli.main", "-p", "default", "gateway", "restart"],
+        [sys.executable, "-m", "max_cli.main", "-p", "coder", "gateway", "restart"],
+        [sys.executable, "-m", "max_cli.main", "-p", "default", "gateway", "restart"],
     ]
     for _, kwargs in calls:
         assert kwargs["stdin"] is subprocess.DEVNULL
         assert kwargs["capture_output"] is True
         assert kwargs["text"] is True
         assert kwargs["check"] is False
-        assert kwargs["env"]["HERMES_UPDATE_RESTART_RECOVERY"] == "1"
-        assert "_HERMES_GATEWAY" not in kwargs["env"]
+        assert kwargs["env"]["MAX_UPDATE_RESTART_RECOVERY"] == "1"
+        assert "_MAX_GATEWAY" not in kwargs["env"]
 
 
 def test_recovery_child_verifies_systemd_profiles_via_is_active(monkeypatch):
-    recovery = importlib.import_module("hermes_cli.update_restart_recovery")
+    recovery = importlib.import_module("max_cli.update_restart_recovery")
     monkeypatch.setattr(recovery.shutil, "which", lambda name: f"/bin/{name}")
     calls = []
 
@@ -302,7 +302,7 @@ def test_recovery_child_verifies_systemd_profiles_via_is_active(monkeypatch):
 
 
 def test_recovery_child_treats_missing_systemctl_as_unverified(monkeypatch):
-    recovery = importlib.import_module("hermes_cli.update_restart_recovery")
+    recovery = importlib.import_module("max_cli.update_restart_recovery")
     monkeypatch.setattr(recovery.shutil, "which", lambda name: None)
 
     result = recovery.restart_profiles(
@@ -319,7 +319,7 @@ def test_recovery_child_treats_missing_systemctl_as_unverified(monkeypatch):
 
 
 def test_recovery_child_reports_failed_profile_without_losing_successes():
-    recovery = importlib.import_module("hermes_cli.update_restart_recovery")
+    recovery = importlib.import_module("max_cli.update_restart_recovery")
     outcomes = iter((_Completed(1), _Completed(0)))
 
     result = recovery.restart_profiles(
@@ -334,7 +334,7 @@ def test_recovery_child_reports_failed_profile_without_losing_successes():
 
 
 def test_recovery_payload_rejects_path_like_profile_ids():
-    recovery = importlib.import_module("hermes_cli.update_restart_recovery")
+    recovery = importlib.import_module("max_cli.update_restart_recovery")
 
     try:
         recovery._parse_payload(io.StringIO(json.dumps({"profiles": ["../other"]})))
@@ -345,7 +345,7 @@ def test_recovery_payload_rejects_path_like_profile_ids():
 
 
 def test_recovery_payload_rejects_malformed_supervisors_map():
-    recovery = importlib.import_module("hermes_cli.update_restart_recovery")
+    recovery = importlib.import_module("max_cli.update_restart_recovery")
 
     try:
         recovery._parse_payload(
@@ -363,7 +363,7 @@ def test_recovery_payload_rejects_malformed_supervisors_map():
 
 def test_recovery_module_empty_payload_is_a_real_clean_process():
     result = subprocess.run(
-        [sys.executable, "-m", "hermes_cli.update_restart_recovery", "--stdin"],
+        [sys.executable, "-m", "max_cli.update_restart_recovery", "--stdin"],
         input=json.dumps({"profiles": []}),
         capture_output=True,
         text=True,
@@ -382,7 +382,7 @@ def test_recovery_module_end_to_end_in_a_real_fresh_process(tmp_path):
     """E2E: the whole recovery protocol through a genuinely fresh interpreter.
 
     A ``sitecustomize`` shim in the child's ``PYTHONPATH`` intercepts the
-    grandchild ``hermes_cli.main … gateway restart`` invocations (recording
+    grandchild ``max_cli.main … gateway restart`` invocations (recording
     them and returning rc 0) and answers ``systemctl --user is-active`` with
     ``active`` only for the default profile's unit.  Everything else — stdin
     payload parsing, profile ordering, environment scrubbing, verification
@@ -412,7 +412,7 @@ def test_recovery_module_end_to_end_in_a_real_fresh_process(tmp_path):
 
         def _shim_run(argv, *args, **kwargs):
             argv_list = list(argv)
-            if "hermes_cli.main" in argv_list:
+            if "max_cli.main" in argv_list:
                 with open(_LEDGER, "a", encoding="utf-8") as fh:
                     fh.write(json.dumps(argv_list) + "\\n")
                 return subprocess.CompletedProcess(argv_list, 0, "", "")
@@ -433,10 +433,10 @@ def test_recovery_module_end_to_end_in_a_real_fresh_process(tmp_path):
 
     env = os.environ.copy()
     env["PYTHONPATH"] = str(tmp_path) + os.pathsep + env.get("PYTHONPATH", "")
-    env["_HERMES_GATEWAY"] = "1"  # must be scrubbed before the grandchild runs
+    env["_MAX_GATEWAY"] = "1"  # must be scrubbed before the grandchild runs
 
     result = subprocess.run(
-        [sys.executable, "-m", "hermes_cli.update_restart_recovery", "--stdin"],
+        [sys.executable, "-m", "max_cli.update_restart_recovery", "--stdin"],
         input=json.dumps(
             {
                 "profiles": ["default", "coder"],

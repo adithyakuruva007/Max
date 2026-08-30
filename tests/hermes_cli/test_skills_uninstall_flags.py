@@ -1,5 +1,5 @@
 """
-Tests for --yes / -y flag in `hermes skills uninstall` CLI subcommand.
+Tests for --yes / -y flag in `max skills uninstall` CLI subcommand.
 
 Verifies the parser registers the flag and the value reaches
 ``do_uninstall(skip_confirm=True)`` through the real ``skills_command``
@@ -16,10 +16,10 @@ def _run_uninstall_cli(monkeypatch, argv):
         captured["name"] = name
         captured["skip_confirm"] = skip_confirm
 
-    monkeypatch.setattr("hermes_cli.skills_hub.do_uninstall", fake_do_uninstall)
+    monkeypatch.setattr("max_cli.skills_hub.do_uninstall", fake_do_uninstall)
     monkeypatch.setattr(sys, "argv", argv)
 
-    from hermes_cli.main import main
+    from max_cli.main import main
 
     main()
     return captured

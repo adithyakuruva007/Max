@@ -9,17 +9,17 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
-from hermes_cli.web_server import _SESSION_TOKEN, app
+from max_cli.web_server import _SESSION_TOKEN, app
 
 
-HEADERS = {"X-Hermes-Session-Token": _SESSION_TOKEN}
+HEADERS = {"X-Max-Session-Token": _SESSION_TOKEN}
 
 
 @pytest.fixture
 def catalog_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, _isolate_hermes_home):
     """Install one synthetic API-key catalog entry in the isolated test home."""
-    from hermes_constants import get_hermes_home
-    from hermes_cli.config import invalidate_env_cache
+    from max_constants import get_max_home
+    from max_cli.config import invalidate_env_cache
 
     catalog = tmp_path / "optional-mcps"
     entry_dir = catalog / "demo"
@@ -49,9 +49,9 @@ def catalog_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, _isolate_hermes
         ),
         encoding="utf-8",
     )
-    monkeypatch.setenv("HERMES_OPTIONAL_MCPS", str(catalog))
+    monkeypatch.setenv("MAX_OPTIONAL_MCPS", str(catalog))
     invalidate_env_cache()
-    return get_hermes_home()
+    return get_max_home()
 
 
 @pytest.fixture
@@ -65,7 +65,7 @@ def test_catalog_rejects_undeclared_key_before_any_write_or_install(
     catalog_env: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    import hermes_cli.mcp_catalog as mcp_catalog
+    import max_cli.mcp_catalog as mcp_catalog
 
     installs: list[str] = []
     monkeypatch.setattr(
@@ -101,14 +101,14 @@ def test_catalog_cannot_declare_reserved_control_key(
     catalog_env: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    import hermes_cli.mcp_catalog as mcp_catalog
+    import max_cli.mcp_catalog as mcp_catalog
 
-    catalog_root = Path(os.environ["HERMES_OPTIONAL_MCPS"])
+    catalog_root = Path(os.environ["MAX_OPTIONAL_MCPS"])
     manifest_path = catalog_root / "demo" / "manifest.yaml"
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     manifest["auth"]["env"].append(
         {
-            "name": "HERMES_YOLO_MODE",
+            "name": "MAX_YOLO_MODE",
             "prompt": "Unsafe control",
             "secret": False,
         }
@@ -125,14 +125,14 @@ def test_catalog_cannot_declare_reserved_control_key(
     response = client.post(
         "/api/mcp/catalog/install",
         headers=HEADERS,
-        json={"name": "demo", "env": {"HERMES_YOLO_MODE": "1"}},
+        json={"name": "demo", "env": {"MAX_YOLO_MODE": "1"}},
     )
 
     assert response.status_code == 400
     assert "denylist" in response.json()["detail"]
     assert installs == []
     env_path = catalog_env / ".env"
-    assert not env_path.exists() or "HERMES_YOLO_MODE" not in env_path.read_text(
+    assert not env_path.exists() or "MAX_YOLO_MODE" not in env_path.read_text(
         encoding="utf-8"
     )
 
@@ -142,7 +142,7 @@ def test_catalog_accepts_declared_credential(
     catalog_env: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    import hermes_cli.mcp_catalog as mcp_catalog
+    import max_cli.mcp_catalog as mcp_catalog
 
     installs: list[str] = []
     monkeypatch.setattr(
@@ -167,10 +167,10 @@ def test_catalog_accepts_declared_credential(
 @pytest.mark.parametrize(
     "protected_key",
     [
-        "HERMES_YOLO_MODE",
-        "HERMES_OPTIONAL_MCPS",
-        "HERMES_COPILOT_ACP_COMMAND",
-        "HERMES_COPILOT_ACP_ARGS",
+        "MAX_YOLO_MODE",
+        "MAX_OPTIONAL_MCPS",
+        "MAX_COPILOT_ACP_COMMAND",
+        "MAX_COPILOT_ACP_ARGS",
     ],
 )
 def test_generic_env_endpoint_rejects_protected_key(
@@ -192,7 +192,7 @@ def test_generic_env_endpoint_rejects_protected_key(
 
 
 def test_process_supplied_catalog_root_remains_supported(catalog_env: Path):
-    from hermes_cli.mcp_catalog import get_entry
+    from max_cli.mcp_catalog import get_entry
 
     assert get_entry("demo") is not None
 
@@ -204,14 +204,14 @@ def test_rejected_copilot_controls_do_not_change_live_resolvers(
 ):
     from agent.copilot_acp_client import _resolve_args, _resolve_command
 
-    monkeypatch.setenv("HERMES_COPILOT_ACP_COMMAND", "/opt/trusted/copilot")
-    monkeypatch.setenv("HERMES_COPILOT_ACP_ARGS", "--acp --stdio")
+    monkeypatch.setenv("MAX_COPILOT_ACP_COMMAND", "/opt/trusted/copilot")
+    monkeypatch.setenv("MAX_COPILOT_ACP_ARGS", "--acp --stdio")
     expected_command = _resolve_command()
     expected_args = _resolve_args()
 
     attempts = {
-        "HERMES_COPILOT_ACP_COMMAND": "/tmp/attacker-command",
-        "HERMES_COPILOT_ACP_ARGS": "--malicious-transport",
+        "MAX_COPILOT_ACP_COMMAND": "/tmp/attacker-command",
+        "MAX_COPILOT_ACP_ARGS": "--malicious-transport",
     }
     for key, value in attempts.items():
         response = client.put(
@@ -235,13 +235,13 @@ def test_preexisting_copilot_controls_remain_usable(
     monkeypatch: pytest.MonkeyPatch,
 ):
     from agent.copilot_acp_client import _resolve_args, _resolve_command
-    from hermes_cli.env_loader import load_hermes_dotenv
+    from max_cli.env_loader import load_hermes_dotenv
 
-    monkeypatch.setenv("HERMES_COPILOT_ACP_COMMAND", "parent-placeholder")
-    monkeypatch.setenv("HERMES_COPILOT_ACP_ARGS", "--parent-placeholder")
+    monkeypatch.setenv("MAX_COPILOT_ACP_COMMAND", "parent-placeholder")
+    monkeypatch.setenv("MAX_COPILOT_ACP_ARGS", "--parent-placeholder")
     (catalog_env / ".env").write_text(
-        "HERMES_COPILOT_ACP_COMMAND=/opt/operator/copilot\n"
-        "HERMES_COPILOT_ACP_ARGS=--acp --stdio --operator-mode\n",
+        "MAX_COPILOT_ACP_COMMAND=/opt/operator/copilot\n"
+        "MAX_COPILOT_ACP_ARGS=--acp --stdio --operator-mode\n",
         encoding="utf-8",
     )
 

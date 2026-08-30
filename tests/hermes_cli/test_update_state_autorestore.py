@@ -9,7 +9,7 @@ snapshot.
 
 Copying that image over the live path replaces only the main database file. A
 ``state.db-wal`` left behind by the *old* database — a crashed writer, or a
-second Hermes holder the updater's drain did not stop — survives the copy and is
+second Max holder the updater's drain did not stop — survives the copy and is
 replayed over the fresh image on the next open. The restored file then passes
 ``PRAGMA integrity_check`` while serving the discarded database's contents, so
 the CLI prints "✓ Auto-restored from snapshot" over data the user has lost.
@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.update_cmd import (
+from max_cli.update_cmd import (
     _clear_stale_sqlite_sidecars,
     _restore_state_db_from_snapshot,
 )
@@ -136,7 +136,7 @@ def test_torn_restore_is_what_the_guard_prevents(live_db_with_hot_wal, snapshot_
     that reports ``integrity_check`` clean — so the CLI's ``_restored_ok`` test
     passes and it prints success — while serving the OLD row set.
     """
-    from hermes_cli.backup import verify_sqlite_integrity
+    from max_cli.backup import verify_sqlite_integrity
 
     shutil.copy2(snapshot_db, live_db_with_hot_wal)  # no sidecar clearing
 

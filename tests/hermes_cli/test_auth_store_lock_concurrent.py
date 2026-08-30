@@ -28,14 +28,14 @@ import threading
 
 import pytest
 
-from hermes_cli.auth import _auth_store_lock
+from max_cli.auth import _auth_store_lock
 
 CONCURRENCY = 40
 
 
 @pytest.fixture
 def hermes_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
     return tmp_path
 
 

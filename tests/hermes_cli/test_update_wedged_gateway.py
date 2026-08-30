@@ -22,7 +22,7 @@ from unittest.mock import patch
 
 import pytest
 
-import hermes_cli.gateway as gateway_cli
+import max_cli.gateway as gateway_cli
 from gateway.shutdown_watchdog import (
     get_loop_heartbeat_path,
     get_loop_tick_socket_path,
@@ -35,7 +35,7 @@ from gateway.shutdown_watchdog import (
 def tmp_path():
     """Short-path override for this module (macOS AF_UNIX ~104-byte limit).
 
-    The loop-tick witness tests bind real UNIX sockets under HERMES_HOME.
+    The loop-tick witness tests bind real UNIX sockets under MAX_HOME.
     pytest's default tmp_path nests deep enough on macOS that
     ``state/gateway.loop-tick.<pid>.sock`` exceeds the sockaddr_un limit and
     ``bind()`` raises ``OSError: AF_UNIX path too long``. A mkdtemp directly
@@ -183,7 +183,7 @@ def _launchd_harness(monkeypatch, tmp_path, pid):
     patched ``_process_hermes_home``).
     """
     events = []
-    monkeypatch.setattr(gateway_cli, "get_launchd_label", lambda: "ai.hermes.gateway")
+    monkeypatch.setattr(gateway_cli, "get_launchd_label", lambda: "ai.max.gateway")
     monkeypatch.setattr(gateway_cli, "_launchd_domain", lambda: "gui/501")
     monkeypatch.setattr(gateway_cli, "_get_restart_drain_timeout", lambda: 180.0)
     monkeypatch.setattr("gateway.status.get_running_pid", lambda *a, **k: pid)
@@ -400,7 +400,7 @@ class TestLaunchdRestartWedgedIntegration:
 
     def _setup(self, monkeypatch, liveness):
         events = []
-        monkeypatch.setattr(gateway_cli, "get_launchd_label", lambda: "ai.hermes.gateway")
+        monkeypatch.setattr(gateway_cli, "get_launchd_label", lambda: "ai.max.gateway")
         monkeypatch.setattr(gateway_cli, "_launchd_domain", lambda: "gui/501")
         monkeypatch.setattr(gateway_cli, "_get_restart_drain_timeout", lambda: 180.0)
         # Wait budget covers after-turn deferral + drain + headroom (#77184).
@@ -567,7 +567,7 @@ class TestLoopTickWitness:
             # The restart path fed by the REAL probe must drain, not escalate.
             events = []
             monkeypatch.setattr(
-                gateway_cli, "get_launchd_label", lambda: "ai.hermes.gateway"
+                gateway_cli, "get_launchd_label", lambda: "ai.max.gateway"
             )
             monkeypatch.setattr(gateway_cli, "_launchd_domain", lambda: "gui/501")
             monkeypatch.setattr(gateway_cli, "_get_restart_drain_timeout", lambda: 180.0)
@@ -981,5 +981,5 @@ def test_default_probe_budget_stays_inside_query_tier():
     assert worst_case <= 5.0, (
         f"default probe budget {worst_case:.1f}s exceeds half the 10s query "
         "tier — retune tick_timeout/tick_strikes/tick_gap_s or update the "
-        "subprocess-timeout doc reference in hermes_cli/gateway.py"
+        "subprocess-timeout doc reference in max_cli/gateway.py"
     )

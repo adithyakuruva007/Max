@@ -36,7 +36,7 @@ vi.mock('@/store/windows', async importOriginal => {
 // profile-ready gate, ownership validation, and legacy-key discard.
 
 const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
-const initialHermesDesktop = desktopWindow.hermesDesktop
+const initialMaxDesktop = desktopWindow.maxDesktop
 
 const session = (over: Partial<SessionInfo> = {}): SessionInfo => makeSessionInfo({ id: 'live', ...over })
 
@@ -53,8 +53,8 @@ describe('useDesktopIntegrations', () => {
 
     // Stub the desktop bridge so the hook's useEffect callbacks don't try to
     // reach real Electron IPC. The established desktop-test pattern assigns a
-    // plain object to window.hermesDesktop rather than using vi.spyOn.
-    desktopWindow.hermesDesktop = {
+    // plain object to window.maxDesktop rather than using vi.spyOn.
+    desktopWindow.maxDesktop = {
       setPreviewShortcutActive: vi.fn(),
       onOpenUpdatesRequested: vi.fn(),
       onFocusSession: vi.fn(),
@@ -68,8 +68,8 @@ describe('useDesktopIntegrations', () => {
   })
 
   afterEach(() => {
-    if (initialHermesDesktop) {
-      desktopWindow.hermesDesktop = initialHermesDesktop
+    if (initialMaxDesktop) {
+      desktopWindow.maxDesktop = initialMaxDesktop
     }
 
     vi.restoreAllMocks()
@@ -462,8 +462,8 @@ describe('useDesktopIntegrations', () => {
   describe('notification activate + plugin deep links', () => {
     it('navigates when a plugin notification activate payload arrives', () => {
       let activate: ((payload: { activate?: string }) => void) | undefined
-      desktopWindow.hermesDesktop = {
-        ...desktopWindow.hermesDesktop,
+      desktopWindow.maxDesktop = {
+        ...desktopWindow.maxDesktop,
         onNotificationActivate: (cb: (payload: { activate?: string }) => void) => {
           activate = cb
 
@@ -478,8 +478,8 @@ describe('useDesktopIntegrations', () => {
 
     it('navigates hermes://index-network/intent/1 deep links through the same path vocabulary', () => {
       let deepLink: ((payload: { kind: string; name: string; params: Record<string, string> }) => void) | undefined
-      desktopWindow.hermesDesktop = {
-        ...desktopWindow.hermesDesktop,
+      desktopWindow.maxDesktop = {
+        ...desktopWindow.maxDesktop,
         onDeepLink: (cb: (payload: { kind: string; name: string; params: Record<string, string> }) => void) => {
           deepLink = cb
 
@@ -495,8 +495,8 @@ describe('useDesktopIntegrations', () => {
 
     it('routes hermes://mcp/install to the pending-install dialog, not navigation', () => {
       let deepLink: ((payload: { kind: string; name: string; params: Record<string, string> }) => void) | undefined
-      desktopWindow.hermesDesktop = {
-        ...desktopWindow.hermesDesktop,
+      desktopWindow.maxDesktop = {
+        ...desktopWindow.maxDesktop,
         onDeepLink: (cb: (payload: { kind: string; name: string; params: Record<string, string> }) => void) => {
           deepLink = cb
 

@@ -40,10 +40,10 @@ class _FakeDB:
 
 
 def _run(monkeypatch, capsys, argv_tail, db):
-    import hermes_cli.main as main_mod
-    import hermes_state
+    import max_cli.main as main_mod
+    import max_state
 
-    monkeypatch.setattr(hermes_state, "SessionDB", lambda: db)
+    monkeypatch.setattr(max_state, "SessionDB", lambda: db)
     monkeypatch.setattr(sys, "argv", ["hermes", "sessions", *argv_tail])
     try:
         main_mod.main()
@@ -135,4 +135,4 @@ def test_pinned_empty_hint(monkeypatch, capsys):
     db = _FakeDB(rows=[])
     _code, out = _run(monkeypatch, capsys, ["pinned"], db)
     assert "No pinned sessions" in out
-    assert "hermes sessions pin" in out
+    assert "max sessions pin" in out

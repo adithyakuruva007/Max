@@ -1,6 +1,6 @@
-"""display_hermes_home() renders POSIX separators on every platform.
+"""display_max_home() renders POSIX separators on every platform.
 
-Maintainer catch (#95681 arc): on Windows with a custom HERMES_HOME under
+Maintainer catch (#95681 arc): on Windows with a custom MAX_HOME under
 the user profile (e.g. AppData/Local/hermes), ``"~/" +
 str(home.relative_to(Path.home()))`` produced the mixed-separator chimera
 ``~/AppData\\Local\\hermes`` — which then leaked into every consumer that
@@ -17,33 +17,33 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
-class TestDisplayHermesHomePosix(unittest.TestCase):
+class TestDisplayMaxHomePosix(unittest.TestCase):
     def test_nested_home_renders_forward_slashes(self):
         """Simulate the Windows shape portably: home nested several levels
         under the user profile must render with forward slashes only."""
-        import hermes_constants as hc
+        import max_constants as hc
 
         fake_userhome = Path.home()
         nested = fake_userhome / "AppData" / "Local" / "hermes"
-        with patch.object(hc, "get_hermes_home", return_value=nested):
-            out = hc.display_hermes_home()
+        with patch.object(hc, "get_max_home", return_value=nested):
+            out = hc.display_max_home()
         self.assertEqual(out, "~/AppData/Local/hermes")
         self.assertNotIn("\\", out)
 
     def test_default_home_unchanged(self):
-        import hermes_constants as hc
+        import max_constants as hc
 
-        with patch.object(hc, "get_hermes_home",
-                          return_value=Path.home() / ".hermes"):
-            out = hc.display_hermes_home()
-        self.assertEqual(out, "~/.hermes")
+        with patch.object(hc, "get_max_home",
+                          return_value=Path.home() / ".max"):
+            out = hc.display_max_home()
+        self.assertEqual(out, "~/.max")
 
     def test_outside_home_falls_back_to_absolute(self):
-        import hermes_constants as hc
+        import max_constants as hc
 
-        outside = Path("/opt/hermes-custom") if os.name != "nt" else Path("C:/opt/hermes-custom")
-        with patch.object(hc, "get_hermes_home", return_value=outside):
-            out = hc.display_hermes_home()
+        outside = Path("/opt/max-custom") if os.name != "nt" else Path("C:/opt/max-custom")
+        with patch.object(hc, "get_max_home", return_value=outside):
+            out = hc.display_max_home()
         self.assertEqual(out, str(outside))
 
     def test_no_serving_schema_carries_tilde_backslash_chimera(self):

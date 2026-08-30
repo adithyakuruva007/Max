@@ -50,11 +50,11 @@ function releasePointer(state: PressState): void {
 }
 
 function setWorkspaceTransfer(transferring: boolean): void {
-  window.hermesDesktop?.hud?.setWorkspaceTransfer?.(transferring)
+  window.maxDesktop?.hud?.setWorkspaceTransfer?.(transferring)
 }
 
 function moveHud(state: PressState): void {
-  window.hermesDesktop?.hud?.moveBy?.({
+  window.maxDesktop?.hud?.moveBy?.({
     width: state.originW,
     height: state.originH
   })
@@ -68,7 +68,7 @@ function armGrab(state: PressState, workspaceTransfer: boolean): void {
     setWorkspaceTransfer(true)
   }
 
-  window.hermesDesktop?.hud?.beginMove?.()
+  window.maxDesktop?.hud?.beginMove?.()
 }
 
 /**
@@ -112,7 +112,7 @@ export function useHudComposerDrag(
 
     if (state) {
       if (state.armed) {
-        window.hermesDesktop?.hud?.endMove?.()
+        window.maxDesktop?.hud?.endMove?.()
       }
 
       if (state.workspaceTransfer) {

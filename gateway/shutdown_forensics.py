@@ -173,7 +173,7 @@ def snapshot_shutdown_context(received_signal: Any = None) -> Dict[str, Any]:
     # _PLANNED_STOP_MARKER_FILENAME); we use string literals here so the
     # signal-handler path stays import-light.
     try:
-        hermes_home_str = os.environ.get("HERMES_HOME")
+        hermes_home_str = os.environ.get("MAX_HOME")
         if hermes_home_str:
             takeover_path = Path(hermes_home_str) / ".gateway-takeover.json"
             if takeover_path.exists():
@@ -331,7 +331,7 @@ def check_systemd_timing_alignment(
     """At startup, sanity-check that systemd's TimeoutStopSec covers stop.
 
     When the gateway is run under a stale systemd unit file (e.g. the user
-    upgraded hermes-agent but never re-ran ``hermes setup`` to regenerate
+    upgraded max-agent but never re-ran ``max setup`` to regenerate
     the unit), ``TimeoutStopSec`` can be smaller than the full stop budget
     (``restart_drain_timeout`` vs ``cron_drain_timeout`` + cleanup reserve,
     plus headroom).  Result: SIGTERM arrives, the drain starts, and systemd
@@ -420,7 +420,7 @@ def parse_systemd_duration_to_us(raw: str) -> Optional[int]:
     systemd accepts a wide grammar; we cover the common cases (s, ms, min,
     h) and return None on anything unexpected.  Never raises.
 
-    Public: also consumed by hermes_cli.gateway's restart-wait sizing.
+    Public: also consumed by max_cli.gateway's restart-wait sizing.
     """
     if not raw:
         return None

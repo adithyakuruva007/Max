@@ -1,7 +1,7 @@
 import { type MutableRefObject, useCallback, useRef, useState } from 'react'
 
 import { setTerminalFontFamilyFromConfig } from '@/app/right-sidebar/terminal/terminal-font'
-import { getHermesConfig, getHermesConfigDefaults } from '@/hermes'
+import { getMaxConfig, getMaxConfigDefaults } from '@/hermes'
 import { BUILTIN_PERSONALITIES, normalizePersonalityValue, personalityNamesFromConfig } from '@/lib/chat-runtime'
 import { normalize } from '@/lib/text'
 import { setDisplayTimestampsFromConfig } from '@/store/display-timestamps'
@@ -46,16 +46,16 @@ function normalizeConfigEffort(value: unknown): string {
   return effort === 'false' || effort === 'disabled' ? 'none' : effort
 }
 
-interface HermesConfigOptions {
+interface MaxConfigOptions {
   activeSessionIdRef: MutableRefObject<string | null>
 }
 
-export function useHermesConfig({ activeSessionIdRef }: HermesConfigOptions) {
+export function useMaxConfig({ activeSessionIdRef }: MaxConfigOptions) {
   const [voiceMaxRecordingSeconds, setVoiceMaxRecordingSeconds] = useState(DEFAULT_VOICE_SECONDS)
   const [sttEnabled, setSttEnabled] = useState(true)
   const profileRefreshEpochRef = useRef(0)
 
-  const refreshHermesConfig = useCallback(
+  const refreshMaxConfig = useCallback(
     async (force = false, shouldPublish: () => boolean = () => true) => {
       if (force) {
         profileRefreshEpochRef.current += 1
@@ -65,7 +65,7 @@ export function useHermesConfig({ activeSessionIdRef }: HermesConfigOptions) {
       const selectionGeneration = getComposerSelectionGeneration()
 
       try {
-        const [config, defaults] = await Promise.all([getHermesConfig(), getHermesConfigDefaults().catch(() => ({}))])
+        const [config, defaults] = await Promise.all([getMaxConfig(), getMaxConfigDefaults().catch(() => ({}))])
 
         const canPublish = () => profileRefreshEpochRef.current === profileRefreshEpoch && shouldPublish()
 
@@ -99,7 +99,7 @@ export function useHermesConfig({ activeSessionIdRef }: HermesConfigOptions) {
         // Publish the profile default regardless of whether the composer is
         // reseeded below: picker rows and preset application resolve "the
         // default" from here, so a manual model pick must not leave them
-        // rendering/applying Hermes' built-in medium over the user's config.
+        // rendering/applying Max' built-in medium over the user's config.
         if (!canPublish()) {
           return
         }
@@ -154,5 +154,5 @@ export function useHermesConfig({ activeSessionIdRef }: HermesConfigOptions) {
     [activeSessionIdRef]
   )
 
-  return { refreshHermesConfig, sttEnabled, voiceMaxRecordingSeconds }
+  return { refreshMaxConfig, sttEnabled, voiceMaxRecordingSeconds }
 }

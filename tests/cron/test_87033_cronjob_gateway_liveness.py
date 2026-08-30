@@ -4,7 +4,7 @@ The builtin cron ticker only runs inside the gateway process. Before the
 fix, ``cronjob(action="create")`` returned a clean success even with no
 gateway running, so the agent confidently told the user a recurring task
 was scheduled while the job could never fire. The CLI already warned
-(``hermes cron list`` / ``hermes cron status``); the agent path did not.
+(``max cron list`` / ``max cron status``); the agent path did not.
 
 Contract pinned here:
 
@@ -25,16 +25,16 @@ import pytest
 
 @pytest.fixture
 def hermes_env(tmp_path, monkeypatch):
-    """Isolate HERMES_HOME for each test so jobs don't leak."""
-    home = tmp_path / ".hermes"
+    """Isolate MAX_HOME for each test so jobs don't leak."""
+    home = tmp_path / ".max"
     home.mkdir()
     (home / "cron").mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
 
     import importlib
 
-    import hermes_constants
-    importlib.reload(hermes_constants)
+    import max_constants
+    importlib.reload(max_constants)
     import cron.jobs
     importlib.reload(cron.jobs)
     import cron.scheduler
@@ -189,13 +189,13 @@ class _LivenessPatches:
 
         self._stack.enter_context(
             patch(
-                "hermes_cli.cron._active_cron_provider_name",
+                "max_cli.cron._active_cron_provider_name",
                 side_effect=_fake_provider_name,
             )
         )
         self._stack.enter_context(
             patch(
-                "hermes_cli.gateway.find_gateway_pids",
+                "max_cli.gateway.find_gateway_pids",
                 return_value=list(self._pids),
             )
         )
@@ -240,24 +240,24 @@ class TestRuntimeLockFirstLiveness:
     def test_lock_inactive_falls_back_to_pid_scan(self):
         from unittest.mock import patch
 
-        import hermes_cli.cron as cron_cli
+        import max_cli.cron as cron_cli
 
         with (
-            patch("hermes_cli.cron._active_cron_provider_name", return_value="builtin"),
+            patch("max_cli.cron._active_cron_provider_name", return_value="builtin"),
             patch("gateway.status.is_gateway_runtime_lock_active", return_value=False),
-            patch("hermes_cli.gateway.find_gateway_pids", return_value=[424242]),
+            patch("max_cli.gateway.find_gateway_pids", return_value=[424242]),
         ):
             assert cron_cli._builtin_gateway_liveness() is True
 
     def test_no_lock_no_pids_is_false(self):
         from unittest.mock import patch
 
-        import hermes_cli.cron as cron_cli
+        import max_cli.cron as cron_cli
 
         with (
-            patch("hermes_cli.cron._active_cron_provider_name", return_value="builtin"),
+            patch("max_cli.cron._active_cron_provider_name", return_value="builtin"),
             patch("gateway.status.is_gateway_runtime_lock_active", return_value=False),
-            patch("hermes_cli.gateway.find_gateway_pids", return_value=[]),
+            patch("max_cli.gateway.find_gateway_pids", return_value=[]),
         ):
             assert cron_cli._builtin_gateway_liveness() is False
 
@@ -267,21 +267,21 @@ class TestRuntimeLockFirstLiveness:
         when both probes fail)."""
         from unittest.mock import patch
 
-        import hermes_cli.cron as cron_cli
+        import max_cli.cron as cron_cli
 
         with (
-            patch("hermes_cli.cron._active_cron_provider_name", return_value="builtin"),
+            patch("max_cli.cron._active_cron_provider_name", return_value="builtin"),
             patch(
                 "gateway.status.is_gateway_runtime_lock_active",
                 side_effect=OSError("lock probe failed"),
             ),
-            patch("hermes_cli.gateway.find_gateway_pids", return_value=[424242]),
+            patch("max_cli.gateway.find_gateway_pids", return_value=[424242]),
         ):
             assert cron_cli._builtin_gateway_liveness() is True
 
 
 class TestCronStatusLockFirst:
-    """`hermes cron status` shares the lock-first false-alarm fix (#95947).
+    """`max cron status` shares the lock-first false-alarm fix (#95947).
 
     Sibling site of `_builtin_gateway_liveness`: it previously declared
     "Gateway is not running — cron jobs will NOT fire" from a bare
@@ -294,12 +294,12 @@ class TestCronStatusLockFirst:
         import io
         from contextlib import redirect_stdout
 
-        import hermes_cli.cron as cron_cli
+        import max_cli.cron as cron_cli
 
         out = io.StringIO()
         with (
-            patch("hermes_cli.cron._active_cron_provider_name", return_value="builtin"),
-            patch("hermes_cli.gateway.find_gateway_pids", return_value=list(pids)),
+            patch("max_cli.cron._active_cron_provider_name", return_value="builtin"),
+            patch("max_cli.gateway.find_gateway_pids", return_value=list(pids)),
             patch(
                 "gateway.status.is_gateway_runtime_lock_active",
                 return_value=lock_active,

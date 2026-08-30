@@ -169,7 +169,7 @@ export function PetTab({ image, onImage }: PetTabProps) {
   if (!pets.length) {
     return (
       <div className="px-2 py-3 text-center text-xs text-(--ui-text-tertiary)">
-        No pets in the petdex gallery. Run `hermes pets` to explore.
+        No pets in the petdex gallery. Run `max pets` to explore.
       </div>
     )
   }

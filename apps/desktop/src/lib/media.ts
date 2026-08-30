@@ -82,15 +82,15 @@ export async function resolveMediaDisplaySrc(path: string): Promise<string> {
     return path
   }
 
-  if (window.hermesDesktop && isRemoteGateway()) {
+  if (window.maxDesktop && isRemoteGateway()) {
     return gatewayMediaDataUrl(path)
   }
 
-  if (!window.hermesDesktop?.readFileDataUrl) {
+  if (!window.maxDesktop?.readFileDataUrl) {
     return mediaExternalUrl(path)
   }
 
-  return window.hermesDesktop.readFileDataUrl(filePathFromMediaPath(path))
+  return window.maxDesktop.readFileDataUrl(filePathFromMediaPath(path))
 }
 
 // Audio/video need a seekable source instead of a whole-file data URL. Keep
@@ -102,7 +102,7 @@ export async function resolveMediaPlaybackSrc(path: string): Promise<string> {
     return path
   }
 
-  if (window.hermesDesktop && ['audio', 'video'].includes(mediaKind(path))) {
+  if (window.maxDesktop && ['audio', 'video'].includes(mediaKind(path))) {
     return isRemoteGateway() ? mediaGatewayStreamUrl(path) : mediaStreamUrl(path)
   }
 
@@ -192,7 +192,7 @@ export function isRemoteGateway(): boolean {
 
 // Fetch gateway-local media as a data URL via the authenticated desktop FS
 // bridge. Remote Desktop artifacts can live anywhere the gateway can read
-// (workspace, skills, ~/.hermes/cache, etc.); /api/media is intentionally
+// (workspace, skills, ~/.max/cache, etc.); /api/media is intentionally
 // narrower and rejects non-images plus images outside its media roots.
 export async function gatewayMediaDataUrl(path: string): Promise<string> {
   return readDesktopFileDataUrl(filePathFromMediaPath(path))
@@ -209,11 +209,11 @@ export async function downloadGatewayMediaFile(
   const file = filePathFromMediaPath(path)
   const conn = $connection.get()
 
-  if (!window.hermesDesktop?.saveGatewayFile) {
+  if (!window.maxDesktop?.saveGatewayFile) {
     throw new Error('Desktop file download bridge is unavailable')
   }
 
-  return window.hermesDesktop.saveGatewayFile({
+  return window.maxDesktop.saveGatewayFile({
     connectionId: conn?.connectionId,
     path: file,
     profile: conn?.profile,

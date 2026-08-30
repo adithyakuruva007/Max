@@ -20,7 +20,7 @@ import { notifyError } from '@/store/notifications'
  *
  * Matches the draft against the Nous-approved MCP catalog's `suggest`
  * metadata (`GET /api/mcp/catalog` — the same reviewed manifests behind
- * `hermes mcp catalog`), by whole-word keyword and pasted-link host suffix,
+ * `max mcp catalog`), by whole-word keyword and pasted-link host suffix,
  * excluding servers already configured. The catalog is the single source of
  * truth for suggestible servers; the renderer-local `lib/mcp-directory.ts`
  * remains only as a compatibility rung for older backends whose catalog
@@ -200,7 +200,7 @@ async function connect(known: SuggestibleServer, sessionId: string | null, cance
         status: getMcpOAuthFlow,
         cancelled,
         cancel: cancelMcpOAuthFlow,
-        openExternal: url => window.hermesDesktop.openExternal(url)
+        openExternal: url => window.maxDesktop.openExternal(url)
       })
     } catch (error) {
       // Decline/failure means "no server" — roll back the config write

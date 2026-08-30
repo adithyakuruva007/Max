@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from gateway.config import GatewayConfig
-from hermes_cli import gateway as gateway_cli
+from max_cli import gateway as gateway_cli
 
 
 
@@ -40,7 +40,7 @@ def test_system_unit_reads_watchdog_from_target_home(tmp_path, monkeypatch):
         "gateway:\n  systemd_watchdog_seconds: 75\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("HERMES_HOME", str(caller_home))
+    monkeypatch.setenv("MAX_HOME", str(caller_home))
     monkeypatch.setattr(
         gateway_cli,
         "_system_service_identity",

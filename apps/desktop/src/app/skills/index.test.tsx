@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router'
 import type * as ReactRouterDom from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type * as HermesApi from '@/hermes'
+import type * as MaxApi from '@/hermes'
 import { queryClient } from '@/lib/query-client'
 
 const getSkills = vi.fn()
@@ -23,7 +23,7 @@ const getSkillContent = vi.fn()
 // calls we assert on. Args are forwarded so the per-profile scope arg is
 // observable.
 vi.mock('@/hermes', async importOriginal => ({
-  ...(await importOriginal<typeof HermesApi>()),
+  ...(await importOriginal<typeof MaxApi>()),
   getSkills: (profile?: null | string) => getSkills(profile),
   getToolsets: (profile?: null | string) => getToolsets(profile),
   setSkillEnabled: (name: string, enabled: boolean, profile?: null | string) => setSkillEnabled(name, enabled, profile),
@@ -284,7 +284,7 @@ describe('SkillsView toolset management', { timeout: 60_000 }, () => {
       window.dispatchEvent(
         new MessageEvent('message', {
           data: { type: 'hermes-skill-pick', name: 'web-research', identifier: 'web-research' },
-          origin: 'https://hermes-agent.nousresearch.com'
+          origin: 'https://max-agent.stardustresearch.com'
         })
       )
     })
@@ -421,7 +421,7 @@ describe('SkillsView toolset management', { timeout: 60_000 }, () => {
       sources: []
     })
 
-    ;(window as { hermesDesktop?: unknown }).hermesDesktop = { connections, getAgentRoster }
+    ;(window as { hermesDesktop?: unknown }).maxDesktop = { connections, getAgentRoster }
 
     try {
       await renderSkills()
@@ -430,7 +430,7 @@ describe('SkillsView toolset management', { timeout: 60_000 }, () => {
       // The selector paints roster rows labeled profile — device.
       expect(await screen.findByText('default — This device (current)')).toBeTruthy()
     } finally {
-      delete (window as { hermesDesktop?: unknown }).hermesDesktop
+      delete (window as { hermesDesktop?: unknown }).maxDesktop
     }
   })
 })

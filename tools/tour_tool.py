@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a guided tour (highlight + narrate UI elements) in the Hermes desktop GUI.
+"""Run a guided tour (highlight + narrate UI elements) in the Max desktop GUI.
 
 One generic tool, no baked-in tour definitions: the agent discovers what is on
 screen (``action="targets"``), then highlights any element by CSS selector with
@@ -8,7 +8,7 @@ full step list the user pages through with Next/Prev (``start``).
 
 Two surfaces share the same engine (driver.js in the renderer):
 
-- ``surface="app"`` — the Hermes desktop app's own DOM (tours of Hermes itself).
+- ``surface="app"`` — the Max desktop app's own DOM (tours of Max itself).
 - ``surface="preview"`` — the page loaded in the in-app browser/preview pane
   (tours of ANY web app, e.g. a project open via open_preview).
 
@@ -45,7 +45,7 @@ def tour_tool(
 ) -> str:
     """Dispatch one tour action to the desktop renderer and return its outcome."""
     if callback is None:
-        return tool_error("tour is only available in the Hermes desktop app.")
+        return tool_error("tour is only available in the Max desktop app.")
 
     verb = (action or "").strip().lower()
     if verb not in ACTIONS:
@@ -130,7 +130,7 @@ TOUR_SCHEMA = {
     # (pre-effect: skipping them means guessed selectors on re-rendering UI).
     "description": (
         "Guided tour in the desktop GUI: dim the screen, highlight an "
-        "element, attach a titled popover. Surfaces: 'app' (Hermes itself) "
+        "element, attach a titled popover. Surfaces: 'app' (Max itself) "
         "or 'preview' (the page in the preview pane). ALWAYS call "
         "action='targets' first — prefer targets marked stable:true (their "
         "selectors survive re-renders); re-scan if one stops matching. Then "

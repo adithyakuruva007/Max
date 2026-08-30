@@ -1,0 +1,4 @@
+[console_scripts]
+max = max_cli.main:main
+max-acp = acp_adapter.entry:main
+max-agent = run_agent:main

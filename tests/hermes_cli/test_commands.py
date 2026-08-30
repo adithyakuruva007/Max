@@ -3,7 +3,7 @@
 from prompt_toolkit.completion import CompleteEvent
 from prompt_toolkit.document import Document
 
-from hermes_cli.commands import (
+from max_cli.commands import (
     COMMAND_REGISTRY,
     COMMANDS,
     COMMANDS_BY_CATEGORY,
@@ -14,7 +14,7 @@ from hermes_cli.commands import (
     SlashCommandCompleter,
     _CMD_NAME_LIMIT,
     _SLACK_RESERVED_COMMANDS,
-    _SLACK_VIA_HERMES_ONLY,
+    _SLACK_VIA_MAX_ONLY,
     _TG_NAME_LIMIT,
     _clamp_command_names,
     _clamp_telegram_names,
@@ -272,7 +272,7 @@ class TestSlackNativeSlashes:
         reserved_norm = {_norm(n) for n in _SLACK_RESERVED_COMMANDS}
         # Commands deliberately routed through /hermes <command> on Slack only
         # (Slack's 50-slash cap) are expected to be absent from native slashes.
-        via_hermes_norm = {_norm(n) for n in _SLACK_VIA_HERMES_ONLY}
+        via_hermes_norm = {_norm(n) for n in _SLACK_VIA_MAX_ONLY}
         missing = (tg_norm - slack_norm) - reserved_norm - via_hermes_norm
         assert not missing, (
             f"commands on Telegram but missing from Slack native slashes: {sorted(missing)}"
@@ -280,7 +280,7 @@ class TestSlackNativeSlashes:
 
 
 class TestSlackAppManifest:
-    """Generated Slack app manifest (used by `hermes slack manifest`)."""
+    """Generated Slack app manifest (used by `max slack manifest`)."""
 
 
     def test_each_slash_has_required_fields(self):
@@ -318,7 +318,7 @@ class TestGatewayConfigGate:
         # Write a config with the gate off (default)
         config_file = tmp_path / "config.yaml"
         config_file.write_text("display:\n  tool_progress_command: false\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
 
         lines = gateway_help_lines()
         joined = "\n".join(lines)
@@ -328,7 +328,7 @@ class TestGatewayConfigGate:
     def test_config_gate_included_in_slack_when_on(self, tmp_path, monkeypatch):
         config_file = tmp_path / "config.yaml"
         config_file.write_text("display:\n  tool_progress_command: true\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
 
         mapping = slack_subcommand_map()
         assert "verbose" in mapping
@@ -441,12 +441,12 @@ class TestSubcommandCompletion:
     def test_tools_enable_skips_already_listed(self, monkeypatch):
         """If the user already typed a name, don't suggest it again."""
         monkeypatch.setattr(
-            "hermes_cli.tools_config._get_platform_tools",
+            "max_cli.tools_config._get_platform_tools",
             lambda *_a, **_k: set(),
         )
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: {})
+        monkeypatch.setattr("max_cli.config.load_config", lambda: {})
         monkeypatch.setattr(
-            "hermes_cli.tools_config._get_plugin_toolset_keys",
+            "max_cli.tools_config._get_plugin_toolset_keys",
             lambda: set(),
         )
 
@@ -694,7 +694,7 @@ class TestTelegramMenuCommands:
         lookalike_dir = tmp_path / "my-skills-extra"
         lookalike_dir.mkdir()
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         (tmp_path / "config.yaml").write_text(
             f"skills:\n  external_dirs:\n    - {external_dir}\n"
         )
@@ -744,7 +744,7 @@ class TestTelegramMenuCommands:
         from unittest.mock import patch
         import re
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
 
         fake_skills_dir = str(tmp_path / "skills")
         fake_cmds = {
@@ -777,7 +777,7 @@ class TestTelegramMenuCommands:
         """Skills whose names sanitize to empty string are silently dropped."""
         from unittest.mock import patch
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
 
         fake_skills_dir = str(tmp_path / "skills")
         fake_cmds = {
@@ -813,7 +813,7 @@ class TestTelegramMenuCommands:
         """A prioritized dynamic skill must not be trimmed behind alphabetical peers."""
         from unittest.mock import patch
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         local_dir = tmp_path / "skills"
         local_dir.mkdir()
         fake_cmds = {
@@ -841,11 +841,11 @@ class TestTelegramMenuCommands:
         menu_cfg = {"max_commands": 2, "priority_mode": "prepend", "priority": ["gym"]}
 
         with (
-            patch("hermes_cli.commands.telegram_bot_commands", return_value=fake_core),
+            patch("max_cli.commands.telegram_bot_commands", return_value=fake_core),
             patch("agent.skill_commands.get_skill_commands", return_value=fake_cmds),
-            patch("hermes_cli.plugins.get_plugin_commands", return_value=fake_plugins),
+            patch("max_cli.plugins.get_plugin_commands", return_value=fake_plugins),
             patch("tools.skills_tool.SKILLS_DIR", local_dir),
-            patch("hermes_cli.commands._telegram_command_menu_config", return_value=menu_cfg),
+            patch("max_cli.commands._telegram_command_menu_config", return_value=menu_cfg),
         ):
             menu, hidden = telegram_menu_commands(max_commands=len(fake_core))
 
@@ -861,7 +861,7 @@ class TestTelegramMenuCommands:
         """Built-in defaults must not elevate a dynamic command across tiers."""
         from unittest.mock import patch
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         local_dir = tmp_path / "skills"
         local_dir.mkdir()
         fake_cmds = {
@@ -882,10 +882,10 @@ class TestTelegramMenuCommands:
         menu_cfg = {"max_commands": 2, "priority_mode": "prepend", "priority": []}
 
         with (
-            patch("hermes_cli.commands.telegram_bot_commands", return_value=fake_core),
+            patch("max_cli.commands.telegram_bot_commands", return_value=fake_core),
             patch("agent.skill_commands.get_skill_commands", return_value=fake_cmds),
             patch("tools.skills_tool.SKILLS_DIR", local_dir),
-            patch("hermes_cli.commands._telegram_command_menu_config", return_value=menu_cfg),
+            patch("max_cli.commands._telegram_command_menu_config", return_value=menu_cfg),
         ):
             menu, hidden = telegram_menu_commands(max_commands=2)
 
@@ -898,7 +898,7 @@ class TestTelegramMenuCommands:
         """Priority matches the original skill key after its menu name is clamped."""
         from unittest.mock import patch
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         local_dir = tmp_path / "skills"
         local_dir.mkdir()
         long_name = "x" * 40
@@ -918,10 +918,10 @@ class TestTelegramMenuCommands:
         }
 
         with (
-            patch("hermes_cli.commands.telegram_bot_commands", return_value=fake_core),
+            patch("max_cli.commands.telegram_bot_commands", return_value=fake_core),
             patch("agent.skill_commands.get_skill_commands", return_value=fake_cmds),
             patch("tools.skills_tool.SKILLS_DIR", local_dir),
-            patch("hermes_cli.commands._telegram_command_menu_config", return_value=menu_cfg),
+            patch("max_cli.commands._telegram_command_menu_config", return_value=menu_cfg),
         ):
             menu, hidden = telegram_menu_commands(max_commands=1)
 
@@ -934,7 +934,7 @@ class TestTelegramMenuCommands:
         """Plugin priority also matches the original name after clamping."""
         from unittest.mock import patch
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         local_dir = tmp_path / "skills"
         local_dir.mkdir()
         long_name = "p" * 40
@@ -946,10 +946,10 @@ class TestTelegramMenuCommands:
         }
 
         with (
-            patch("hermes_cli.plugins.get_plugin_commands", return_value=fake_plugins),
+            patch("max_cli.plugins.get_plugin_commands", return_value=fake_plugins),
             patch("agent.skill_commands.get_skill_commands", return_value={}),
             patch("tools.skills_tool.SKILLS_DIR", local_dir),
-            patch("hermes_cli.commands._telegram_command_menu_config", return_value=menu_cfg),
+            patch("max_cli.commands._telegram_command_menu_config", return_value=menu_cfg),
         ):
             menu, hidden = telegram_menu_commands(max_commands=1)
 
@@ -962,7 +962,7 @@ class TestTelegramMenuCommands:
         """Telegram omits plugins that cannot be invoked without a payload."""
         from unittest.mock import patch
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         local_dir = tmp_path / "skills"
         local_dir.mkdir()
         fake_plugins = {
@@ -971,7 +971,7 @@ class TestTelegramMenuCommands:
         }
 
         with (
-            patch("hermes_cli.plugins.get_plugin_commands", return_value=fake_plugins),
+            patch("max_cli.plugins.get_plugin_commands", return_value=fake_plugins),
             patch("agent.skill_commands.get_skill_commands", return_value={}),
             patch("tools.skills_tool.SKILLS_DIR", local_dir),
         ):
@@ -984,7 +984,7 @@ class TestTelegramMenuCommands:
     def test_scalar_configured_priority_is_accepted_as_one_command(self):
         """The config CLI's scalar value form must work for a single priority."""
         from unittest.mock import patch
-        from hermes_cli.commands import _telegram_effective_priority
+        from max_cli.commands import _telegram_effective_priority
 
         raw_config = {
             "platforms": {
@@ -999,7 +999,7 @@ class TestTelegramMenuCommands:
             }
         }
 
-        with patch("hermes_cli.config.read_raw_config", return_value=raw_config):
+        with patch("max_cli.config.read_raw_config", return_value=raw_config):
             priority = _telegram_effective_priority()
 
         assert priority[0] == "gym"
@@ -1040,7 +1040,7 @@ class TestDiscordSkillCommands:
                 "skill_dir": f"{fake_skills_dir}/my-cool-skill",
             },
         }
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         (tmp_path / "skills").mkdir(exist_ok=True)
         with (
             patch("agent.skill_commands.get_skill_commands", return_value=fake_cmds),
@@ -1066,7 +1066,7 @@ class TestDiscordSkillCommands:
             }
             for i in range(20)
         }
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         (tmp_path / "skills").mkdir(exist_ok=True)
         with (
             patch("agent.skill_commands.get_skill_commands", return_value=fake_cmds),
@@ -1088,7 +1088,7 @@ class TestDiscordSkillCommands:
 # Discord skill commands grouped by category
 # ---------------------------------------------------------------------------
 
-from hermes_cli.commands import discord_skill_commands_by_category  # noqa: E402
+from max_cli.commands import discord_skill_commands_by_category  # noqa: E402
 
 
 class TestDiscordSkillCommandsByCategory:
@@ -1128,7 +1128,7 @@ class TestDiscordSkillCommandsByCategory:
                     "skill_md_path": f"{fake_skills_dir}/{cat}/{name}/SKILL.md",
                 }
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         with (
             patch("agent.skill_commands.get_skill_commands", return_value=fake_cmds),
             patch("tools.skills_tool.SKILLS_DIR", tmp_path / "skills"),
@@ -1185,7 +1185,7 @@ class TestDiscordSkillCommandsByCategory:
                 "skill_md_path": str(external_dir / "mlops" / "external-skill" / "SKILL.md"),
             },
         }
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         with (
             patch("agent.skill_commands.get_skill_commands", return_value=fake_cmds),
             patch("tools.skills_tool.SKILLS_DIR", local_skills_dir),
@@ -1221,8 +1221,8 @@ class TestPluginCommandEnumeration:
     """
 
     def _patch_plugin_commands(self, monkeypatch, commands):
-        """Monkeypatch hermes_cli.plugins.get_plugin_commands() to a fixed dict."""
-        from hermes_cli import plugins as _plugins_mod
+        """Monkeypatch max_cli.plugins.get_plugin_commands() to a fixed dict."""
+        from max_cli import plugins as _plugins_mod
 
         monkeypatch.setattr(
             _plugins_mod, "get_plugin_commands", lambda: dict(commands)
@@ -1248,7 +1248,7 @@ class TestPluginCommandEnumeration:
 
     def test_plugin_enumerator_handles_missing_plugin_manager(self, monkeypatch):
         """Enumerators must never raise when plugin discovery raises."""
-        from hermes_cli import plugins as _plugins_mod
+        from max_cli import plugins as _plugins_mod
 
         def _boom():
             raise RuntimeError("plugin system down")

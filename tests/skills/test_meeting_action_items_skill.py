@@ -32,7 +32,7 @@ def test_frontmatter_required_fields():
     for field in ("name", "description", "version", "author", "license", "platforms"):
         assert field in fm, f"missing frontmatter field: {field}"
     assert fm["name"] == "meeting-action-items"
-    hermes = fm["metadata"]["hermes"]
+    max = fm["metadata"]["hermes"]
     assert hermes["tags"]
     assert "related_skills" in hermes
 
@@ -46,7 +46,7 @@ def test_description_hardline():
 
 def test_author_credits_human_first():
     fm, _ = _frontmatter_and_body()
-    assert not fm["author"].startswith("Hermes Agent"), "human contributor must be credited first"
+    assert not fm["author"].startswith("Max Agent"), "human contributor must be credited first"
     assert "benbarclay" in fm["author"]
 
 

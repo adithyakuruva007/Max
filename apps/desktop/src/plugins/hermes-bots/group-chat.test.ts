@@ -100,7 +100,7 @@ describe('room naming', () => {
 })
 
 describe('speaker labels', () => {
-  it('the default profile speaks as Hermes in transcripts, not @default', async () => {
+  it('the default profile speaks as Max in transcripts, not @default', async () => {
     const { rounds } = await loadRoom()
 
     const line = rounds.formatGroupChatLine(
@@ -108,24 +108,24 @@ describe('speaker labels', () => {
       'builder'
     )
 
-    expect(line).toBe('Hermes: hello room')
+    expect(line).toBe('Max: hello room')
 
     // Other members keep their profile name; the (you) suffix survives.
     expect(
       rounds.formatGroupChatLine({ from: { kind: 'member', name: 'default' }, text: 'hi' } as GroupMessage, 'default')
-    ).toBe('Hermes (you): hi')
+    ).toBe('Max (you): hi')
     expect(
       rounds.formatGroupChatLine({ from: { kind: 'member', name: 'builder' }, text: 'yo' } as GroupMessage, 'research')
     ).toBe('builder: yo')
   })
 
-  it('honor friendly identity: Bot Mode title, then display_name, never a stale Hermes', async () => {
+  it('honor friendly identity: Bot Mode title, then display_name, never a stale Max', async () => {
     const { chat, rounds } = await loadRoom()
     const data = await import('./data')
 
-    // A renamed default (core display_name via `hermes profile rename`) must
+    // A renamed default (core display_name via `max profile rename`) must
     // read as its new name — the community report was "Lucy" still showing
-    // "Hermes is thinking…" in group rooms.
+    // "Max is thinking…" in group rooms.
     data.$lastRoster.set([{ display_name: 'Lucy', name: 'default' }])
 
     expect(chat.groupSpeakerLabel('default')).toBe('Lucy')
@@ -145,10 +145,10 @@ describe('speaker labels', () => {
 
     expect(chat.groupSpeakerLabel('research')).toBe('Radar')
 
-    // Untitled rows keep today's behavior: default → Hermes, others verbatim.
+    // Untitled rows keep today's behavior: default → Max, others verbatim.
     data.$botMeta.set({})
 
-    expect(chat.groupSpeakerLabel('default')).toBe('Hermes')
+    expect(chat.groupSpeakerLabel('default')).toBe('Max')
     expect(chat.groupSpeakerLabel('builder')).toBe('builder')
   })
 
@@ -159,7 +159,7 @@ describe('speaker labels', () => {
     // to that connection, not to the active gateway's default.
     data.$lastRoster.set([{ display_name: 'HomelabBot', name: 'default', remoteSource: true }])
 
-    expect(chat.groupSpeakerLabel('default')).toBe('Hermes')
+    expect(chat.groupSpeakerLabel('default')).toBe('Max')
   })
 })
 

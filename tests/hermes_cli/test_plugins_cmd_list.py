@@ -2,7 +2,7 @@ import argparse
 import json
 from types import SimpleNamespace
 
-from hermes_cli import plugins_cmd
+from max_cli import plugins_cmd
 
 
 def _args(**kwargs):
@@ -60,18 +60,18 @@ def test_discover_all_plugins_includes_entrypoint_plugins(monkeypatch, tmp_path)
 
     dist = SimpleNamespace(
         version="0.1.0",
-        metadata={"Summary": "Karpathy-style LLM Wikis for Hermes"},
+        metadata={"Summary": "Karpathy-style LLM Wikis for Max"},
     )
     entry_point = SimpleNamespace(
         name="wiki",
-        value="adapters.hermes.cli_plugin",
+        value="adapters.max.cli_plugin",
         group="hermes_agent.plugins",
         dist=dist,
     )
 
     monkeypatch.setattr(plugins_cmd, "_plugins_dir", lambda: user_dir)
     monkeypatch.setattr(
-        "hermes_cli.plugins.get_bundled_plugins_dir",
+        "max_cli.plugins.get_bundled_plugins_dir",
         lambda: bundled_dir,
     )
     monkeypatch.setattr(
@@ -86,9 +86,9 @@ def test_discover_all_plugins_includes_entrypoint_plugins(monkeypatch, tmp_path)
         (
             "wiki",
             "0.1.0",
-            "Karpathy-style LLM Wikis for Hermes",
+            "Karpathy-style LLM Wikis for Max",
             "entrypoint",
-            "adapters.hermes.cli_plugin",
+            "adapters.max.cli_plugin",
             "wiki",
         )
     ]
@@ -114,7 +114,7 @@ def test_declared_capabilities_for_entrypoint_uses_distribution_metadata(
     )
     monkeypatch.setattr(plugins_cmd, "_plugins_dir", lambda: user_dir)
     monkeypatch.setattr(
-        "hermes_cli.plugins.get_bundled_plugins_dir", lambda: bundled_dir
+        "max_cli.plugins.get_bundled_plugins_dir", lambda: bundled_dir
     )
     monkeypatch.setattr(
         plugins_cmd.importlib.metadata,

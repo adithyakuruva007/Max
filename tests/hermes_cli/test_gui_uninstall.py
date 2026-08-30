@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.gui_uninstall — GUI-only uninstall + install discovery.
+"""Tests for max_cli.gui_uninstall — GUI-only uninstall + install discovery.
 
 Covers the cross-platform artifact discovery, the agent/GUI detection the
 desktop UI gates options on, and that ``uninstall_gui`` removes only GUI
@@ -11,26 +11,26 @@ from pathlib import Path
 
 import pytest
 
-import hermes_cli.gui_uninstall as gu
+import max_cli.gui_uninstall as gu
 
 
 def _make_agent(hermes_home: Path) -> Path:
     """Create a fake agent install: source package + venv."""
-    agent_root = hermes_home / "hermes-agent"
-    (agent_root / "hermes_cli").mkdir(parents=True)
-    (agent_root / "hermes_cli" / "__init__.py").write_text("")
+    agent_root = hermes_home / "max-agent"
+    (agent_root / "max_cli").mkdir(parents=True)
+    (agent_root / "max_cli" / "__init__.py").write_text("")
     (agent_root / "venv" / "bin").mkdir(parents=True)
     return agent_root
 
 
 def _make_gui_build(hermes_home: Path) -> None:
-    """Create the source-built GUI artifacts a `hermes desktop` run produces."""
-    desktop = hermes_home / "hermes-agent" / "apps" / "desktop"
+    """Create the source-built GUI artifacts a `max desktop` run produces."""
+    desktop = hermes_home / "max-agent" / "apps" / "desktop"
     (desktop / "dist").mkdir(parents=True)
     (desktop / "dist" / "index.html").write_text("<html>")
     (desktop / "release" / "linux-unpacked").mkdir(parents=True)
     (desktop / "node_modules").mkdir(parents=True)
-    (hermes_home / "hermes-agent" / "node_modules").mkdir(parents=True)
+    (hermes_home / "max-agent" / "node_modules").mkdir(parents=True)
     (hermes_home / "desktop-build-stamp.json").write_text("{}")
 
 
@@ -49,7 +49,7 @@ def _make_user_data(hermes_home: Path) -> None:
 
 
 def test_gui_install_summary_shape(tmp_path, monkeypatch):
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     _make_agent(hermes_home)
     _make_gui_build(hermes_home)
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
@@ -70,11 +70,11 @@ def test_gui_install_summary_shape(tmp_path, monkeypatch):
 
 
 def test_linux_discovery_includes_launcher_entry(tmp_path, monkeypatch):
-    """The launcher entry that `hermes desktop` installs is removable."""
+    """The launcher entry that `max desktop` installs is removable."""
     monkeypatch.setattr(gu.sys, "platform", "linux")
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
 
-    from hermes_cli import linux_desktop_entry as lde
+    from max_cli import linux_desktop_entry as lde
 
     assert lde.desktop_entry_path() in gu.packaged_gui_app_paths()
 
@@ -83,7 +83,7 @@ def test_uninstall_removes_launcher_entry_and_refreshes_cache(tmp_path, monkeypa
     monkeypatch.setattr(gu.sys, "platform", "linux")
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
 
-    from hermes_cli import linux_desktop_entry as lde
+    from max_cli import linux_desktop_entry as lde
 
     entry = lde.desktop_entry_path()
     entry.parent.mkdir(parents=True, exist_ok=True)
@@ -94,9 +94,9 @@ def test_uninstall_removes_launcher_entry_and_refreshes_cache(tmp_path, monkeypa
         lde, "refresh_desktop_databases", lambda d: refreshed.append(d) or ["kbuildsycoca6"]
     )
 
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     _make_agent(hermes_home)
-    icon = lde.icon_path(hermes_home / "hermes-agent")
+    icon = lde.icon_path(hermes_home / "max-agent")
     icon.parent.mkdir(parents=True, exist_ok=True)
     icon.write_bytes(b"\x89PNG")
     monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: tmp_path / "none")
@@ -106,22 +106,22 @@ def test_uninstall_removes_launcher_entry_and_refreshes_cache(tmp_path, monkeypa
     assert entry in removed and not entry.exists()
     assert refreshed == [entry.parent]
     # The icon lives in the checkout. A GUI uninstall must not delete it.
-    assert lde.icon_path(hermes_home / "hermes-agent").exists()
+    assert lde.icon_path(hermes_home / "max-agent").exists()
     # The agent itself survives a GUI uninstall.
-    assert (hermes_home / "hermes-agent" / "hermes_cli").is_dir()
+    assert (hermes_home / "max-agent" / "max_cli").is_dir()
 
 
 def test_uninstall_skips_cache_refresh_when_no_launcher_entry(tmp_path, monkeypatch):
     monkeypatch.setattr(gu.sys, "platform", "linux")
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
 
-    from hermes_cli import linux_desktop_entry as lde
+    from max_cli import linux_desktop_entry as lde
 
     refreshed: list[Path] = []
     monkeypatch.setattr(lde, "refresh_desktop_databases", lambda d: refreshed.append(d) or [])
     monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: tmp_path / "none")
 
-    gu.uninstall_gui(tmp_path / ".hermes")
+    gu.uninstall_gui(tmp_path / ".max")
 
     assert refreshed == []
 
@@ -156,7 +156,7 @@ class _Args:
 
 def test_uninstall_args_namespace_mode_mapping():
     """_UninstallArgs maps mode → the gui/full flags run_uninstall reads."""
-    import hermes_cli.uninstall as uninstall
+    import max_cli.uninstall as uninstall
 
     gui = uninstall._UninstallArgs(mode="gui")
     assert gui.gui is True and gui.full is False and gui.yes is True

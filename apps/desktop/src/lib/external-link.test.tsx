@@ -18,10 +18,10 @@ import {
 } from './external-link'
 
 const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
-const initialHermesDesktop = desktopWindow.hermesDesktop
+const initialMaxDesktop = desktopWindow.maxDesktop
 
 function installDesktopBridge(partial: Partial<Window['hermesDesktop']> = {}) {
-  desktopWindow.hermesDesktop = {
+  desktopWindow.maxDesktop = {
     fetchLinkTitle: vi.fn().mockResolvedValue(''),
     openExternal: vi.fn().mockResolvedValue(undefined),
     ...partial
@@ -44,10 +44,10 @@ afterEach(() => {
   vi.restoreAllMocks()
   cleanup()
 
-  if (initialHermesDesktop) {
-    desktopWindow.hermesDesktop = initialHermesDesktop
+  if (initialMaxDesktop) {
+    desktopWindow.maxDesktop = initialMaxDesktop
   } else {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
   }
 })
 
@@ -336,7 +336,7 @@ describe('external link helpers', () => {
   it('prefixes a pretty link to a known host with its brand glyph', () => {
     installDesktopBridge()
 
-    const url = 'https://github.com/NousResearch/hermes-agent/pull/123'
+    const url = 'https://github.com/NousResearch/max-agent/pull/123'
 
     render(<PrettyLink fallbackLabel="#123" href={url} />)
 

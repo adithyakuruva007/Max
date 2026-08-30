@@ -1,4 +1,4 @@
-"""Tests for xAI Grok OAuth — tokens stored in Hermes auth store (~/.hermes/auth.json)."""
+"""Tests for xAI Grok OAuth — tokens stored in Max auth store (~/.max/auth.json)."""
 
 import base64
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.auth import (
+from max_cli.auth import (
     AuthError,
     DEFAULT_XAI_OAUTH_BASE_URL,
     PROVIDER_REGISTRY,
@@ -41,7 +41,7 @@ def _setup_hermes_auth(
     discovery: dict | None = None,
     auth_mode: str = "oauth_pkce",
 ):
-    """Write xAI OAuth tokens into the Hermes auth store at the given root."""
+    """Write xAI OAuth tokens into the Max auth store at the given root."""
     hermes_home.mkdir(parents=True, exist_ok=True)
     state = {
         "tokens": {
@@ -113,7 +113,7 @@ def _patch_httpx_client(monkeypatch, response):
         holder["client"] = client
         return client
 
-    monkeypatch.setattr("hermes_cli.auth.httpx.Client", _factory)
+    monkeypatch.setattr("max_cli.auth.httpx.Client", _factory)
     return holder
 
 
@@ -156,7 +156,7 @@ def test_save_and_read_xai_oauth_tokens_roundtrip(tmp_path, monkeypatch):
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
     (hermes_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     _save_xai_oauth_tokens(
         {
@@ -181,7 +181,7 @@ def test_refresh_xai_oauth_tokens_preserves_active_provider(tmp_path, monkeypatc
     hermes_home = tmp_path / "hermes"
     near = _jwt_with_exp(int(time.time()) + 30)
     _setup_hermes_auth(hermes_home, access_token=near, refresh_token="rt-old")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     auth_path = hermes_home / "auth.json"
     raw = json.loads(auth_path.read_text())
@@ -200,7 +200,7 @@ def test_refresh_xai_oauth_tokens_preserves_active_provider(tmp_path, monkeypatc
             "last_refresh": "2026-07-25T12:00:00Z",
         }
 
-    monkeypatch.setattr("hermes_cli.auth.refresh_xai_oauth_pure", _fake_pure)
+    monkeypatch.setattr("max_cli.auth.refresh_xai_oauth_pure", _fake_pure)
 
     tokens = _read_xai_oauth_tokens()["tokens"]
     _refresh_xai_oauth_tokens(
@@ -218,7 +218,7 @@ def test_read_xai_oauth_tokens_missing(tmp_path, monkeypatch):
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
     (hermes_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     with pytest.raises(AuthError) as exc:
         _read_xai_oauth_tokens()
@@ -240,7 +240,7 @@ def test_resolve_xai_runtime_credentials_refreshes_expiring_token(tmp_path, monk
         refresh_token="rt-old",
         discovery={"token_endpoint": "https://auth.x.ai/oauth2/token"},
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     new_access = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
     called = {"count": 0}
@@ -252,7 +252,7 @@ def test_resolve_xai_runtime_credentials_refreshes_expiring_token(tmp_path, monk
         updated["refresh_token"] = "rt-new"
         return updated
 
-    monkeypatch.setattr("hermes_cli.auth._refresh_xai_oauth_tokens", _fake_refresh)
+    monkeypatch.setattr("max_cli.auth._refresh_xai_oauth_tokens", _fake_refresh)
 
     creds = resolve_xai_oauth_runtime_credentials()
     assert called["count"] == 1
@@ -263,7 +263,7 @@ def test_resolve_xai_runtime_credentials_refreshes_expiring_token(tmp_path, monk
 # Inference base-URL host guard (xai-oauth bearer leak protection)
 #
 # The xAI OAuth bearer is a high-value, long-lived SuperGrok credential.
-# ``XAI_BASE_URL`` / ``HERMES_XAI_BASE_URL`` are a credential-leak vector
+# ``XAI_BASE_URL`` / ``MAX_XAI_BASE_URL`` are a credential-leak vector
 # unless the host is pinned to the xAI origin. These tests cover the
 # accept/reject matrix for `_xai_validate_inference_base_url` and confirm
 # the runtime resolver falls back to the default on rejection rather than
@@ -315,7 +315,7 @@ def test_resolve_credentials_quarantines_dead_tokens_on_terminal_refresh_failure
     """
     hermes_home = tmp_path / "hermes"
     _seed_xai_oauth_state(hermes_home, dict(_STALE_XAI_OAUTH_STATE), active_provider="nous")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     def _terminal_refresh(tokens, **kwargs):
         raise AuthError(
@@ -325,7 +325,7 @@ def test_resolve_credentials_quarantines_dead_tokens_on_terminal_refresh_failure
             relogin_required=True,
         )
 
-    monkeypatch.setattr("hermes_cli.auth._refresh_xai_oauth_tokens", _terminal_refresh)
+    monkeypatch.setattr("max_cli.auth._refresh_xai_oauth_tokens", _terminal_refresh)
 
     with pytest.raises(AuthError) as exc_info:
         resolve_xai_oauth_runtime_credentials(force_refresh=True)
@@ -365,7 +365,7 @@ def test_get_xai_oauth_auth_status_logged_out(tmp_path, monkeypatch):
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
     (hermes_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     status = get_xai_oauth_auth_status()
     assert status["logged_in"] is False
@@ -382,7 +382,7 @@ def test_refresh_xai_oauth_pure_403_marked_tier_denied_not_relogin(monkeypatch):
 
     Regression test for #26847 — xAI's backend has been seen to 403
     standard SuperGrok subscribers despite the in-app subscription
-    being active. Re-running ``hermes model`` won't help in that
+    being active. Re-running ``max model`` won't help in that
     case, so the AuthError must NOT set ``relogin_required=True``,
     and must carry the dedicated ``xai_oauth_tier_denied`` code so
     ``format_auth_error`` doesn't append the misleading re-auth hint.
@@ -404,7 +404,7 @@ def test_refresh_xai_oauth_pure_403_marked_tier_denied_not_relogin(monkeypatch):
 def test_format_auth_error_tier_denied_does_not_suggest_relogin():
     """``xai_oauth_tier_denied`` must not append the re-authenticate hint.
 
-    Regression for #26847: telling a tier-gated user to ``hermes model``
+    Regression for #26847: telling a tier-gated user to ``max model``
     is actively wrong — re-logging in won't change xAI's allowlist
     decision. The full message (with ``XAI_API_KEY`` fallback) is built
     into the error itself.
@@ -420,7 +420,7 @@ def test_format_auth_error_tier_denied_does_not_suggest_relogin():
     )
     rendered = format_auth_error(err)
     assert "re-authenticate" not in rendered.lower()
-    assert "hermes model" not in rendered.lower()
+    assert "max model" not in rendered.lower()
     assert "XAI_API_KEY" in rendered
 
 
@@ -430,7 +430,7 @@ def test_xai_oauth_discovery_raises_typed_error_on_malformed_json(monkeypatch):
     HTML), surface a typed AuthError rather than letting the
     ``json.JSONDecodeError`` escape — so the message reads as an auth
     problem instead of an internal parsing crash."""
-    from hermes_cli.auth import _xai_oauth_discovery
+    from max_cli.auth import _xai_oauth_discovery
 
     class _BadJSON:
         status_code = 200
@@ -439,7 +439,7 @@ def test_xai_oauth_discovery_raises_typed_error_on_malformed_json(monkeypatch):
             raise ValueError("Expecting value: line 1 column 1 (char 0)")
 
     monkeypatch.setattr(
-        "hermes_cli.auth.httpx.get",
+        "max_cli.auth.httpx.get",
         lambda *a, **kw: _BadJSON(),
     )
     with pytest.raises(AuthError) as exc:
@@ -454,7 +454,7 @@ def test_xai_oauth_discovery_raises_typed_error_on_malformed_json(monkeypatch):
 
 def test_refresh_xai_oauth_pure_rejects_non_https_token_endpoint(monkeypatch):
     """A poisoned auth.json (from MITM during initial discovery, or an older
-    Hermes that didn't validate) must not be silently honored on the refresh
+    Max that didn't validate) must not be silently honored on the refresh
     hot path. A non-HTTPS ``token_endpoint`` would leak the refresh_token in
     cleartext on every refresh; refuse before the POST."""
     # No HTTP stub installed — refresh must fail at validation, not at POST.
@@ -497,7 +497,7 @@ def test_xai_oauth_discovery_validates_endpoints(monkeypatch):
     attacker-controlled ``token_endpoint``. (The persistence is what makes
     this attack worth defending against — one MITM = forever credential
     leak.)"""
-    from hermes_cli.auth import _xai_oauth_discovery
+    from max_cli.auth import _xai_oauth_discovery
 
     class _StubGetResponse:
         status_code = 200
@@ -514,7 +514,7 @@ def test_xai_oauth_discovery_validates_endpoints(monkeypatch):
             "token_endpoint": "https://evil.example.com/token",  # poisoned
         })
 
-    monkeypatch.setattr("hermes_cli.auth.httpx.get", _fake_get)
+    monkeypatch.setattr("max_cli.auth.httpx.get", _fake_get)
     with pytest.raises(AuthError) as exc:
         _xai_oauth_discovery()
     assert exc.value.code == "xai_discovery_invalid"
@@ -528,8 +528,8 @@ def test_xai_oauth_discovery_validates_endpoints(monkeypatch):
 
 
 def test_credential_pool_seeds_xai_oauth_from_singleton(tmp_path, monkeypatch):
-    """After `hermes model` -> xai-oauth, the singleton holds tokens.  load_pool
-    must surface that as a pool entry so `hermes auth list` reflects truth and
+    """After `max model` -> xai-oauth, the singleton holds tokens.  load_pool
+    must surface that as a pool entry so `max auth list` reflects truth and
     refreshes route through the pool consistently with codex.
 
     Device code is the only supported xAI OAuth flow, so the singleton is
@@ -539,7 +539,7 @@ def test_credential_pool_seeds_xai_oauth_from_singleton(tmp_path, monkeypatch):
     hermes_home = tmp_path / "hermes"
     fresh = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
     _setup_hermes_auth(hermes_home, access_token=fresh, refresh_token="rt-1")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     pool = load_pool("xai-oauth")
     assert pool.has_credentials()
@@ -554,7 +554,7 @@ def test_credential_pool_seeds_xai_oauth_from_singleton(tmp_path, monkeypatch):
 
 def test_credential_pool_device_code_seed_respects_suppression(tmp_path, monkeypatch):
     from agent.credential_pool import load_pool
-    from hermes_cli.auth import suppress_credential_source
+    from max_cli.auth import suppress_credential_source
 
     hermes_home = tmp_path / "hermes"
     fresh = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
@@ -563,7 +563,7 @@ def test_credential_pool_device_code_seed_respects_suppression(tmp_path, monkeyp
         access_token=fresh,
         auth_mode="oauth_device_code",
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     suppress_credential_source("xai-oauth", "device_code")
 
@@ -572,7 +572,7 @@ def test_credential_pool_device_code_seed_respects_suppression(tmp_path, monkeyp
 
 
 def test_auth_remove_xai_oauth_clears_singleton_and_sticks(tmp_path, monkeypatch):
-    """End-to-end regression: ``hermes auth remove xai-oauth 1`` for a
+    """End-to-end regression: ``max auth remove xai-oauth 1`` for a
     singleton-seeded entry must clear auth.json providers.xai-oauth AND
     suppress further re-seeding — otherwise the next ``load_pool`` call
     silently resurrects the entry from the still-present singleton, making
@@ -586,13 +586,13 @@ def test_auth_remove_xai_oauth_clears_singleton_and_sticks(tmp_path, monkeypatch
     entries (pool-only) but wrong for singleton-seeded ``device_code``
     entries (auth.json singleton survives the in-memory removal)."""
     from agent.credential_pool import load_pool
-    from hermes_cli.auth_commands import auth_remove_command
+    from max_cli.auth_commands import auth_remove_command
     from types import SimpleNamespace
 
     hermes_home = tmp_path / "hermes"
     fresh = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
     _setup_hermes_auth(hermes_home, access_token=fresh, refresh_token="rt-1")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     # Confirm pre-state: pool sees the seeded entry, auth.json has the singleton.
     pool = load_pool("xai-oauth")
@@ -600,7 +600,7 @@ def test_auth_remove_xai_oauth_clears_singleton_and_sticks(tmp_path, monkeypatch
     raw = json.loads((hermes_home / "auth.json").read_text())
     assert "xai-oauth" in raw.get("providers", {})
 
-    # Act: the user runs `hermes auth remove xai-oauth 1`.
+    # Act: the user runs `max auth remove xai-oauth 1`.
     auth_remove_command(SimpleNamespace(provider="xai-oauth", target="1"))
 
     # Post-state: auth.json singleton must be cleared so a re-seed has
@@ -617,18 +617,18 @@ def test_auth_remove_xai_oauth_clears_singleton_and_sticks(tmp_path, monkeypatch
     assert not pool_after.has_credentials(), (
         "Removal must stick across load_pool() calls — without the "
         "device_code RemovalStep, the seed function reads the singleton "
-        "and rebuilds the entry on every Hermes invocation."
+        "and rebuilds the entry on every Max invocation."
     )
 
 
 def test_login_xai_oauth_relogin_clears_suppression_and_reseeds(tmp_path, monkeypatch):
-    """remove -> ``hermes model`` re-login (``_login_xai_oauth``) must clear the
+    """remove -> ``max model`` re-login (``_login_xai_oauth``) must clear the
     ``device_code`` suppression marker so the singleton seed re-creates the
     pool entry.
 
     Pre-fix: ``auth_remove_command`` set ``["device_code"]`` suppression but
-    only ``auth_add_command`` cleared it — the ``hermes model`` re-login path did
-    not. So after remove -> re-login the seed kept skipping and ``hermes auth
+    only ``auth_add_command`` cleared it — the ``max model`` re-login path did
+    not. So after remove -> re-login the seed kept skipping and ``max auth
     list`` showed no xAI entry even though the agent still worked via the
     singleton fallback. The fix calls ``unsuppress_credential_source`` on
     explicit interactive login success.
@@ -636,7 +636,7 @@ def test_login_xai_oauth_relogin_clears_suppression_and_reseeds(tmp_path, monkey
     from types import SimpleNamespace
 
     from agent.credential_pool import load_pool
-    from hermes_cli.auth import (
+    from max_cli.auth import (
         _login_xai_oauth,
         is_source_suppressed,
         suppress_credential_source,
@@ -645,8 +645,8 @@ def test_login_xai_oauth_relogin_clears_suppression_and_reseeds(tmp_path, monkey
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
     (hermes_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-    monkeypatch.delenv("HERMES_XAI_BASE_URL", raising=False)
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
+    monkeypatch.delenv("MAX_XAI_BASE_URL", raising=False)
     monkeypatch.delenv("XAI_BASE_URL", raising=False)
 
     # Post-remove state: singleton gone + device_code suppressed, so the
@@ -657,7 +657,7 @@ def test_login_xai_oauth_relogin_clears_suppression_and_reseeds(tmp_path, monkey
 
     new_access = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
     monkeypatch.setattr(
-        "hermes_cli.auth._xai_oauth_device_code_login",
+        "max_cli.auth._xai_oauth_device_code_login",
         lambda **kwargs: {
             "tokens": {
                 "access_token": new_access,
@@ -673,7 +673,7 @@ def test_login_xai_oauth_relogin_clears_suppression_and_reseeds(tmp_path, monkey
     )
     # Don't mutate a real config file during the test.
     monkeypatch.setattr(
-        "hermes_cli.auth._update_config_for_provider",
+        "max_cli.auth._update_config_for_provider",
         lambda *args, **kwargs: "config.toml",
     )
 
@@ -707,7 +707,7 @@ def test_pool_sync_back_writes_to_singleton(tmp_path, monkeypatch):
     hermes_home = tmp_path / "hermes"
     expired = _jwt_with_exp(int(time.time()) - 10)
     _setup_hermes_auth(hermes_home, access_token=expired, refresh_token="rt-old")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     new_access = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
 
@@ -722,7 +722,7 @@ def test_pool_sync_back_writes_to_singleton(tmp_path, monkeypatch):
             "last_refresh": "2026-05-15T01:00:00Z",
         }
 
-    monkeypatch.setattr("hermes_cli.auth.refresh_xai_oauth_pure", _fake_refresh)
+    monkeypatch.setattr("max_cli.auth.refresh_xai_oauth_pure", _fake_refresh)
 
     pool = load_pool("xai-oauth")
     selected = pool.select()
@@ -746,13 +746,13 @@ def test_pool_sync_back_writes_to_singleton(tmp_path, monkeypatch):
 
 
 def test_runtime_provider_uses_pool_entry_for_xai_oauth(tmp_path, monkeypatch):
-    from hermes_cli.runtime_provider import resolve_runtime_provider
+    from max_cli.runtime_provider import resolve_runtime_provider
 
     hermes_home = tmp_path / "hermes"
     fresh = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
     _setup_hermes_auth(hermes_home, access_token=fresh)
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-    monkeypatch.delenv("HERMES_XAI_BASE_URL", raising=False)
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
+    monkeypatch.delenv("MAX_XAI_BASE_URL", raising=False)
     monkeypatch.delenv("XAI_BASE_URL", raising=False)
 
     runtime = resolve_runtime_provider(requested="xai-oauth")
@@ -780,7 +780,7 @@ def test_pool_refresh_recovers_when_other_process_already_refreshed(tmp_path, mo
     hermes_home = tmp_path / "hermes"
     in_memory_at = _jwt_with_exp(int(time.time()) + 30)
     _setup_hermes_auth(hermes_home, access_token=in_memory_at, refresh_token="rt-shared")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     pool = load_pool("xai-oauth")
 
@@ -806,7 +806,7 @@ def test_pool_refresh_recovers_when_other_process_already_refreshed(tmp_path, mo
             relogin_required=True,
         )
 
-    monkeypatch.setattr("hermes_cli.auth.refresh_xai_oauth_pure", _fake_refresh)
+    monkeypatch.setattr("max_cli.auth.refresh_xai_oauth_pure", _fake_refresh)
 
     selected = pool.select()
     # Even though refresh_xai_oauth_pure raised, the post-failure
@@ -817,7 +817,7 @@ def test_pool_refresh_recovers_when_other_process_already_refreshed(tmp_path, mo
 
 
 def test_pool_manual_entry_does_not_sync_back_to_singleton(tmp_path, monkeypatch):
-    """`hermes auth add xai-oauth` entries (source='manual:xai_pkce') are
+    """`max auth add xai-oauth` entries (source='manual:xai_pkce') are
     independent credentials and must NOT write to the singleton.  Sync-back
     is restricted to entries seeded from the singleton.  Otherwise adding a
     second pool credential would silently overwrite the user's main login."""
@@ -828,7 +828,7 @@ def test_pool_manual_entry_does_not_sync_back_to_singleton(tmp_path, monkeypatch
     # Singleton has its own tokens (separate login).
     singleton_at = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
     _setup_hermes_auth(hermes_home, access_token=singleton_at, refresh_token="rt-singleton")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     manual_at_old = _jwt_with_exp(int(time.time()) + 30)
     manual_at_new = _jwt_with_exp(int(time.time()) + 7200)
@@ -844,7 +844,7 @@ def test_pool_manual_entry_does_not_sync_back_to_singleton(tmp_path, monkeypatch
             "last_refresh": "2026-05-15T04:00:00Z",
         }
 
-    monkeypatch.setattr("hermes_cli.auth.refresh_xai_oauth_pure", _fake_refresh)
+    monkeypatch.setattr("max_cli.auth.refresh_xai_oauth_pure", _fake_refresh)
 
     pool = load_pool("xai-oauth")
     pool.add_entry(
@@ -897,8 +897,8 @@ def test_auxiliary_client_routes_xai_oauth_through_responses_api(tmp_path, monke
     hermes_home = tmp_path / "hermes"
     fresh = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
     _setup_hermes_auth(hermes_home, access_token=fresh)
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-    monkeypatch.delenv("HERMES_XAI_BASE_URL", raising=False)
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
+    monkeypatch.delenv("MAX_XAI_BASE_URL", raising=False)
     monkeypatch.delenv("XAI_BASE_URL", raising=False)
 
     client, model = resolve_provider_client("xai-oauth", model="grok-4")
@@ -924,7 +924,7 @@ def test_auxiliary_client_xai_oauth_requires_explicit_model(tmp_path, monkeypatc
     hermes_home = tmp_path / "hermes"
     fresh = _jwt_with_exp(int(time.time()) + 2 * 60 * 60)
     _setup_hermes_auth(hermes_home, access_token=fresh)
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     client, model = resolve_provider_client("xai-oauth", model=None)
     assert client is None
@@ -941,15 +941,15 @@ def test_pool_sync_back_preserves_active_provider(tmp_path, monkeypatch):
     picking a provider.  ``_save_provider_state`` flips ``active_provider``;
     using it on the sync-back path means every xAI/Codex/Nous refresh in a
     multi-provider setup silently overrides the user's chosen active
-    provider (visible to ``hermes auth status``, ``hermes setup``, and the
-    ``hermes`` no-arg dispatcher).  Pin the ``set_active=False`` contract so
+    provider (visible to ``max auth status``, ``max setup``, and the
+    ``max`` no-arg dispatcher).  Pin the ``set_active=False`` contract so
     no future refactor regresses to the legacy semantic."""
     from agent.credential_pool import load_pool
 
     hermes_home = tmp_path / "hermes"
     near_expiry = _jwt_with_exp(int(time.time()) + 30)
     _setup_hermes_auth(hermes_home, access_token=near_expiry, refresh_token="rt-xai")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     # Simulate a multi-provider user whose actual chosen provider is
     # OpenRouter — xai-oauth tokens exist in the singleton but are NOT
@@ -970,7 +970,7 @@ def test_pool_sync_back_preserves_active_provider(tmp_path, monkeypatch):
             "last_refresh": "2026-05-15T10:00:00Z",
         }
 
-    monkeypatch.setattr("hermes_cli.auth.refresh_xai_oauth_pure", _fake_refresh)
+    monkeypatch.setattr("max_cli.auth.refresh_xai_oauth_pure", _fake_refresh)
 
     pool = load_pool("xai-oauth")
     selected = pool.select()

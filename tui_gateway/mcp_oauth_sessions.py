@@ -7,8 +7,8 @@ background worker and returns ``{session_id, auth_url, flow}``; a ``poll``
 primitive reports ``{status: pending|approved|error}`` until the tokens land on
 disk for that server in that profile.
 
-The underlying token machinery is the *same* one the CLI ``hermes mcp login``
-uses — ``hermes_cli.mcp_config._probe_single_server`` under
+The underlying token machinery is the *same* one the CLI ``max mcp login``
+uses — ``max_cli.mcp_config._probe_single_server`` under
 ``tools.mcp_oauth.force_interactive_oauth`` — so no OAuth logic is reimplemented
 here. The only new piece is decoupling the two browser callbacks (authorization
 URL out, ``code``/``state`` back in) from a FastAPI ``Request``:
@@ -132,7 +132,7 @@ def _start_loopback_listener(flow) -> "http.server.HTTPServer":
             code = (qs.get("code") or [None])[0]
             state = (qs.get("state") or [None])[0]
             error = (qs.get("error") or [None])[0]
-            body = b"<h1>Authorization received</h1><p>You can close this tab and return to Hermes.</p>"
+            body = b"<h1>Authorization received</h1><p>You can close this tab and return to Max.</p>"
             status = 200
             try:
                 flow.deliver_callback(code=code, state=state, error=error)
@@ -164,18 +164,18 @@ def _worker(session_id: str, hermes_home: str, server_name: str, cfg: dict, reco
     """Drive the interactive MCP OAuth probe under the shared dashboard bridge.
 
     Structurally identical to ``web_server._run_dashboard_mcp_oauth`` — the same
-    HERMES_HOME override + secret-scope + force_interactive_oauth +
+    MAX_HOME override + secret-scope + force_interactive_oauth +
     dashboard_oauth_flow wrapping around ``_probe_single_server`` — but keyed to
     our session record instead of a FastAPI request. On success the token file
     exists on disk (verified via ``_oauth_tokens_present``) and the server config
     is (re)saved into the profile's config.yaml.
     """
-    from hermes_cli.mcp_config import (
+    from max_cli.mcp_config import (
         _oauth_tokens_present,
         _probe_single_server,
         _save_mcp_server,
     )
-    from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+    from max_constants import reset_max_home_override, set_max_home_override
 
     rec = _sessions.get(session_id)
     flow = rec["flow"] if rec else None
@@ -189,14 +189,14 @@ def _worker(session_id: str, hermes_home: str, server_name: str, cfg: dict, reco
         from tools.mcp_oauth import force_interactive_oauth
         from tools.mcp_oauth_manager import get_manager
 
-        home_token = set_hermes_home_override(hermes_home)
+        home_token = set_max_home_override(hermes_home)
         secret_token = set_secret_scope(build_profile_secret_scope(Path(hermes_home)))
         try:
             with force_interactive_oauth(), dashboard_oauth_flow(flow):
-                from tools.mcp_oauth import HermesTokenStorage
+                from tools.mcp_oauth import MaxTokenStorage
 
                 manager = get_manager()
-                storage = HermesTokenStorage(server_name)
+                storage = MaxTokenStorage(server_name)
                 backup = storage.snapshot()
                 previous_entry = None
                 try:
@@ -225,7 +225,7 @@ def _worker(session_id: str, hermes_home: str, server_name: str, cfg: dict, reco
                     raise
         finally:
             reset_secret_scope(secret_token)
-            reset_hermes_home_override(home_token)
+            reset_max_home_override(home_token)
     except Exception as exc:
         msg = str(exc)
         try:

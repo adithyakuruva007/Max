@@ -1,4 +1,4 @@
-"""Tests for ``hermes peer`` — cross-machine bot-to-bot DMs."""
+"""Tests for ``max peer`` — cross-machine bot-to-bot DMs."""
 
 import json
 import threading
@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from hermes_cli.subcommands import peer as peer_cmd
+from max_cli.subcommands import peer as peer_cmd
 
 
 # ── target parsing ───────────────────────────────────────────────────────────

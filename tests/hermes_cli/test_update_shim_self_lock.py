@@ -6,7 +6,7 @@ the whole command. An update started that way must therefore replace a file it
 is holding, which Windows refuses — so the DEPENDENCY SYNC re-runs itself under
 ``venv\\Scripts\\python.exe``.
 
-The hand-off sits at the sync boundary, not at the top of ``hermes update``:
+The hand-off sits at the sync boundary, not at the top of ``max update``:
 everything before it (the fetch, the stash question, the branch switch) runs
 in the user's own console, and an up-to-date run that never syncs never hands
 off at all.
@@ -22,9 +22,9 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import main as cli_main
+from max_cli import main as cli_main
 
-SHIM_NAMES = ["hermes.exe", "hermes-agent.exe", "hermes-acp.exe", "hermes-gateway.exe"]
+SHIM_NAMES = ["hermes.exe", "max-agent.exe", "max-acp.exe", "hermes-gateway.exe"]
 
 
 @pytest.fixture
@@ -137,7 +137,7 @@ def test_reexec_runs_same_args_under_venv_python(venv, monkeypatch, capsys):
     assert cli_main._reexec_dependency_sync_off_windows_shim() is True
     cmd, env, kwargs = calls[0]
     assert cmd == [
-        str(venv / "python.exe"), "-m", "hermes_cli.main", "update", "--yes",
+        str(venv / "python.exe"), "-m", "max_cli.main", "update", "--yes",
     ]
     assert env[cli_main._UPDATE_REEXEC_ENV] == "1"
     assert "under the venv Python" in capsys.readouterr().out
@@ -172,7 +172,7 @@ def test_reexec_falls_through_when_venv_python_is_missing(venv, monkeypatch, cap
     monkeypatch.setattr(sys, "argv", [str(venv / "hermes.exe"), "update"])
 
     assert cli_main._reexec_dependency_sync_off_windows_shim() is False
-    assert "-m hermes_cli.main update" not in capsys.readouterr().out
+    assert "-m max_cli.main update" not in capsys.readouterr().out
 
 
 def test_reexec_falls_through_when_spawn_fails(venv, monkeypatch, capsys):
@@ -180,7 +180,7 @@ def test_reexec_falls_through_when_spawn_fails(venv, monkeypatch, capsys):
     _capture_popen(monkeypatch, raises=OSError("no exec"))
 
     assert cli_main._reexec_dependency_sync_off_windows_shim() is False
-    assert "-m hermes_cli.main update" in capsys.readouterr().out
+    assert "-m max_cli.main update" in capsys.readouterr().out
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +191,7 @@ def test_reexec_falls_through_when_spawn_fails(venv, monkeypatch, capsys):
 def test_up_to_date_run_never_hands_off(venv, monkeypatch, capsys):
     """The regression that started this: a no-op update must not detach.
 
-    The hand-off used to run before the fetch, so every ``hermes update`` —
+    The hand-off used to run before the fetch, so every ``max update`` —
     including the ``Already up to date!`` case that never touches the venv —
     spawned a child and returned to the shell, leaving the child printing
     into a console it no longer owned. ``--check`` is the cheapest real run
@@ -209,7 +209,7 @@ def test_up_to_date_run_never_hands_off(venv, monkeypatch, capsys):
 
 def test_sync_guard_hands_off_when_only_the_shim_is_held(venv, monkeypatch):
     """No native module mapped, but we ARE the shim: hand off and exit 0."""
-    from hermes_cli import update_cmd
+    from max_cli import update_cmd
 
     monkeypatch.setattr(sys, "argv", [str(venv / "hermes.exe"), "update"])
     monkeypatch.setattr(cli_main, "_detect_self_loaded_native_modules", lambda: [])
@@ -224,7 +224,7 @@ def test_sync_guard_hands_off_when_only_the_shim_is_held(venv, monkeypatch):
 
 def test_sync_guard_defers_native_lock_before_considering_the_shim(venv, monkeypatch):
     """A mapped .pyd still exits 2 — the marker recovery owns that case."""
-    from hermes_cli import update_cmd
+    from max_cli import update_cmd
 
     monkeypatch.setattr(sys, "argv", [str(venv / "hermes.exe"), "update"])
     monkeypatch.setattr(
@@ -242,7 +242,7 @@ def test_sync_guard_defers_native_lock_before_considering_the_shim(venv, monkeyp
 
 def test_sync_guard_is_a_noop_when_nothing_is_held(venv, monkeypatch):
     """Off the shim with nothing mapped, the sync just proceeds in-process."""
-    from hermes_cli import update_cmd
+    from max_cli import update_cmd
 
     monkeypatch.setattr(cli_main, "_detect_self_loaded_native_modules", lambda: [])
     calls = _capture_popen(monkeypatch)

@@ -58,7 +58,7 @@ test('environment URL without its token keeps the existing error', () => {
         env: { url: 'https://env.test' },
         registry: registry('local', [])
       }),
-    /HERMES_DESKTOP_REMOTE_TOKEN is not/
+    /MAX_DESKTOP_REMOTE_TOKEN is not/
   )
 })
 
@@ -94,7 +94,7 @@ test('profile SSH identity includes port, key, paths, and remote profile', () =>
     user: 'hermes',
     port: 2222,
     keyPath: '/keys/a',
-    remoteHermesPath: '/srv/hermes',
+    remoteMaxPath: '/srv/hermes',
     remoteProfile: 'worker'
   }
 
@@ -118,14 +118,14 @@ test('profile SSH route fails closed when any dial field differs', () => {
     user: 'hermes',
     port: 2222,
     keyPath: '/keys/a',
-    remoteHermesPath: '/srv/hermes',
+    remoteMaxPath: '/srv/hermes',
     remoteProfile: 'worker'
   }
 
   const variants = [
     { ...ssh, port: 2200 },
     { ...ssh, keyPath: '/keys/b' },
-    { ...ssh, remoteHermesPath: '/opt/hermes' },
+    { ...ssh, remoteMaxPath: '/opt/max' },
     { ...ssh, remoteProfile: 'default' },
     { ...ssh, user: 'other' }
   ]
@@ -310,7 +310,7 @@ test('local config without overrides returns null', () => {
 //
 // "Make primary" on a registered remote gateway only writes connections.json;
 // the v1 config.mode stays 'local'. The route resolver must still expose that
-// remote transport, or startHermes() spawns a loopback `hermes serve` the
+// remote transport, or startMax() spawns a loopback `max serve` the
 // desktop never uses (duplicated MCP sets, port squat, respawn-on-poll).
 
 test('falls back to a REMOTE registry primary when the v1 mode is local (#91564/#90316)', () => {
@@ -337,8 +337,8 @@ test('falls back to a CLOUD registry primary when the v1 mode is local', () => {
       {
         id: 'cloud-1',
         kind: 'cloud',
-        label: 'Hermes Cloud',
-        url: 'https://agent.hermes.cloud',
+        label: 'Max Cloud',
+        url: 'https://agent.max.cloud',
         authMode: 'oauth',
         org: 'nous'
       }

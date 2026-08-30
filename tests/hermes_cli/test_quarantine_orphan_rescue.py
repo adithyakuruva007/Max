@@ -1,9 +1,9 @@
-"""Regression tests: a failed quarantine restore must never strand `hermes`.
+"""Regression tests: a failed quarantine restore must never strand `max`.
 
 On Windows the updater renames the live ``hermes*.exe`` shims aside
 (``hermes.exe.old.<unix-ms>``) so uv can write replacements. Gaps in the
-recovery path ended with ``hermes`` gone from PATH — and, because the command
-that repairs it IS ``hermes update``, unrecoverable without a manual reinstall
+recovery path ended with ``max`` gone from PATH — and, because the command
+that repairs it IS ``max update``, unrecoverable without a manual reinstall
 (#75584):
 
 1. Restoring a shim got a single attempt whose ``OSError`` was swallowed in
@@ -27,9 +27,9 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli import _early_recovery as er
-from hermes_cli import _install_repair as ir
-from hermes_cli import main as cli_main
+from max_cli import _early_recovery as er
+from max_cli import _install_repair as ir
+from max_cli import main as cli_main
 
 
 def _make_scripts_dir(tmp_path: Path) -> Path:

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli.config import (
+from max_cli.config import (
     config_command,
     cron_model_drift_guard_enabled,
     set_config_value,
@@ -16,10 +16,10 @@ from hermes_cli.config import (
 
 @pytest.fixture(autouse=True)
 def _isolated_hermes_home(tmp_path):
-    """Point HERMES_HOME at a temp dir so tests never touch real config."""
+    """Point MAX_HOME at a temp dir so tests never touch real config."""
     env_file = tmp_path / ".env"
     env_file.touch()
-    with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+    with patch.dict(os.environ, {"MAX_HOME": str(tmp_path)}):
         yield tmp_path
 
 
@@ -224,7 +224,7 @@ class TestConfigGetUnset:
 # ---------------------------------------------------------------------------
 
 class TestListNavigation:
-    """hermes config set must preserve YAML list fields when using numeric
+    """max config set must preserve YAML list fields when using numeric
     indices.  Before #17876, _set_nested would silently replace the entire
     list with a dict, destroying every sibling entry.
     """
@@ -343,7 +343,7 @@ class TestCronModelDriftConfigWarning:
         set_config_value("model.default", "new-model")
 
         warning = capsys.readouterr().out
-        assert "hermes cron edit <job_id> --provider <provider> --model <model>" in warning
+        assert "max cron edit <job_id> --provider <provider> --model <model>" in warning
         assert "cronjob action=update" not in warning
 
 
@@ -444,7 +444,7 @@ class TestSecretRedactionInDisplay:
     """`config set`/`config show` must not echo credential values in plaintext."""
 
     def test_redact_config_value_masks_nested_api_key(self):
-        from hermes_cli.config import redact_config_value
+        from max_cli.config import redact_config_value
         secret = "cfut_SUPERSECRETTOKEN1234567890abcdef"
         model = {"default": "@cf/foo", "provider": "custom", "api_key": secret}
 
@@ -457,7 +457,7 @@ class TestSecretRedactionInDisplay:
         assert out["provider"] == "custom"
 
     def test_redact_config_value_walks_lists(self):
-        from hermes_cli.config import redact_config_value
+        from max_cli.config import redact_config_value
         secret = "sk-deadbeefdeadbeefdeadbeef"
         cfg = {"custom_providers": [{"name": "p", "api_key": secret}]}
 
@@ -467,7 +467,7 @@ class TestSecretRedactionInDisplay:
         assert out["custom_providers"][0]["name"] == "p"
 
     def test_redact_config_value_ignores_benign_keys(self):
-        from hermes_cli.config import redact_config_value
+        from max_cli.config import redact_config_value
         cfg = {"token_count": 1234, "secret_santa": "alice", "max_turns": 90}
 
         out = redact_config_value(cfg)
@@ -493,10 +493,10 @@ class TestSecretRedactionInDisplay:
 # ---------------------------------------------------------------------------
 
 class TestSchemaValidation:
-    """#34067: ``hermes config set`` must not report bare success for
+    """#34067: ``max config set`` must not report bare success for
     unrecognized keys. The key IS written (arbitrary keys are supported —
     top-level scalars bridge into os.environ for skills/external apps), but
-    a post-write notice warns that Hermes may never read it and suggests the
+    a post-write notice warns that Max may never read it and suggests the
     likely-intended path. Headline case: the plausible-but-wrong
     ``gateway.discord.gateway_restart_notification`` (correct path:
     ``discord.gateway_restart_notification``).
@@ -510,10 +510,10 @@ class TestSchemaValidation:
 
     def test_desktop_macos_signing_identity_is_accepted(self, _isolated_hermes_home, capsys):
         """The documented TCC signing identity setting is part of the schema."""
-        set_config_value("desktop.macos_signing_identity", "Hermes Local Signing")
+        set_config_value("desktop.macos_signing_identity", "Max Local Signing")
         import yaml
         saved = yaml.safe_load(_read_config(_isolated_hermes_home))
-        assert saved["desktop"]["macos_signing_identity"] == "Hermes Local Signing"
+        assert saved["desktop"]["macos_signing_identity"] == "Max Local Signing"
         assert "not a recognized config key" not in capsys.readouterr().out
 
 
@@ -546,7 +546,7 @@ class TestValidateConfigKey:
         "approvals.mode",
     ])
     def test_known_keys_pass(self, key):
-        from hermes_cli.config import _validate_config_key
+        from max_cli.config import _validate_config_key
         is_known, _ = _validate_config_key(key)
         assert is_known, f"Expected {key!r} to validate as known"
 
@@ -556,7 +556,7 @@ class TestValidateConfigKey:
         ("agent.max_turn", "agent.max_turns"),
     ])
     def test_unknown_keys_with_suggestion(self, key, expected_in_suggestion):
-        from hermes_cli.config import _validate_config_key
+        from max_cli.config import _validate_config_key
         is_known, suggestion = _validate_config_key(key)
         assert not is_known, f"Expected {key!r} to validate as unknown"
         if expected_in_suggestion is not None:
@@ -567,7 +567,7 @@ class TestValidateConfigKey:
     def test_underscore_only_first_segment_escapes(self):
         """The underscore escape only applies to the FIRST segment. A real
         typo in a sub-key (e.g. agent._max_turns) is still caught."""
-        from hermes_cli.config import _validate_config_key
+        from max_cli.config import _validate_config_key
         is_known, suggestion = _validate_config_key("agent._max_turns")
         assert not is_known, "Sub-key typo under a known top-level key must still be flagged"
 
@@ -581,7 +581,7 @@ class TestDisplaySkinTouch:
 
     The gateway's skin watcher broadcasts ``skin.changed`` on a signature move
     of (active name, skin-file mtime). Re-affirming the already-configured skin
-    (`hermes config set display.skin X` while it is already X — the recovery
+    (`max config set display.skin X` while it is already X — the recovery
     path when a surface missed the original activation) moves NEITHER part, so
     without the touch the explicit apply is invisible to every live surface.
     """
@@ -623,7 +623,7 @@ class TestDisplaySkinTouch:
 # ---------------------------------------------------------------------------
 
 class TestMappingGuard:
-    """``hermes config set <section> <scalar>`` must not silently destroy an
+    """``max config set <section> <scalar>`` must not silently destroy an
     existing mapping.  Bare ``model`` is a documented shorthand — redirect to
     ``model.default``.  All other mapping sections are refused without --force.
     """
@@ -633,7 +633,7 @@ class TestMappingGuard:
         (tmp_path / "config.yaml").write_text(_yaml.dump(data))
 
     def test_bare_model_shorthand_preserves_siblings(self, _isolated_hermes_home):
-        """hermes config set model <id> → model.default, siblings survive."""
+        """max config set model <id> → model.default, siblings survive."""
         self._write_config(_isolated_hermes_home, {
             "model": {
                 "default": "gpt-4o",
@@ -657,7 +657,7 @@ class TestMappingGuard:
         assert "gpt-5.6-sol" in _read_config(_isolated_hermes_home)
 
     def test_non_model_mapping_is_refused(self, _isolated_hermes_home):
-        """hermes config set terminal bash → refuse, terminal has sub-keys."""
+        """max config set terminal bash → refuse, terminal has sub-keys."""
         self._write_config(_isolated_hermes_home, {
             "terminal": {
                 "backend": "docker",
@@ -670,7 +670,7 @@ class TestMappingGuard:
         assert exc.value.code == 1
 
     def test_non_model_mapping_force_overwrites(self, _isolated_hermes_home):
-        """hermes config set --force terminal bash → proceed, section wiped."""
+        """max config set --force terminal bash → proceed, section wiped."""
         self._write_config(_isolated_hermes_home, {
             "terminal": {
                 "backend": "docker",
@@ -697,7 +697,7 @@ class TestMappingGuard:
         assert parsed["model"]["provider"] == "openai-api"
 
     def test_model_force_overwrites_entire_section(self, _isolated_hermes_home):
-        """hermes config set --force model <id> → overwrite entire section."""
+        """max config set --force model <id> → overwrite entire section."""
         self._write_config(_isolated_hermes_home, {
             "model": {
                 "default": "gpt-4o",
@@ -764,7 +764,7 @@ class TestMalformedYAMLConfigPreservation:
 
     def test_unset_config_value_refuses_broken_yaml(self, _isolated_hermes_home, capsys):
         """unset_config_value must raise, not overwrite the broken config."""
-        from hermes_cli.config import unset_config_value
+        from max_cli.config import unset_config_value
 
         self._write_broken_config(_isolated_hermes_home)
 

@@ -5,14 +5,14 @@ from unittest.mock import Mock
 
 import pytest
 
-from hermes_cli.config import DEFAULT_CONFIG
+from max_cli.config import DEFAULT_CONFIG
 from tools import browser_camofox, browser_tool
 
 
 @pytest.fixture(autouse=True)
 def isolated_snapshot_threshold(tmp_path, monkeypatch):
     """Use a real, isolated config file and reset module-level caches."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
 
     original_cached = browser_tool._cached_snapshot_threshold
     original_resolved = browser_tool._snapshot_threshold_resolved

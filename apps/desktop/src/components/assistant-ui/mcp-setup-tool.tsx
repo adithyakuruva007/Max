@@ -278,7 +278,7 @@ function McpSetupPending({ args }: ToolCallMessagePartProps) {
           status: getMcpOAuthFlow,
           cancelled: () => cancelRef.current,
           cancel: cancelMcpOAuthFlow,
-          openExternal: url => window.hermesDesktop.openExternal(url)
+          openExternal: url => window.maxDesktop.openExternal(url)
         })
 
         triggerHaptic('submit')
@@ -325,7 +325,7 @@ function McpSetupPending({ args }: ToolCallMessagePartProps) {
             status: getMcpOAuthFlow,
             cancelled: () => cancelRef.current,
             cancel: cancelMcpOAuthFlow,
-            openExternal: url => window.hermesDesktop.openExternal(url)
+            openExternal: url => window.maxDesktop.openExternal(url)
           })
         } catch (error) {
           await removeMcpServer(known.name).catch(() => {

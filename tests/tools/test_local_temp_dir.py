@@ -1,6 +1,6 @@
 """Tests for ``LocalEnvironment.get_temp_dir`` temp-dir redirect.
 
-Hermes exposes ``terminal.temp_dir`` (mirrored to ``TERMINAL_TEMP_DIR``) so
+Max exposes ``terminal.temp_dir`` (mirrored to ``TERMINAL_TEMP_DIR``) so
 users on RAM-based tmpfs ``/tmp`` can point session temp files (background
 logs/pid/exit files, code-execution sandboxes) at real storage.
 """
@@ -58,15 +58,15 @@ def test_temp_dir_empty_falls_through(tmp_path, monkeypatch):
 
 def test_default_is_hermes_cache_not_tmp(tmp_path, monkeypatch):
     """With no overrides at all, the default temp root is real storage under
-    HERMES_HOME (cache/terminal), NOT tmpfs /tmp."""
-    import hermes_constants  # noqa: F401 — resolves HERMES_HOME per call
+    MAX_HOME (cache/terminal), NOT tmpfs /tmp."""
+    import max_constants  # noqa: F401 — resolves MAX_HOME per call
 
     for var in ("TERMINAL_TEMP_DIR", "TMPDIR", "TMP", "TEMP"):
         monkeypatch.delenv(var, raising=False)
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
     env = _make_local_env({})
     result = env.get_temp_dir()
-    assert result == str(tmp_path / ".hermes" / "cache" / "terminal")
+    assert result == str(tmp_path / ".max" / "cache" / "terminal")
     assert os.path.isdir(result)
 
 

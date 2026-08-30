@@ -1,11 +1,11 @@
-"""``hermes`` must survive git operations on the checkout (launcher layout).
+"""``max`` must survive git operations on the checkout (launcher layout).
 
-The Windows ``hermes`` command is a launcher derived from the venv console
-script. Its canonical home is the managed binary dir ``HERMES_HOME\\bin`` —
+The Windows ``max`` command is a launcher derived from the venv console
+script. Its canonical home is the managed binary dir ``MAX_HOME\\bin`` —
 OUTSIDE the git checkout — because the earlier in-checkout home
-(``hermes-agent\\bin``) was swept by ``hermes update``'s autostash
+(``max-agent\\bin``) was swept by ``max update``'s autostash
 (``git stash push --include-untracked``) and, with the desktop updater's
-``--keep-stash``, never restored: ``hermes`` stopped resolving in every new
+``--keep-stash``, never restored: ``max`` stopped resolving in every new
 terminal (``venv\\Scripts`` itself must stay off PATH — it shadows the
 user's ``python``, #83797).
 
@@ -14,9 +14,9 @@ always for the managed clone; legacy dir only while the user PATH still
 points at it), choosing the form by venv kind: exe copy for normal venvs,
 ``.cmd`` delegator for relocatable venvs whose exe trampolines die when
 copied out of ``venv\\Scripts``. ``migrate_windows_bin_path`` moves an
-existing install's PATH to the canonical layout from the ``hermes update``
+existing install's PATH to the canonical layout from the ``max update``
 tail. Platform verdict, PATH values, and registry I/O are injected
-parameters (same pattern as ``hermes_constants.venv_bin_dir``), so these
+parameters (same pattern as ``max_constants.venv_bin_dir``), so these
 tests are host-independent input→output checks, not host fakes.
 """
 
@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli._install_repair import (
+from max_cli._install_repair import (
     _WINDOWS_BIN_LAUNCHERS,
     _normalize_windows_path,
     ensure_windows_bin_launchers,
@@ -33,9 +33,9 @@ from hermes_cli._install_repair import (
 
 
 def _make_managed(tmp_path, monkeypatch, *, relocatable: bool = False):
-    """Fake managed layout: HERMES_HOME/hermes-agent/venv/Scripts + launchers."""
+    """Fake managed layout: MAX_HOME/max-agent/venv/Scripts + launchers."""
     home = tmp_path / "hermes"
-    root = home / "hermes-agent"
+    root = home / "max-agent"
     scripts = root / "venv" / "Scripts"
     scripts.mkdir(parents=True)
     for name in _WINDOWS_BIN_LAUNCHERS:
@@ -44,7 +44,7 @@ def _make_managed(tmp_path, monkeypatch, *, relocatable: bool = False):
     if relocatable:
         cfg += "relocatable = true\n"
     (root / "venv" / "pyvenv.cfg").write_text(cfg, encoding="utf-8")
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     return home, root
 
 
@@ -128,11 +128,11 @@ def test_legacy_bin_not_restaged_without_path_consent(managed_install):
 
 
 def test_source_checkout_untouched(tmp_path, monkeypatch):
-    """A checkout NOT under HERMES_HOME gains nothing anywhere."""
+    """A checkout NOT under MAX_HOME gains nothing anywhere."""
     home = tmp_path / "hermes-home"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    root = tmp_path / "src" / "hermes-agent"
+    monkeypatch.setenv("MAX_HOME", str(home))
+    root = tmp_path / "src" / "max-agent"
     scripts = root / "venv" / "Scripts"
     scripts.mkdir(parents=True)
     for name in _WINDOWS_BIN_LAUNCHERS:
@@ -151,17 +151,17 @@ def test_noop_on_posix(managed_install):
 
 
 def test_profile_session_still_heals_the_shared_bin(tmp_path, monkeypatch):
-    """Under ``hermes -p <name>`` HERMES_HOME points inside profiles/<name>;
+    """Under ``max -p <name>`` MAX_HOME points inside profiles/<name>;
     the launcher dir is per-machine, so the heal must anchor on the default
     root and fire anyway — a habitual profile user gets the same repair."""
     home = tmp_path / "hermes"
-    root = home / "hermes-agent"
+    root = home / "max-agent"
     scripts = root / "venv" / "Scripts"
     scripts.mkdir(parents=True)
     for name in _WINDOWS_BIN_LAUNCHERS:
         (scripts / f"{name}.exe").write_bytes(b"MZ")
     (root / "venv" / "pyvenv.cfg").write_text("home = X\n", encoding="utf-8")
-    monkeypatch.setenv("HERMES_HOME", str(home / "profiles" / "work"))
+    monkeypatch.setenv("MAX_HOME", str(home / "profiles" / "work"))
 
     restored = ensure_windows_bin_launchers(root, windows=True, user_path_entries=[])
 
@@ -174,9 +174,9 @@ def test_profile_session_still_heals_the_shared_bin(tmp_path, monkeypatch):
 def test_noop_when_console_scripts_missing(tmp_path, monkeypatch):
     """A venv mid-repair has no console scripts — nothing to copy, no error."""
     home = tmp_path / "hermes"
-    root = home / "hermes-agent"
+    root = home / "max-agent"
     (root / "venv" / "Scripts").mkdir(parents=True)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
 
     assert ensure_windows_bin_launchers(root, windows=True, user_path_entries=[]) == []
 
@@ -191,7 +191,7 @@ def test_no_staging_litter_left_behind(managed_install):
 
 
 # ---------------------------------------------------------------------------
-# migrate_windows_bin_path — the `hermes update` tail migration
+# migrate_windows_bin_path — the `max update` tail migration
 # ---------------------------------------------------------------------------
 
 
@@ -272,9 +272,9 @@ def test_migration_is_idempotent(managed_install):
 def test_migration_never_strips_path_when_staging_fails(tmp_path, monkeypatch):
     """No venv sources → launchers can't stage → PATH must stay untouched."""
     home = tmp_path / "hermes"
-    root = home / "hermes-agent"
+    root = home / "max-agent"
     (root / "venv" / "Scripts").mkdir(parents=True)  # no launcher exes inside
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     legacy_bin = str(root / "bin")
     state, read, write = _fake_registry([legacy_bin])
 
@@ -290,8 +290,8 @@ def test_migration_never_strips_path_when_staging_fails(tmp_path, monkeypatch):
 def test_migration_skips_source_checkouts(tmp_path, monkeypatch):
     home = tmp_path / "hermes-home"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    root = tmp_path / "src" / "hermes-agent"
+    monkeypatch.setenv("MAX_HOME", str(home))
+    root = tmp_path / "src" / "max-agent"
     scripts = root / "venv" / "Scripts"
     scripts.mkdir(parents=True)
     for name in _WINDOWS_BIN_LAUNCHERS:
@@ -321,7 +321,7 @@ def test_repo_gitignores_the_legacy_bin_dir():
     """Transition safety: legacy in-checkout launchers must not be stash-swept.
 
     Until every install has migrated, pre-migration checkouts still carry
-    launchers at ``<checkout>/bin``. ``hermes update`` autostashes with
+    launchers at ``<checkout>/bin``. ``max update`` autostashes with
     ``git stash push --include-untracked``; anything untracked and NOT
     ignored inside the checkout gets swept off disk. Exercises git's real
     ignore machinery rather than reading .gitignore text.
@@ -337,6 +337,6 @@ def test_repo_gitignores_the_legacy_bin_dir():
         capture_output=True,
     )
     assert result.returncode == 0, (
-        "bin/hermes.exe is not gitignored — hermes update's autostash "
+        "bin/hermes.exe is not gitignored — max update's autostash "
         "(--include-untracked) would sweep pre-migration launchers off disk"
     )

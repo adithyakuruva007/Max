@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from hermes_cli import setup as setup_mod
+from max_cli import setup as setup_mod
 
 
 def test_prompt_choice_escape_keeps_default_without_numbered_fallback(monkeypatch):
@@ -147,7 +147,7 @@ def test_nested_back_reopens_only_the_immediately_previous_prompt():
 def test_section_specific_model_setup_can_go_back_from_model_to_provider(
     tmp_path, monkeypatch
 ):
-    """``hermes setup model`` must retain nested setup navigation."""
+    """``max setup model`` must retain nested setup navigation."""
     shown = []
     attempts = 0
 
@@ -176,7 +176,7 @@ def test_section_specific_model_setup_can_go_back_from_model_to_provider(
                 setup_mod.MenuNavigationEvent.RESOLVE, label
             )
 
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
     monkeypatch.setattr(setup_mod, "is_interactive_stdin", lambda: True)
     monkeypatch.setattr(
         setup_mod,

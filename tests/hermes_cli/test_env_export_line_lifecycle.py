@@ -1,7 +1,7 @@
 """Regression tests for the Tools & Keys GitHub PAT save/remove path (#40041).
 
 Users following generic docs add ``export GITHUB_TOKEN=ghp_...`` to
-``~/.hermes/.env``. ``load_env()`` parses the export prefix (#6659), so every
+``~/.max/.env``. ``load_env()`` parses the export prefix (#6659), so every
 UI shows the token as set (green light) — but ``save_env_value`` /
 ``remove_env_value`` only matched plain ``KEY=`` lines. Result: the UI could
 neither replace nor remove the token (delete 404s as "not found in .env";
@@ -14,10 +14,10 @@ Fake tokens are constructed at runtime — no key-shaped literals on disk.
 import pytest
 from fastapi.testclient import TestClient
 
-from hermes_cli.web_server import _SESSION_TOKEN, app
+from max_cli.web_server import _SESSION_TOKEN, app
 
 client = TestClient(app)
-HEADERS = {"X-Hermes-Session-Token": _SESSION_TOKEN}
+HEADERS = {"X-Max-Session-Token": _SESSION_TOKEN}
 
 # Classic-PAT-shaped token, constructed at runtime (36 chars after prefix).
 OLD_PAT = "ghp_" + "A" * 36
@@ -28,8 +28,8 @@ NEW_PAT = "ghp_" + "B" * 36
 def hermes_home(monkeypatch, tmp_path):
     home = tmp_path / "pat_home"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    from hermes_cli.config import invalidate_env_cache
+    monkeypatch.setenv("MAX_HOME", str(home))
+    from max_cli.config import invalidate_env_cache
 
     invalidate_env_cache()
     return home
@@ -37,7 +37,7 @@ def hermes_home(monkeypatch, tmp_path):
 
 def _write_env_raw(home, text):
     home.joinpath(".env").write_text(text, encoding="utf-8")
-    from hermes_cli.config import invalidate_env_cache
+    from max_cli.config import invalidate_env_cache
 
     invalidate_env_cache()
 
@@ -50,7 +50,7 @@ def test_classic_pat_save_via_endpoint_succeeds(hermes_home):
     )
     assert resp.status_code == 200, resp.text
 
-    from hermes_cli.config import load_env
+    from max_cli.config import load_env
 
     assert load_env()["GITHUB_TOKEN"] == NEW_PAT
 
@@ -61,7 +61,7 @@ def test_classic_pat_save_via_endpoint_succeeds(hermes_home):
 
 def test_plain_line_save_and_remove_still_work(hermes_home):
     """Sanity: the ordinary KEY= path is unchanged."""
-    from hermes_cli.config import load_env, remove_env_value, save_env_value
+    from max_cli.config import load_env, remove_env_value, save_env_value
 
     save_env_value("GITHUB_TOKEN", OLD_PAT)
     assert load_env()["GITHUB_TOKEN"] == OLD_PAT

@@ -33,7 +33,7 @@ import { localPreviewTarget } from '@/lib/local-preview'
  * app. The page's own styles override all of it, so a full page keeps its
  * own design.
  *
- * WIDGETS TALK BACK OFF-SCREEN. `window.hermes.send(prompt)` (or declarative
+ * WIDGETS TALK BACK OFF-SCREEN. `window.max.send(prompt)` (or declarative
  * `data-hermes-send` on any clickable element) routes the prompt through the
  * composer's send path as a user turn typed `display_kind=hidden`: the agent
  * wakes and the durable row exists (context, resume, audit via the DB), but
@@ -90,7 +90,7 @@ export function intentScript(token: string): string {
     ',token:t,prompt:p.slice(0,' +
     String(MAX_INTENT_LENGTH) +
     ')},"*");return true}' +
-    'window.hermes={send:send};' +
+    'window.max={send:send};' +
     'addEventListener("click",function(e){var el=e.target&&e.target.closest?' +
     'e.target.closest("[data-hermes-send]"):null;' +
     'if(el)send(el.getAttribute("data-hermes-send")||"")},true)})()</script>'
@@ -257,7 +257,7 @@ export function InlinePreviewDirective({
   // nothing to frame. (Remote gateways used to bail here too — that predates
   // the mode-aware fs bridge; the frame now reads through readDesktopFileText,
   // which fetches over the authenticated /api/fs bridge in remote mode, so a
-  // URL connection — including a same-machine `hermes serve` — renders live.)
+  // URL connection — including a same-machine `max serve` — renders live.)
   if (!file || !HTML_FILE_RE.test(file)) {
     return file ? <PreviewAttachment source="explicit-link" target={file} /> : null
   }

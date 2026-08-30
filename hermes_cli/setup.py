@@ -1,5 +1,5 @@
 """
-Interactive setup wizard for Hermes Agent.
+Interactive setup wizard for Max Agent.
 
 Modular wizard with independently-runnable sections:
   1. Model & Provider — choose your AI provider and model
@@ -8,7 +8,7 @@ Modular wizard with independently-runnable sections:
   4. Messaging Platforms — connect Telegram, Discord, etc.
   5. Tools — configure TTS, web search, image generation, etc.
 
-Config files are stored in ~/.hermes/ for easy access.
+Config files are stored in ~/.max/ for easy access.
 """
 
 import importlib.util
@@ -24,16 +24,16 @@ from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional, Dict, Any, Callable
 
-from hermes_cli.curses_ui import MenuNavigationEvent, MenuNavigationStart
-from hermes_cli.nous_subscription import get_nous_subscription_features
+from max_cli.curses_ui import MenuNavigationEvent, MenuNavigationStart
+from max_cli.nous_subscription import get_nous_subscription_features
 from tools.tool_backend_helpers import managed_nous_tools_enabled
-from hermes_constants import get_optional_skills_dir
+from max_constants import get_optional_skills_dir
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
-_DOCS_BASE = "https://hermes-agent.nousresearch.com/docs"
+_DOCS_BASE = "https://max-agent.stardustresearch.com/docs"
 
 
 def _model_config_dict(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -63,7 +63,7 @@ def _supports_same_provider_pool_setup(provider: str) -> bool:
         return False
     if provider == "openrouter":
         return True
-    from hermes_cli.auth import PROVIDER_REGISTRY
+    from max_cli.auth import PROVIDER_REGISTRY
 
     pconfig = PROVIDER_REGISTRY.get(provider)
     if not pconfig:
@@ -140,10 +140,10 @@ def _set_reasoning_effort(config: Dict[str, Any], effort: str) -> None:
 
 
 # Import config helpers
-from hermes_cli.config import (
+from max_cli.config import (
     cfg_get,
     DEFAULT_CONFIG,
-    get_hermes_home,
+    get_max_home,
     get_config_path,
     get_env_path,
     load_config,
@@ -153,9 +153,9 @@ from hermes_cli.config import (
     get_env_value,
     ensure_hermes_home,
 )
-# display_hermes_home imported lazily at call sites (stale-module safety during hermes update)
+# display_max_home imported lazily at call sites (stale-module safety during max update)
 
-from hermes_cli.colors import Colors, color
+from max_cli.colors import Colors, color
 
 
 def print_header(title: str):
@@ -164,13 +164,13 @@ def print_header(title: str):
     print(color(f"◆ {title}", Colors.CYAN, Colors.BOLD))
 
 
-from hermes_cli.cli_output import (  # noqa: E402
+from max_cli.cli_output import (  # noqa: E402
     print_error,
     print_info,
     print_success,
     print_warning,
 )
-from hermes_cli.secret_prompt import masked_secret_prompt  # noqa: E402
+from max_cli.secret_prompt import masked_secret_prompt  # noqa: E402
 
 
 def is_interactive_stdin() -> bool:
@@ -187,19 +187,19 @@ def is_interactive_stdin() -> bool:
 def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     """Print guidance for headless/non-interactive setup flows."""
     print()
-    print(color("⚕ Hermes Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
+    print(color("⚕ Max Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
     print()
     if reason:
         print_info(reason)
     print_info("The interactive wizard cannot be used here.")
     print()
-    print_info("Configure Hermes using environment variables or config commands:")
-    print_info("  hermes config set model.provider custom")
-    print_info("  hermes config set model.base_url http://localhost:8080/v1")
-    print_info("  hermes config set model.default your-model-name")
+    print_info("Configure Max using environment variables or config commands:")
+    print_info("  max config set model.provider custom")
+    print_info("  max config set model.base_url http://localhost:8080/v1")
+    print_info("  max config set model.default your-model-name")
     print()
     print_info("Or set OPENROUTER_API_KEY / OPENAI_API_KEY in your environment.")
-    print_info("Run 'hermes setup' in an interactive terminal to use the full wizard.")
+    print_info("Run 'max setup' in an interactive terminal to use the full wizard.")
     print()
 
 
@@ -214,7 +214,7 @@ def prompt(question: str, default: str = None, password: bool = False) -> str:
         if password:
             value = masked_secret_prompt(color(display, Colors.YELLOW))
         else:
-            from hermes_cli.cli_output import line_input
+            from max_cli.cli_output import line_input
 
             value = line_input(color(display, Colors.YELLOW))
 
@@ -315,7 +315,7 @@ def _sanitize_pasted_input(value: str) -> str:
 
 def _curses_prompt_choice(question: str, choices: list, default: int = 0, description: str | None = None) -> int:
     """Single-select menu using curses. Delegates to curses_radiolist."""
-    from hermes_cli.curses_ui import curses_radiolist
+    from max_cli.curses_ui import curses_radiolist
     return curses_radiolist(
         question,
         choices,
@@ -350,14 +350,14 @@ def is_noninteractive() -> bool:
     """True when no human is available to answer a prompt.
 
     The dashboard/desktop spawn CLI actions with ``stdin=DEVNULL`` and
-    ``HERMES_NONINTERACTIVE=1`` (see ``hermes_cli/web_server.py``). In that
+    ``MAX_NONINTERACTIVE=1`` (see ``max_cli/web_server.py``). In that
     context an ``input()`` raises ``EOFError`` immediately, so a prompt that
     aborts on EOF kills the spawned action — this is what made the desktop
     "restart gateway" fail when the Windows gateway service was not yet
     installed (the start path asks "Install it now?" with no one to answer).
     Honour the explicit env flag here so callers fall back to their default.
     """
-    return os.environ.get("HERMES_NONINTERACTIVE", "").strip().lower() in {
+    return os.environ.get("MAX_NONINTERACTIVE", "").strip().lower() in {
         "1",
         "true",
         "yes",
@@ -368,7 +368,7 @@ def is_noninteractive() -> bool:
 def prompt_yes_no(question: str, default: bool = True) -> bool:
     """Prompt for yes/no. Ctrl+C exits, empty input returns default.
 
-    Non-interactive callers (``HERMES_NONINTERACTIVE=1`` or a closed/redirected
+    Non-interactive callers (``MAX_NONINTERACTIVE=1`` or a closed/redirected
     stdin) have no one to answer, so fall back to ``default`` instead of
     aborting the whole process.
     """
@@ -432,7 +432,7 @@ def prompt_checklist(title: str, items: list, pre_selected: list = None) -> list
     if pre_selected is None:
         pre_selected = []
 
-    from hermes_cli.curses_ui import curses_checklist
+    from max_cli.curses_ui import curses_checklist
 
     chosen = curses_checklist(
         title,
@@ -468,7 +468,7 @@ def _prompt_api_key(var: dict):
         save_env_value(var["name"], value)
         print_success("  ✓ Saved")
     else:
-        print_warning("  Skipped (configure later with 'hermes setup')")
+        print_warning("  Skipped (configure later with 'max setup')")
 
 
 def _print_setup_summary(config: dict, hermes_home):
@@ -479,7 +479,7 @@ def _print_setup_summary(config: dict, hermes_home):
     # and exit "successfully" with NO working model — believing they were set
     # up. Say so loudly instead (consumer-onboarding audit finding #7).
     try:
-        from hermes_cli.auth import resolve_provider
+        from max_cli.auth import resolve_provider
 
         resolve_provider()
         _provider_ready = True
@@ -487,10 +487,8 @@ def _print_setup_summary(config: dict, hermes_home):
         _provider_ready = False
     if not _provider_ready:
         print()
-        print_warning("No inference provider is configured — Hermes cannot chat yet.")
-        print_info("  Finish this one step with either of:")
-        print_info("    hermes model            (pick any provider/model)")
-        print_info("    hermes setup --portal   (Nous Portal OAuth, no API key)")
+        print_info("  Finish this step with:")
+        print_info("    max model            (pick any provider/model)")
 
     # Tool availability summary
     print()
@@ -510,7 +508,7 @@ def _print_setup_summary(config: dict, hermes_home):
     if _vision_backends:
         tool_status.append(("Vision (image analysis)", True, None))
     else:
-        tool_status.append(("Vision (image analysis)", False, "run 'hermes setup' to configure"))
+        tool_status.append(("Vision (image analysis)", False, "run 'max setup' to configure"))
 
 
     # Web tools (Exa, Parallel, Firecrawl, or Tavily)
@@ -566,7 +564,7 @@ def _print_setup_summary(config: dict, hermes_home):
         _img_backend = None
         try:
             from agent.image_gen_registry import list_providers
-            from hermes_cli.plugins import _ensure_plugins_discovered
+            from max_cli.plugins import _ensure_plugins_discovered
 
             _ensure_plugins_discovered()
             for _p in list_providers():
@@ -585,7 +583,7 @@ def _print_setup_summary(config: dict, hermes_home):
         else:
             tool_status.append(("Image Generation", False, "FAL_KEY or OPENAI_API_KEY"))
 
-    # Video generation — opt-in via `hermes tools` → Video Generation.
+    # Video generation — opt-in via `max tools` → Video Generation.
     # Only show the row when a plugin reports available so we don't badger
     # users who don't care about video gen with a "missing" status line.
     if subscription_features.video_gen.managed_by_nous:
@@ -593,7 +591,7 @@ def _print_setup_summary(config: dict, hermes_home):
     else:
         try:
             from agent.video_gen_registry import list_providers as _list_video_providers
-            from hermes_cli.plugins import _ensure_plugins_discovered as _ensure_plugins
+            from max_cli.plugins import _ensure_plugins_discovered as _ensure_plugins
             _ensure_plugins()
             _video_backend = None
             for _vp in _list_video_providers():
@@ -632,7 +630,7 @@ def _print_setup_summary(config: dict, hermes_home):
         if neutts_ok:
             tool_status.append(("Text-to-Speech (NeuTTS local)", True, None))
         else:
-            tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'hermes setup tts'"))
+            tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'max setup tts'"))
     elif tts_provider == "kittentts":
         try:
             kittentts_ok = importlib.util.find_spec("kittentts") is not None
@@ -641,7 +639,7 @@ def _print_setup_summary(config: dict, hermes_home):
         if kittentts_ok:
             tool_status.append(("Text-to-Speech (KittenTTS local)", True, None))
         else:
-            tool_status.append(("Text-to-Speech (KittenTTS — not installed)", False, "run 'hermes setup tts'"))
+            tool_status.append(("Text-to-Speech (KittenTTS — not installed)", False, "run 'max setup tts'"))
     else:
         tool_status.append(("Text-to-Speech (Edge TTS)", True, None))
 
@@ -671,7 +669,7 @@ def _print_setup_summary(config: dict, hermes_home):
             tool_status.append(("Speech-to-Text (Local Whisper)", True, None))
         else:
             tool_status.append(
-                ("Speech-to-Text (Local Whisper — not installed)", False, "run 'hermes tools' → Speech-to-Text")
+                ("Speech-to-Text (Local Whisper — not installed)", False, "run 'max tools' → Speech-to-Text")
             )
 
     if subscription_features.modal.managed_by_nous:
@@ -680,7 +678,7 @@ def _print_setup_summary(config: dict, hermes_home):
         if subscription_features.modal.direct_override:
             tool_status.append(("Modal Execution (direct Modal)", True, None))
         else:
-            tool_status.append(("Modal Execution", False, "run 'hermes setup terminal'"))
+            tool_status.append(("Modal Execution", False, "run 'max setup terminal'"))
     elif managed_nous_tools_enabled() and subscription_features.nous_auth_present:
         tool_status.append(("Modal Execution (optional via Nous subscription)", True, None))
 
@@ -688,9 +686,9 @@ def _print_setup_summary(config: dict, hermes_home):
     if get_env_value("HASS_TOKEN"):
         tool_status.append(("Smart Home (Home Assistant)", True, None))
 
-    # Spotify (OAuth via hermes auth spotify — check auth.json, not env vars)
+    # Spotify (OAuth via max auth spotify — check auth.json, not env vars)
     try:
-        from hermes_cli.auth import get_provider_auth_state
+        from max_cli.auth import get_provider_auth_state
         _spotify_state = get_provider_auth_state("spotify") or {}
         if _spotify_state.get("access_token") or _spotify_state.get("refresh_token"):
             tool_status.append(("Spotify (PKCE OAuth)", True, None))
@@ -732,9 +730,9 @@ def _print_setup_summary(config: dict, hermes_home):
     disabled_tools = [(name, var) for name, avail, var in tool_status if not avail]
     if disabled_tools:
         print_warning(
-            "Some tools are disabled. Run 'hermes setup tools' to configure them,"
+            "Some tools are disabled. Run 'max setup tools' to configure them,"
         )
-        from hermes_constants import display_hermes_home as _dhh
+        from max_constants import display_max_home as _dhh
         print_warning(f"or edit {_dhh()}/.env directly to add the missing API keys.")
         print()
 
@@ -758,7 +756,7 @@ def _print_setup_summary(config: dict, hermes_home):
     print()
 
     # Show file locations prominently
-    from hermes_constants import display_hermes_home as _dhh
+    from max_constants import display_max_home as _dhh
     print(color(f"📁 All your files are in {_dhh()}/:", Colors.CYAN, Colors.BOLD))
     print()
     print(f"   {color('Settings:', Colors.YELLOW)}  {get_config_path()}")
@@ -772,17 +770,17 @@ def _print_setup_summary(config: dict, hermes_home):
     print()
     print(color("📝 To edit your configuration:", Colors.CYAN, Colors.BOLD))
     print()
-    print(f"   {color('hermes setup', Colors.GREEN)}          Re-run the full wizard")
-    print(f"   {color('hermes setup model', Colors.GREEN)}    Change model/provider")
-    print(f"   {color('hermes setup terminal', Colors.GREEN)} Change terminal backend")
-    print(f"   {color('hermes setup gateway', Colors.GREEN)}  Configure messaging")
-    print(f"   {color('hermes setup tools', Colors.GREEN)}    Configure tool providers")
+    print(f"   {color('max setup', Colors.GREEN)}          Re-run the full wizard")
+    print(f"   {color('max setup model', Colors.GREEN)}    Change model/provider")
+    print(f"   {color('max setup terminal', Colors.GREEN)} Change terminal backend")
+    print(f"   {color('max setup gateway', Colors.GREEN)}  Configure messaging")
+    print(f"   {color('max setup tools', Colors.GREEN)}    Configure tool providers")
     print()
-    print(f"   {color('hermes config', Colors.GREEN)}         View current settings")
+    print(f"   {color('max config', Colors.GREEN)}         View current settings")
     print(
-        f"   {color('hermes config edit', Colors.GREEN)}    Open config in your editor"
+        f"   {color('max config edit', Colors.GREEN)}    Open config in your editor"
     )
-    print(f"   {color('hermes config set <key> <value>', Colors.GREEN)}")
+    print(f"   {color('max config set <key> <value>', Colors.GREEN)}")
     print("                          Set a specific value")
     print()
     print("   Or edit the files directly:")
@@ -795,8 +793,8 @@ def _print_setup_summary(config: dict, hermes_home):
     print(color("🚀 Ready to go!", Colors.CYAN, Colors.BOLD))
     print()
     print(f"   {color('hermes', Colors.GREEN)}              Start chatting")
-    print(f"   {color('hermes gateway', Colors.GREEN)}      Start messaging gateway")
-    print(f"   {color('hermes doctor', Colors.GREEN)}       Check for issues")
+    print(f"   {color('max gateway', Colors.GREEN)}      Start messaging gateway")
+    print(f"   {color('max doctor', Colors.GREEN)}       Check for issues")
     print()
 
 
@@ -939,7 +937,7 @@ def _read_nearest_vercel_project(start: Path | None = None) -> dict[str, str]:
 
 
 # Tool categories and provider config are now in tools_config.py (shared
-# between `hermes tools` and `hermes setup tools`).
+# between `max tools` and `max setup tools`).
 
 
 # =============================================================================
@@ -951,24 +949,24 @@ def _read_nearest_vercel_project(start: Path | None = None) -> dict[str, str]:
 def setup_model_provider(config: dict, *, quick: bool = False):
     """Configure the inference provider and default model.
 
-    Delegates to ``cmd_model()`` (the same flow used by ``hermes model``)
+    Delegates to ``cmd_model()`` (the same flow used by ``max model``)
     for provider selection, credential prompting, and model picking.
     This ensures a single code path for all provider setup — any new
-    provider added to ``hermes model`` is automatically available here.
+    provider added to ``max model`` is automatically available here.
 
     When *quick* is True, skips credential rotation, vision, and TTS
     configuration — used by the streamlined first-time quick setup.
     """
-    from hermes_cli.config import load_config, save_config
+    from max_cli.config import load_config, save_config
 
     print_header("Inference Provider")
     print_info("Choose how to connect to your main chat model.")
     print_info(f"   Guide: {_DOCS_BASE}/integrations/providers")
     print()
 
-    # Delegate to the shared hermes model flow — handles provider picker,
+    # Delegate to the shared max model flow — handles provider picker,
     # credential prompting, model selection, and config persistence.
-    from hermes_cli.main import select_provider_and_model
+    from max_cli.main import select_provider_and_model
     try:
         select_provider_and_model()
     except (SystemExit, KeyboardInterrupt):
@@ -977,7 +975,7 @@ def setup_model_provider(config: dict, *, quick: bool = False):
     except Exception as exc:
         logger.debug("select_provider_and_model error during setup: %s", exc)
         print_warning(f"Provider setup encountered an error: {exc}")
-        print_info("You can try again later with: hermes model")
+        print_info("You can try again later with: max model")
 
     # Re-sync the wizard's config dict from what cmd_model saved to disk.
     # This is critical: cmd_model writes to disk via its own load/save cycle,
@@ -992,8 +990,8 @@ def setup_model_provider(config: dict, *, quick: bool = False):
     # Credential rotation, vision-backend selection, and TTS provider are no
     # longer prompted here. They have safe defaults (rotation off, vision
     # auto-detected from the main provider, TTS = Edge) and are configurable
-    # on demand via `hermes auth add`, `hermes setup` vision, and
-    # `hermes setup tts`. This keeps both quick and full setup thin.
+    # on demand via `max auth add`, `max setup` vision, and
+    # `max setup tts`. This keeps both quick and full setup thin.
 
 
     # Tool Gateway prompt is already shown by _model_flow_nous() above.
@@ -1050,7 +1048,7 @@ def _install_neutts_deps() -> bool:
 
     # Route through the canonical uv → pip → ensurepip ladder so pip-less
     # venvs (Ubuntu 25.10 `python -m venv`, `uv venv`) work out of the box.
-    from hermes_cli.tools_config import _pip_install
+    from max_cli.tools_config import _pip_install
 
     try:
         result = _pip_install(["-U", "neutts[all]", "--quiet"], timeout=300)
@@ -1078,7 +1076,7 @@ def _install_kittentts_deps() -> bool:
     print_info("Installing kittentts Python package (~25-80MB model downloaded on first use)...")
     print()
 
-    from hermes_cli.tools_config import _pip_install
+    from max_cli.tools_config import _pip_install
 
     try:
         result = _pip_install(["-U", wheel_url, "soundfile", "--quiet"], timeout=300)
@@ -1099,10 +1097,10 @@ def _xai_oauth_logged_in_for_setup() -> bool:
     """True iff xAI Grok OAuth credentials are already stored locally.
 
     Lets TTS / STT setup skip the API-key prompt for users who logged in
-    through ``hermes model`` -> xAI Grok OAuth (SuperGrok / Premium+).
+    through ``max model`` -> xAI Grok OAuth (SuperGrok / Premium+).
     """
     try:
-        from hermes_cli.auth import get_xai_oauth_auth_status
+        from max_cli.auth import get_xai_oauth_auth_status
 
         return bool(get_xai_oauth_auth_status().get("logged_in"))
     except Exception:
@@ -1120,7 +1118,7 @@ def _run_xai_oauth_login_from_setup() -> bool:
     to whatever the user picked next, e.g. Edge TTS).
     """
     try:
-        from hermes_cli.auth import (
+        from max_cli.auth import (
             _is_remote_session,
             _save_xai_oauth_tokens,
             _xai_oauth_device_code_login,
@@ -1209,7 +1207,7 @@ def _setup_tts_provider(config: dict):
         print_info("OpenAI TTS will use the managed Nous gateway and bill to your subscription.")
         if get_env_value("VOICE_TOOLS_OPENAI_KEY") or get_env_value("OPENAI_API_KEY"):
             print_warning(
-                "Direct OpenAI credentials are still configured and may take precedence until removed from ~/.hermes/.env."
+                "Direct OpenAI credentials are still configured and may take precedence until removed from ~/.max/.env."
             )
 
     if selected == "neutts":
@@ -1261,7 +1259,7 @@ def _setup_tts_provider(config: dict):
 
     elif selected == "xai":
         # Resolution order: existing OAuth tokens (free for SuperGrok subscribers
-        # via the Hermes auth store) > existing XAI_API_KEY > prompt the user.
+        # via the Max auth store) > existing XAI_API_KEY > prompt the user.
         # When neither is configured, offer both options instead of forcing the
         # API-key path — xAI TTS works fine with OAuth bearer tokens too.
         oauth_logged_in = _xai_oauth_logged_in_for_setup()
@@ -1302,10 +1300,10 @@ def _setup_tts_provider(config: dict):
                     save_env_value("XAI_API_KEY", api_key)
                     print_success("xAI TTS API key saved")
                 else:
-                    from hermes_constants import display_hermes_home as _dhh
+                    from max_constants import display_max_home as _dhh
                     print_warning(
                         "No xAI API key provided for TTS. Configure XAI_API_KEY "
-                        f"via hermes setup model or {_dhh()}/.env to use xAI TTS. "
+                        f"via max setup model or {_dhh()}/.env to use xAI TTS. "
                         "Falling back to Edge TTS."
                     )
                     selected = "edge"
@@ -1389,7 +1387,7 @@ def _setup_tts_provider(config: dict):
 
 
 def setup_tts(config: dict):
-    """Standalone TTS setup (for 'hermes setup tts')."""
+    """Standalone TTS setup (for 'max setup tts')."""
     _setup_tts_provider(config)
 
 
@@ -1402,7 +1400,7 @@ def setup_terminal_backend(config: dict):
     """Configure the terminal execution backend."""
     import platform as _platform
     print_header("Terminal Backend")
-    print_info("Choose where Hermes runs shell commands and code.")
+    print_info("Choose where Max runs shell commands and code.")
     print_info("This affects tool execution, file access, and isolation.")
     print_info(f"   Guide: {_DOCS_BASE}/user-guide/configuration#terminal-backend-configuration")
     print()
@@ -1430,11 +1428,11 @@ def setup_terminal_backend(config: dict):
         next_idx += 1
 
     # Plugin-registered terminal backends (standalone plugin repos installed
-    # under ~/.hermes/plugins/). Fail-soft: a broken plugin must not take the
+    # under ~/.max/plugins/). Fail-soft: a broken plugin must not take the
     # setup wizard down.
     plugin_backend_names = []
     try:
-        from hermes_cli.plugins import discover_plugins
+        from max_cli.plugins import discover_plugins
 
         discover_plugins()  # idempotent — plugin state may not be loaded yet
         from agent.terminal_env_registry import list_providers
@@ -1470,7 +1468,7 @@ def setup_terminal_backend(config: dict):
         print_success("Terminal backend: Local")
         print_info("Commands run directly on this machine.")
         # Gateway working directory defaults to home; sudo stays off. Both are
-        # configurable later via `hermes setup terminal` / config.yaml.
+        # configurable later via `max setup terminal` / config.yaml.
         config["terminal"].setdefault("cwd", str(Path.home()))
 
     elif selected_backend == "docker":
@@ -1484,7 +1482,7 @@ def setup_terminal_backend(config: dict):
         else:
             print_info(f"Docker found: {docker_bin}")
 
-        # Image and resource limits use defaults; tune via `hermes setup terminal`.
+        # Image and resource limits use defaults; tune via `max setup terminal`.
         config["terminal"].setdefault(
             "docker_image", "nikolaik/python-nodejs:python3.11-nodejs20"
         )
@@ -1503,12 +1501,12 @@ def setup_terminal_backend(config: dict):
             proxy_cfg.setdefault("enforce_on_docker", True)
             print_success("Egress firewall enabled in config")
             print_info(
-                "Run `hermes egress setup` then `hermes egress start` to mint "
+                "Run `max egress setup` then `max egress start` to mint "
                 "tokens and launch the proxy."
             )
         else:
             print_info(
-                "Skipping egress firewall. You can enable it later with `hermes egress setup`."
+                "Skipping egress firewall. You can enable it later with `max egress setup`."
             )
 
     elif selected_backend == "singularity":
@@ -1524,7 +1522,7 @@ def setup_terminal_backend(config: dict):
         else:
             print_info(f"Found: {sing_bin}")
 
-        # Image and resource limits use defaults; tune via `hermes setup terminal`.
+        # Image and resource limits use defaults; tune via `max setup terminal`.
         config["terminal"].setdefault(
             "singularity_image",
             "docker://nikolaik/python-nodejs:python3.11-nodejs20",
@@ -1578,7 +1576,7 @@ def setup_terminal_backend(config: dict):
                 __import__("modal")
             except ImportError:
                 print_info("Installing modal SDK...")
-                from hermes_cli.tools_config import _pip_install
+                from max_cli.tools_config import _pip_install
 
                 result = _pip_install(["modal"])
                 if result.returncode == 0:
@@ -1619,7 +1617,7 @@ def setup_terminal_backend(config: dict):
             __import__("daytona")
         except ImportError:
             print_info("Installing daytona SDK...")
-            from hermes_cli.tools_config import _pip_install
+            from max_cli.tools_config import _pip_install
 
             result = _pip_install(["daytona"])
             if result.returncode == 0:
@@ -1645,7 +1643,7 @@ def setup_terminal_backend(config: dict):
                 save_env_value("DAYTONA_API_KEY", api_key)
                 print_success("    Configured")
 
-        # Image and resource limits use defaults; tune via `hermes setup terminal`.
+        # Image and resource limits use defaults; tune via `max setup terminal`.
         config["terminal"].setdefault(
             "daytona_image", "nikolaik/python-nodejs:python3.11-nodejs20"
         )
@@ -1653,7 +1651,7 @@ def setup_terminal_backend(config: dict):
     elif selected_backend == "vercel_sandbox":
         print_success("Terminal backend: Vercel Sandbox")
         print_info("Cloud microVM sandboxes with snapshot-backed filesystem persistence.")
-        print_info("Requires the optional SDK: pip install 'hermes-agent[vercel]'")
+        print_info("Requires the optional SDK: pip install 'max-agent[vercel]'")
 
         try:
             __import__("vercel")
@@ -1661,12 +1659,12 @@ def setup_terminal_backend(config: dict):
             print_info("Installing vercel SDK...")
             import subprocess
 
-            # Managed uv first: $HERMES_HOME/bin is never on PATH, so a bare
-            # which() misses the uv Hermes installed. Bootstrapping one is
+            # Managed uv first: $MAX_HOME/bin is never on PATH, so a bare
+            # which() misses the uv Max installed. Bootstrapping one is
             # welcome here — this is the interactive setup wizard, already
             # mid-install, and the alternative tier is a pip that a `uv venv`
             # venv may not even have.
-            from hermes_cli.managed_uv import ensure_uv
+            from max_cli.managed_uv import ensure_uv
 
             uv_bin = ensure_uv()
             if uv_bin:
@@ -1684,7 +1682,7 @@ def setup_terminal_backend(config: dict):
             if result.returncode == 0:
                 print_success("vercel SDK installed")
             else:
-                print_warning("Install failed — run manually: pip install 'hermes-agent[vercel]'")
+                print_warning("Install failed — run manually: pip install 'max-agent[vercel]'")
                 if result.stderr:
                     print_info(f"  Error: {result.stderr.strip().splitlines()[-1]}")
 
@@ -1771,10 +1769,10 @@ def _apply_default_agent_settings(config: dict):
     """Apply recommended defaults for all agent settings without prompting."""
     config.setdefault("agent", {})["max_turns"] = 150
     # config.yaml is the authoritative source for max_turns; the gateway
-    # bridges it into HERMES_MAX_ITERATIONS at startup. We no longer write
+    # bridges it into MAX_MAX_ITERATIONS at startup. We no longer write
     # to .env to avoid the dual-source inconsistency that caused the
     # 60-vs-500 bug (stale .env entry silently shadowing config.yaml).
-    remove_env_value("HERMES_MAX_ITERATIONS")
+    remove_env_value("MAX_MAX_ITERATIONS")
 
     config.setdefault("display", {})["tool_progress"] = "all"
 
@@ -1792,7 +1790,7 @@ def _apply_default_agent_settings(config: dict):
     print_info("  Tool progress: all")
     print_info("  Compression threshold: 0.50")
     print_info("  Session reset: never (use /reset or compression)")
-    print_info("  Run `hermes setup agent` later to customize.")
+    print_info("  Run `max setup agent` later to customize.")
 
 
 def setup_agent_settings(config: dict):
@@ -1820,10 +1818,10 @@ def setup_agent_settings(config: dict):
             # Write to config.yaml (authoritative) only. Also clean up any
             # stale .env entry from earlier setup runs — the gateway's
             # bridge in gateway/run.py now unconditionally derives
-            # HERMES_MAX_ITERATIONS from agent.max_turns at startup.
+            # MAX_MAX_ITERATIONS from agent.max_turns at startup.
             config.setdefault("agent", {})["max_turns"] = max_iter
             config.pop("max_turns", None)
-            remove_env_value("HERMES_MAX_ITERATIONS")
+            remove_env_value("MAX_MAX_ITERATIONS")
             print_success(f"Max iterations set to {max_iter}")
     except ValueError:
         print_warning("Invalid number, keeping current value")
@@ -1836,7 +1834,7 @@ def setup_agent_settings(config: dict):
     print_info("  new     — Show tool name only when it changes (less noise)")
     print_info("  all     — Show every tool call with a short preview")
     print_info("  verbose — Full args, results, and debug logs")
-    print_info("  log     — Silent in chat; write every tool call to ~/.hermes/logs/tool_calls.log (gateway only)")
+    print_info("  log     — Silent in chat; write every tool call to ~/.max/logs/tool_calls.log (gateway only)")
 
     current_mode = cfg_get(config, "display", "tool_progress", default="all")
     mode = prompt("Tool progress mode", current_mode)
@@ -1983,13 +1981,13 @@ def _is_valid_telegram_bot_token(token: str) -> bool:
 def _setup_telegram_auto_result():
     """Attempt automatic Telegram bot creation via managed QR onboarding."""
     try:
-        from hermes_cli.telegram_managed_bot import auto_setup_telegram_bot_result
+        from max_cli.telegram_managed_bot import auto_setup_telegram_bot_result
     except ImportError:
         return None
 
     profile_name: str | None = None
     try:
-        profile_name = _profile_name_from_hermes_home(Path(get_hermes_home()))
+        profile_name = _profile_name_from_hermes_home(Path(get_max_home()))
     except Exception:
         pass
 
@@ -1997,7 +1995,7 @@ def _setup_telegram_auto_result():
 
 
 def _profile_name_from_hermes_home(hermes_home) -> str | None:
-    """Return the active profile name when HERMES_HOME is a profile dir."""
+    """Return the active profile name when MAX_HOME is a profile dir."""
     if hermes_home.parent.name == "profiles":
         return hermes_home.name
     return None
@@ -2114,7 +2112,7 @@ def _setup_telegram():
         print_info("⚠️  No allowlist set - anyone who finds your bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Hermes delivers cron job results,")
+    print_info("📬 Home Channel: where Max delivers cron job results,")
     print_info("   cross-platform messages, and notifications.")
     print_info("   For Telegram DMs, this is your user ID (same as above).")
 
@@ -2152,7 +2150,7 @@ def _setup_bluebubbles():
         if not prompt_yes_no("Reconfigure BlueBubbles?", False):
             return
 
-    print_info("Connects Hermes to iMessage via BlueBubbles — a free, open-source")
+    print_info("Connects Max to iMessage via BlueBubbles — a free, open-source")
     print_info("macOS server that bridges iMessage to any device.")
     print_info("   Requires a Mac running BlueBubbles Server v1.0.0+")
     print_info("   Download: https://bluebubbles.app/")
@@ -2210,7 +2208,7 @@ def _setup_bluebubbles():
 
 def _setup_qqbot():
     """Configure QQ Bot (Official API v2) via gateway setup."""
-    from hermes_cli.gateway import _setup_qqbot as _gateway_setup_qqbot
+    from max_cli.gateway import _setup_qqbot as _gateway_setup_qqbot
     _gateway_setup_qqbot()
 
 
@@ -2228,7 +2226,7 @@ def _setup_webhooks():
     print_warning("   internet. For security, run the gateway in a sandboxed environment")
     print_warning("   (Docker, VM, etc.) to limit blast radius from prompt injection.")
     print()
-    print_info("   Full guide: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/")
+    print_info("   Full guide: https://max-agent.stardustresearch.com/docs/user-guide/messaging/webhooks/")
     print()
 
     port = prompt("Webhook port (default 8644)")
@@ -2249,24 +2247,24 @@ def _setup_webhooks():
     save_env_value("WEBHOOK_ENABLED", "true")
     print()
     print_success("Webhooks enabled! Next steps:")
-    from hermes_constants import display_hermes_home as _dhh
+    from max_constants import display_max_home as _dhh
     print_info(f"   1. Define webhook routes in {_dhh()}/config.yaml")
     print_info("   2. Point your service (GitHub, GitLab, etc.) at:")
     print_info("      http://your-server:8644/webhooks/<route-name>")
     print()
     print_info("   Route configuration guide:")
-    print_info("   https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/#configuring-routes")
+    print_info("   https://max-agent.stardustresearch.com/docs/user-guide/messaging/webhooks/#configuring-routes")
     print()
-    print_info("   Open config in your editor:  hermes config edit")
-    print_info("   Open config in your editor:  hermes config edit")
+    print_info("   Open config in your editor:  max config edit")
+    print_info("   Open config in your editor:  max config edit")
 
 
 def setup_gateway(config: dict):
     """Configure messaging platform integrations."""
-    from hermes_cli.gateway import _all_platforms, _platform_status, _configure_platform
+    from max_cli.gateway import _all_platforms, _platform_status, _configure_platform
 
     print_header("Messaging Platforms")
-    print_info("Connect to messaging platforms to chat with Hermes from anywhere.")
+    print_info("Connect to messaging platforms to chat with Max from anywhere.")
     print_info("Toggle with Space, confirm with Enter.")
     print()
 
@@ -2284,7 +2282,7 @@ def setup_gateway(config: dict):
     selected = prompt_checklist("Select platforms to configure:", items, pre_selected)
 
     if not selected:
-        print_info("No platforms selected. Run 'hermes setup gateway' later to configure.")
+        print_info("No platforms selected. Run 'max setup gateway' later to configure.")
     else:
         for idx in selected:
             _configure_platform(platforms[idx])
@@ -2336,18 +2334,18 @@ def setup_gateway(config: dict):
             print_info("   Set one later with /set-home in your chat, or:")
             for plat in missing_home:
                 print_info(
-                    f"     hermes config set {plat.upper()}_HOME_CHANNEL <channel_id>"
+                    f"     max config set {plat.upper()}_HOME_CHANNEL <channel_id>"
                 )
 
     # ── Gateway Service Setup ──
     # Runs UNCONDITIONALLY — even with zero platforms configured. A gateway
     # without platforms is a supported mode (cron scheduler keeps running,
     # and adapters come up automatically once tokens are added later, e.g.
-    # via `hermes import` or `hermes setup gateway`). Gating this on
+    # via `max import` or `max setup gateway`). Gating this on
     # messaging config was the bug that left install-then-import machines
     # with registered cron jobs and restored bot tokens but no process to
     # serve them.
-    from hermes_cli.gateway import (
+    from max_cli.gateway import (
         _is_service_running,
         supports_systemd_services,
         ensure_gateway_service,
@@ -2380,7 +2378,7 @@ def setup_gateway(config: dict):
                 elif _is_macos:
                     launchd_restart()
                 elif _is_windows:
-                    from hermes_cli import gateway_windows
+                    from max_cli import gateway_windows
                     gateway_windows.restart()
             except UserSystemdUnavailableError as e:
                 print_error("  Restart failed — user systemd not reachable:")
@@ -2410,14 +2408,14 @@ def setup_gateway(config: dict):
 def setup_tools(config: dict, first_install: bool = False):
     """Configure tools — delegates to the unified tools_command() in tools_config.py.
 
-    Both `hermes setup tools` and `hermes tools` use the same flow:
+    Both `max setup tools` and `max tools` use the same flow:
     platform selection → toolset toggles → provider/API key configuration.
 
     Args:
         first_install: When True, uses the simplified first-install flow
             (no platform menu, prompts for all unconfigured API keys).
     """
-    from hermes_cli.tools_config import tools_command
+    from max_cli.tools_config import tools_command
 
     tools_command(first_install=first_install, config=config)
 
@@ -2431,7 +2429,7 @@ def setup_telemetry(config: dict):
     """Configure the local, privacy-safe shared-metrics subscriber."""
     print_header("Shared Metrics")
     print_info("Shared metrics contain only bounded counters and histograms.")
-    print_info("Packages stay under this Hermes profile and are not uploaded.")
+    print_info("Packages stay under this Max profile and are not uploaded.")
 
     telemetry = config.get("telemetry")
     if not isinstance(telemetry, dict):
@@ -2462,7 +2460,7 @@ def _model_section_has_credentials(config: dict) -> bool:
     """Return True when any known inference provider has usable credentials.
 
     Sources of truth:
-      * ``PROVIDER_REGISTRY`` in ``hermes_cli.auth`` — lists every supported
+      * ``PROVIDER_REGISTRY`` in ``max_cli.auth`` — lists every supported
         provider along with its ``api_key_env_vars``.
       * ``active_provider`` in the auth store — covers OAuth device-code /
         external-OAuth providers (Nous, Codex, Qwen, Gemini CLI, ...).
@@ -2470,14 +2468,14 @@ def _model_section_has_credentials(config: dict) -> bool:
         ``OPENAI_API_KEY`` / ``OPENROUTER_API_KEY`` values through OpenRouter.
     """
     try:
-        from hermes_cli.auth import get_active_provider
+        from max_cli.auth import get_active_provider
         if get_active_provider():
             return True
     except Exception:
         pass
 
     try:
-        from hermes_cli.auth import PROVIDER_REGISTRY
+        from max_cli.auth import PROVIDER_REGISTRY
     except Exception:
         PROVIDER_REGISTRY = {}  # type: ignore[assignment]
 
@@ -2530,7 +2528,7 @@ def _get_section_config_summary(config: dict, section_key: str) -> Optional[str]
     """Return a short summary if a setup section is already configured, else None.
 
     Used after OpenClaw migration to detect which sections can be skipped.
-    ``get_env_value`` is the module-level import from hermes_cli.config
+    ``get_env_value`` is the module-level import from max_cli.config
     so that test patches on ``setup_mod.get_env_value`` take effect.
     """
     if section_key == "model":
@@ -2552,7 +2550,7 @@ def _get_section_config_summary(config: dict, section_key: str) -> Optional[str]
         return f"max turns: {max_turns}"
 
     elif section_key == "gateway":
-        from hermes_cli.gateway import _all_platforms, _platform_status
+        from max_cli.gateway import _all_platforms, _platform_status
         # Count any non-empty status other than the "not configured" sentinel —
         # platforms like WhatsApp ("enabled, not paired"), Matrix ("configured
         # + E2EE"), and Signal ("partially configured") all indicate the user
@@ -2639,15 +2637,15 @@ def _load_openclaw_migration_module():
 
 # Item kinds that represent high-impact changes warranting explicit warnings.
 # Gateway tokens/channels can hijack messaging platforms from the old agent.
-# Config values may have different semantics between OpenClaw and Hermes.
+# Config values may have different semantics between OpenClaw and Max.
 # Instruction/context files (.md) can contain incompatible setup procedures.
 _HIGH_IMPACT_KIND_KEYWORDS = {
-    "gateway": "⚠ Gateway/messaging — this will configure Hermes to use your OpenClaw messaging channels",
-    "telegram": "⚠ Telegram — this will point Hermes at your OpenClaw Telegram bot",
-    "slack": "⚠ Slack — this will point Hermes at your OpenClaw Slack workspace",
-    "discord": "⚠ Discord — this will point Hermes at your OpenClaw Discord bot",
-    "whatsapp": "⚠ WhatsApp — this will point Hermes at your OpenClaw WhatsApp connection",
-    "config": "⚠ Config values — OpenClaw settings may not map 1:1 to Hermes equivalents",
+    "gateway": "⚠ Gateway/messaging — this will configure Max to use your OpenClaw messaging channels",
+    "telegram": "⚠ Telegram — this will point Max at your OpenClaw Telegram bot",
+    "slack": "⚠ Slack — this will point Max at your OpenClaw Slack workspace",
+    "discord": "⚠ Discord — this will point Max at your OpenClaw Discord bot",
+    "whatsapp": "⚠ WhatsApp — this will point Max at your OpenClaw WhatsApp connection",
+    "config": "⚠ Config values — OpenClaw settings may not map 1:1 to Max equivalents",
     "soul": "⚠ Instruction file — may contain OpenClaw-specific setup/restart procedures",
     "memory": "⚠ Memory/context file — may reference OpenClaw-specific infrastructure",
     "context": "⚠ Context file — may contain OpenClaw-specific instructions",
@@ -2691,7 +2689,7 @@ def _print_migration_preview(report: dict):
         print()
 
     if conflict_items:
-        print(color("  Would overwrite (conflicts with existing Hermes config):", Colors.YELLOW))
+        print(color("  Would overwrite (conflicts with existing Max config):", Colors.YELLOW))
         for item in conflict_items:
             kind = item.get("kind", "unknown")
             reason = item.get("reason", "already exists")
@@ -2712,8 +2710,8 @@ def _print_migration_preview(report: dict):
         for warning in sorted(warnings_shown):
             print(color(f"    {warning}", Colors.YELLOW))
         print()
-        print(color("  Note: OpenClaw config values may have different semantics in Hermes.", Colors.YELLOW))
-        print(color("  For example, OpenClaw's tool_call_execution: \"auto\" ≠ Hermes's yolo mode.", Colors.YELLOW))
+        print(color("  Note: OpenClaw config values may have different semantics in Max.", Colors.YELLOW))
+        print(color("  For example, OpenClaw's tool_call_execution: \"auto\" ≠ Max's yolo mode.", Colors.YELLOW))
         print(color("  Instruction files (.md) from OpenClaw may contain incompatible procedures.", Colors.YELLOW))
         print()
 
@@ -2736,12 +2734,12 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
     print()
     print_header("OpenClaw Installation Detected")
     print_info(f"Found OpenClaw data at {openclaw_dir}")
-    print_info("Hermes can preview what would be imported before making any changes.")
+    print_info("Max can preview what would be imported before making any changes.")
     print()
 
     if not prompt_yes_no("Would you like to see what can be imported?", default=True):
         print_info(
-            "Skipping migration. You can run it later with: hermes claw migrate --dry-run"
+            "Skipping migration. You can run it later with: max claw migrate --dry-run"
         )
         return False
 
@@ -2799,14 +2797,14 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
     # ── Phase 2: Confirm and execute ──
     if not prompt_yes_no("Proceed with migration?", default=False):
         print_info(
-            "Migration cancelled. You can run it later with: hermes claw migrate"
+            "Migration cancelled. You can run it later with: max claw migrate"
         )
         print_info(
             "Use --dry-run to preview again, or --preset minimal for a lighter import."
         )
         return False
 
-    # Execute the migration — overwrite=False so existing Hermes configs are
+    # Execute the migration — overwrite=False so existing Max configs are
     # preserved. The user saw the preview; conflicts are skipped by default.
     try:
         migrator = mod.Migrator(
@@ -2814,7 +2812,7 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
             target_root=hermes_home.resolve(),
             execute=True,
             workspace_target=None,
-            overwrite=False,  # preserve existing Hermes config
+            overwrite=False,  # preserve existing Max config
             migrate_secrets=True,
             output_dir=None,
             selected_options=selected,
@@ -2837,7 +2835,7 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
     if migrated:
         print_success(f"Imported {migrated} item(s) from OpenClaw.")
     if conflicts:
-        print_info(f"Skipped {conflicts} item(s) that already exist in Hermes (use hermes claw migrate --overwrite to force).")
+        print_info(f"Skipped {conflicts} item(s) that already exist in Max (use max claw migrate --overwrite to force).")
     if skipped:
         print_info(f"Skipped {skipped} item(s) (not found or unchanged).")
     if errors:
@@ -2869,21 +2867,21 @@ SETUP_SECTIONS = [
 def _run_portal_one_shot(config: dict) -> None:
     """One-shot Nous Portal setup — OAuth + model pick + provider + Tool Gateway.
 
-    Wired into ``hermes setup --portal`` and ``hermes portal``. This is the
+    Wired into ``max setup --portal`` and ``max portal``. This is the
     Nous-Portal slice of the first-time quick setup, collapsed into a single
     shareable command so a brand-new user goes from zero to a fully working
-    Hermes session — model selected, provider set, and web/image/tts/browser
+    Max session — model selected, provider set, and web/image/tts/browser
     tools routed via their Portal sub — without being told to run
-    ``hermes setup`` and hunt for the quick-setup option.
+    ``max setup`` and hunt for the quick-setup option.
 
     The login + model selection + provider switch + Tool Gateway opt-in are all
     delegated to ``_model_flow_nous`` — the exact same flow quick setup uses
-    (``_run_first_time_quick_setup``) and the same one ``hermes model`` runs
+    (``_run_first_time_quick_setup``) and the same one ``max model`` runs
     when you pick Nous. Routing through it (instead of hand-rolling the auth +
-    provider write here) means ``hermes portal`` always offers a model picker,
+    provider write here) means ``max portal`` always offers a model picker,
     and there is a single source of truth for the Nous onboarding steps.
     """
-    from hermes_cli.config import load_config
+    from max_cli.config import load_config
 
     print()
     print(
@@ -2892,7 +2890,7 @@ def _run_portal_one_shot(config: dict) -> None:
             Colors.MAGENTA,
         )
     )
-    print(color("│     ⚕ Hermes Setup — Nous Portal (one-shot)             │", Colors.MAGENTA))
+    print(color("│     ⚕ Max Setup — Nous Portal (one-shot)             │", Colors.MAGENTA))
     print(
         color(
             "└─────────────────────────────────────────────────────────┘",
@@ -2904,16 +2902,16 @@ def _run_portal_one_shot(config: dict) -> None:
     print_info("    web search, image generation, TTS, browser automation")
     print_info("    — all routed through your Nous Portal sub.")
     print()
-    print_info("  Sign up: https://portal.nousresearch.com/manage-subscription")
+    print_info("  Sign up: https://portal.stardustresearch.com/manage-subscription")
     print()
 
     # _model_flow_nous handles BOTH the logged-out path (device-code OAuth,
     # which selects a model internally) and the already-logged-in path (curated
     # Nous model picker), then offers the Tool Gateway opt-in and sets
     # provider=nous via the login/model save. This is the same routine quick
-    # setup calls, so `hermes portal` == quick setup's Nous step.
+    # setup calls, so `max portal` == quick setup's Nous step.
     try:
-        from hermes_cli.main import _model_flow_nous
+        from max_cli.main import _model_flow_nous
 
         _model_flow_nous(config)
     except (KeyboardInterrupt, EOFError, SystemExit):
@@ -2924,13 +2922,13 @@ def _run_portal_one_shot(config: dict) -> None:
         # Treat all of these as a graceful cancel/abort for the portal flow.
         print()
         print_info("  Setup cancelled.")
-        print_info("  You can retry later with `hermes portal`.")
+        print_info("  You can retry later with `max portal`.")
         return
     except Exception as exc:
-        logger.debug("_model_flow_nous error during `hermes portal`: %s", exc)
+        logger.debug("_model_flow_nous error during `max portal`: %s", exc)
         print()
         print_error(f"  Nous Portal setup encountered an error: {exc}")
-        print_info("  You can retry later with `hermes portal`.")
+        print_info("  You can retry later with `max portal`.")
         return
 
     # Re-sync the in-memory config from disk — _model_flow_nous (and the
@@ -2946,14 +2944,14 @@ def _run_portal_one_shot(config: dict) -> None:
 
     print()
     print_success("Portal setup complete.")
-    print_info("  Run `hermes portal info` to inspect routing.")
-    print_info("  Run `hermes` to start chatting.")
+    print_info("  Run `max portal info` to inspect routing.")
+    print_info("  Run `max` to start chatting.")
 
 
 @contextmanager
 def _setup_navigation_scope():
     """Install and reliably restore the setup menu navigation context."""
-    from hermes_cli.curses_ui import (
+    from max_cli.curses_ui import (
         reset_menu_navigation_handler,
         set_menu_navigation_handler,
     )
@@ -3052,7 +3050,7 @@ def run_setup_action_with_navigation(
 ) -> None:
     """Run a setup-style menu flow with Escape and nested Left navigation.
 
-    Shared commands such as ``hermes model`` use the same provider/model
+    Shared commands such as ``max model`` use the same provider/model
     pickers as the setup wizard, but run outside ``run_setup_wizard``.  This
     installs the setup navigation context for that standalone command and
     reuses the same prompt replay state machine.
@@ -3069,16 +3067,16 @@ def _run_setup_wizard_impl(args):
     """Run the interactive setup wizard.
 
     Supports full, quick, and section-specific setup:
-      hermes setup           — full or quick (auto-detected)
-      hermes setup model     — just model/provider
-      hermes setup tts       — just text-to-speech
-      hermes setup terminal  — just terminal backend
-      hermes setup gateway   — just messaging platforms
-      hermes setup tools     — just tool configuration
-      hermes setup telemetry — just local shared metrics
-      hermes setup agent     — just agent settings
+      max setup           — full or quick (auto-detected)
+      max setup model     — just model/provider
+      max setup tts       — just text-to-speech
+      max setup terminal  — just terminal backend
+      max setup gateway   — just messaging platforms
+      max setup tools     — just tool configuration
+      max setup telemetry — just local shared metrics
+      max setup agent     — just agent settings
     """
-    from hermes_cli.config import is_managed, managed_error
+    from max_cli.config import is_managed, managed_error
     if is_managed():
         managed_error("run setup wizard")
         return
@@ -3093,7 +3091,7 @@ def _run_setup_wizard_impl(args):
     quick_requested = bool(getattr(args, "quick", False))
 
     config = load_config()
-    hermes_home = get_hermes_home()
+    hermes_home = get_max_home()
 
     # Back up existing config before setup modifies it (#3522)
     config_path = get_config_path()
@@ -3138,7 +3136,7 @@ def _run_setup_wizard_impl(args):
                         Colors.MAGENTA,
                     )
                 )
-                print(color(f"│     ⚕ Hermes Setup — {label:<34s} │", Colors.MAGENTA))
+                print(color(f"│     ⚕ Max Setup — {label:<34s} │", Colors.MAGENTA))
                 print(
                     color(
                         "└─────────────────────────────────────────────────────────┘",
@@ -3158,7 +3156,7 @@ def _run_setup_wizard_impl(args):
         return
 
     # Check if this is an existing installation with a provider configured
-    from hermes_cli.auth import get_active_provider
+    from max_cli.auth import get_active_provider
 
     active_provider = get_active_provider()
     is_existing = (
@@ -3176,7 +3174,7 @@ def _run_setup_wizard_impl(args):
     )
     print(
         color(
-            "│             ⚕ Hermes Agent Setup Wizard                │", Colors.MAGENTA
+            "│             ⚕ Max Agent Setup Wizard                │", Colors.MAGENTA
         )
     )
     print(
@@ -3187,7 +3185,7 @@ def _run_setup_wizard_impl(args):
     )
     print(
         color(
-            "│  Let's configure your Hermes Agent installation.       │", Colors.MAGENTA
+            "│  Let's configure your Max Agent installation.       │", Colors.MAGENTA
         )
     )
     print(
@@ -3218,11 +3216,11 @@ def _run_setup_wizard_impl(args):
 
         print()
         print_header("Reconfigure")
-        print_success("You already have Hermes configured.")
+        print_success("You already have Max configured.")
         print_info("Running the full wizard — each prompt shows your current value.")
         print_info("Press Enter to keep it, or type a new value to change it.")
         print_info("")
-        print_info("Tip: jump straight to a section with 'hermes setup model|terminal|")
+        print_info("Tip: jump straight to a section with 'max setup model|terminal|")
         print_info("     gateway|tools|agent', or fill only missing items with --quick.")
         # Fall through to the "Full Setup — run all sections" block below.
         # --reconfigure is now the default on existing installs; the flag
@@ -3243,9 +3241,9 @@ def _run_setup_wizard_impl(args):
             config = load_config()
 
         setup_mode = prompt_choice(
-            "How would you like to set up Hermes?",
+            "How would you like to set up Max?",
             [
-                "Quick Setup (Nous Portal) — free OAuth login, no API keys, model + tools (recommended)",
+                "Quick Setup — configure provider, model & defaults (recommended)",
                 "Full setup — configure every provider, tool & option yourself (bring your own keys)",
                 "Blank Slate — everything off except the bare minimum; opt in to each capability",
             ],
@@ -3284,7 +3282,7 @@ def _run_setup_wizard_impl(args):
     print_info(f"Data folder:  {hermes_home}")
     print_info(f"Install dir:  {PROJECT_ROOT}")
     print()
-    print_info("You can edit these files directly or use 'hermes config edit'")
+    print_info("You can edit these files directly or use 'max config edit'")
 
     if migration_ran:
         print()
@@ -3294,7 +3292,7 @@ def _run_setup_wizard_impl(args):
 
     # Section 3: Agent Settings — no longer prompted. First installs get the
     # recommended defaults silently; existing installs keep whatever they have.
-    # Tune later with `hermes setup agent`.
+    # Tune later with `max setup agent`.
     if not is_existing:
         _apply_default_agent_settings(config)
 
@@ -3322,7 +3320,7 @@ def _run_setup_wizard_impl(args):
 
         # A migrated gateway section can be skipped, but its service still
         # needs to exist so imported platforms and cron jobs become active.
-        from hermes_cli.gateway import ensure_gateway_service
+        from max_cli.gateway import ensure_gateway_service
 
         ensure_gateway_service(context="setup")
 
@@ -3357,35 +3355,25 @@ def _run_first_time_quick_setup(config: dict, hermes_home, is_existing: bool):
     Routes straight to the Nous Portal provider — runs the device-code OAuth
     login, picks a Nous model, then configures the terminal backend and (optionally)
     a messaging platform. Applies sensible defaults for everything else (agent
-    settings, tools); the user can customize later via ``hermes setup <section>``
-    or switch providers with ``hermes model``.
+    settings, tools); the user can customize later via ``max setup <section>``
+    or switch providers with ``max model``.
     """
-    from hermes_cli.config import load_config
+    from max_cli.config import load_config
 
-    # Step 1: Nous Portal — OAuth login + model selection.
-    # _model_flow_nous() handles both the logged-out path (device-code OAuth,
-    # which selects a model internally) and the already-logged-in path (curated
-    # Nous model picker). Provider is set to "nous" by the login/model save.
     print()
-    print_header("Nous Portal")
-    print_info("One subscription, 300+ models, plus the Tool Gateway:")
-    print_info("  web search, image generation, TTS, browser automation.")
-    print_info("Sign up: https://portal.nousresearch.com/manage-subscription")
+    print_header("Inference Provider")
+    print_info("Choose how to connect to your main chat model.")
     print()
     try:
-        from hermes_cli.main import _model_flow_nous
-        _model_flow_nous(config)
+        setup_model_provider(config, quick=True)
     except (KeyboardInterrupt, EOFError):
         print()
-        print_info("Nous Portal setup cancelled.")
+        print_info("Model setup skipped.")
     except Exception as exc:
-        logger.debug("_model_flow_nous error during quick setup: %s", exc)
-        print_warning(f"Nous Portal setup encountered an error: {exc}")
-        print_info("You can try again later with: hermes model")
+        logger.debug("setup_model_provider error during quick setup: %s", exc)
+        print_warning(f"Model setup encountered an error: {exc}")
+        print_info("You can try again later with: max model")
 
-    # Re-sync the wizard's config dict from disk — _model_flow_nous (and the
-    # underlying login/model save) write via their own load/save cycle, and the
-    # wizard's later save_config(config) must not clobber those values (#4172).
     _refreshed = load_config()
     config.clear()
     config.update(_refreshed)
@@ -3404,7 +3392,7 @@ def _run_first_time_quick_setup(config: dict, hermes_home, is_existing: bool):
         "Connect a messaging platform? (Telegram, Discord, etc.)",
         [
             "Set up messaging now (recommended)",
-            "Skip — set up later with 'hermes setup gateway'",
+            "Skip — set up later with 'max setup gateway'",
         ],
         0,
     )
@@ -3415,16 +3403,16 @@ def _run_first_time_quick_setup(config: dict, hermes_home, is_existing: bool):
     else:
         # Messaging skipped — still install/start the gateway service so cron
         # jobs run and platforms come alive as soon as tokens are added later
-        # (e.g. via `hermes import` from another machine).
-        from hermes_cli.gateway import ensure_gateway_service
+        # (e.g. via `max import` from another machine).
+        from max_cli.gateway import ensure_gateway_service
         ensure_gateway_service(context="setup")
 
     print()
     print_success("Setup complete! You're ready to go.")
     print()
-    print_info("  Configure all settings:    hermes setup")
+    print_info("  Configure all settings:    max setup")
     if gateway_choice != 0:
-        print_info("  Connect Telegram/Discord:  hermes setup gateway")
+        print_info("  Connect Telegram/Discord:  max setup gateway")
     _print_macos_fda_tip()
     print()
 
@@ -3452,10 +3440,10 @@ def _print_macos_fda_tip() -> None:
     print()
     print_info("  macOS tip: silence ALL folder permission prompts with one switch —")
     print_info("  System Settings → Privacy & Security → Full Disk Access → enable")
-    print_info("  your terminal (and Hermes.app if you use Desktop), or run:")
+    print_info("  your terminal (and Max.app if you use Desktop), or run:")
     print_info("    open \"x-apple.systempreferences:com.apple.preference"
                ".security?Privacy_AllFiles\"")
-    print_info("  The grant is permanent — it survives every Hermes update.")
+    print_info("  The grant is permanent — it survives every Max update.")
 
 
 def _blank_slate_minimal_toolsets(config: dict):
@@ -3466,8 +3454,8 @@ def _blank_slate_minimal_toolsets(config: dict):
     the core surface: ``read_file`` cannot read images and its own description
     points at ``vision_analyze``, so an agent without it can't see screenshots
     or image files at all. Skills stay on because the essential
-    ``hermes-agent`` skill (the agent's operating manual for driving,
-    configuring, and troubleshooting Hermes) is always seeded — without
+    ``max-agent`` skill (the agent's operating manual for driving,
+    configuring, and troubleshooting Max) is always seeded — without
     ``skill_view`` it would be unloadable. Two layers enforce the selection:
 
     1. ``platform_toolsets["cli"] = ["file", "skills", "terminal", "vision"]``
@@ -3479,7 +3467,7 @@ def _blank_slate_minimal_toolsets(config: dict):
        non-configurable platform-toolset recovery that would otherwise re-add
        toolsets like ``kanban``). We list every known toolset except the ones we
        keep, guaranteeing a true blank slate regardless of platform/recovery
-       quirks. The user re-enables any of them later via ``hermes tools`` (which
+       quirks. The user re-enables any of them later via ``max tools`` (which
        rewrites ``platform_toolsets``) or by editing ``agent.disabled_toolsets``.
     """
     keep = {"file", "terminal", "vision", "skills"}
@@ -3487,7 +3475,7 @@ def _blank_slate_minimal_toolsets(config: dict):
 
     try:
         from toolsets import TOOLSETS
-        from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _get_plugin_toolset_keys
+        from max_cli.tools_config import CONFIGURABLE_TOOLSETS, _get_plugin_toolset_keys
 
         all_keys = set()
         all_keys.update(k for k, _, _ in CONFIGURABLE_TOOLSETS)
@@ -3517,8 +3505,8 @@ def _blank_slate_minimal_toolsets(config: dict):
 def _blank_slate_minimize_config(config: dict):
     """Turn OFF the optional config features for a Blank Slate install.
 
-    Everything here is opt-in afterwards via ``hermes setup agent`` /
-    ``hermes config set``. We keep only what's needed to run.
+    Everything here is opt-in afterwards via ``max setup agent`` /
+    ``max config set``. We keep only what's needed to run.
     """
     config.setdefault("agent", {})["max_turns"] = 90
 
@@ -3562,8 +3550,8 @@ def _run_blank_slate_setup(config: dict, hermes_home, is_existing: bool):
     print_info("Forced on: Provider & Model, File Operations, Terminal, Vision, Skills.")
     print_info("Everything else (web, browser, code exec, memory,")
     print_info("delegation, cron, plugins, MCP, …) starts disabled. The")
-    print_info("essential `hermes-agent` skill is always kept so the agent")
-    print_info("can help you drive and configure Hermes itself.")
+    print_info("essential `max-agent` skill is always kept so the agent")
+    print_info("can help you drive and configure Max itself.")
     print()
 
     # ── Step 1: Provider & Model (REQUIRED — the agent cannot run without it) ──
@@ -3599,8 +3587,8 @@ def _run_blank_slate_setup(config: dict, hermes_home, is_existing: bool):
     if path == 0:
         save_config(config)
         # Blank Slate means no bundled skills; record the opt-out so future
-        # `hermes update` runs don't re-inject them. Essential skills (the
-        # `hermes-agent` operating manual) are still seeded by the sync.
+        # `max update` runs don't re-inject them. Essential skills (the
+        # `max-agent` operating manual) are still seeded by the sync.
         try:
             from tools.skills_sync import set_bundled_skills_opt_out, sync_skills
             set_bundled_skills_opt_out(True)
@@ -3610,11 +3598,11 @@ def _run_blank_slate_setup(config: dict, hermes_home, is_existing: bool):
         print()
         print_success("Blank Slate setup complete — minimal agent ready.")
         print_info("Enable anything later, on demand:")
-        print_info("  Enable tools:        hermes tools")
-        print_info("  Seed skills:         hermes skills opt-in --sync")
-        print_info("  Add MCP servers:     hermes mcp add")
-        print_info("  Enable plugins:      hermes plugins")
-        print_info("  Tune agent settings: hermes setup agent")
+        print_info("  Enable tools:        max tools")
+        print_info("  Seed skills:         max skills opt-in --sync")
+        print_info("  Add MCP servers:     max mcp add")
+        print_info("  Enable plugins:      max plugins")
+        print_info("  Tune agent settings: max setup agent")
         print()
         _print_setup_summary(config, hermes_home)
         return
@@ -3625,7 +3613,7 @@ def _run_blank_slate_setup(config: dict, hermes_home, is_existing: bool):
 
 def _blank_slate_walkthrough(config: dict, hermes_home):
     """Opt-in walkthrough for Blank Slate: skills, tools, plugins, MCP, gateway."""
-    from hermes_cli.config import load_config
+    from max_cli.config import load_config
 
     # ── Bundled skills — default to NONE, offer to seed all ──
     print()
@@ -3645,13 +3633,13 @@ def _blank_slate_walkthrough(config: dict, hermes_home):
             print_success(f"Seeded {copied} bundled skills.")
         else:
             set_bundled_skills_opt_out(True)
-            # Essential skills (the `hermes-agent` operating manual) are
+            # Essential skills (the `max-agent` operating manual) are
             # still seeded even for an opted-out profile.
             sync_skills(quiet=True)
-            print_info("No skills seeded (except the essential `hermes-agent`")
+            print_info("No skills seeded (except the essential `max-agent`")
             print_info("skill). A .no-bundled-skills marker keeps future")
-            print_info("`hermes update` runs from re-injecting them. Opt back in any")
-            print_info("time with `hermes skills opt-in --sync`.")
+            print_info("`max update` runs from re-injecting them. Opt back in any")
+            print_info("time with `max skills opt-in --sync`.")
     except Exception as exc:
         logger.debug("blank-slate skill handling error: %s", exc)
         print_warning(f"Skill setup step encountered an error: {exc}")
@@ -3664,7 +3652,7 @@ def _blank_slate_walkthrough(config: dict, hermes_home):
     print_info(" the most minimal agent.)")
     if prompt_yes_no("Open the tool selector to enable more tools?", default=False):
         try:
-            from hermes_cli.tools_config import tools_command
+            from max_cli.tools_config import tools_command
             tools_command(first_install=False, config=config)
             # tools_command saves via its own load/save cycle — re-sync.
             _refreshed = load_config()
@@ -3674,23 +3662,23 @@ def _blank_slate_walkthrough(config: dict, hermes_home):
             logger.debug("blank-slate tools_command error: %s", exc)
             print_warning(f"Tool selector encountered an error: {exc}")
     else:
-        print_info("Keeping the minimal toolset. Add tools later with `hermes tools`.")
+        print_info("Keeping the minimal toolset. Add tools later with `max tools`.")
 
     # ── Built-in plugins (off unless chosen) ──
     print()
     print_header("Plugins")
     if prompt_yes_no("Review and enable built-in plugins now?", default=False):
-        print_info("Manage plugins with `hermes plugins list` / `hermes plugins install`.")
+        print_info("Manage plugins with `max plugins list` / `max plugins install`.")
     else:
-        print_info("No plugins enabled. Add later with `hermes plugins`.")
+        print_info("No plugins enabled. Add later with `max plugins`.")
 
     # ── MCP servers (off unless chosen) ──
     print()
     print_header("MCP Servers")
     if prompt_yes_no("Add an MCP server now?", default=False):
-        print_info("Add servers with `hermes mcp add <name> --url ... | --command ...`.")
+        print_info("Add servers with `max mcp add <name> --url ... | --command ...`.")
     else:
-        print_info("No MCP servers configured. Add later with `hermes mcp add`.")
+        print_info("No MCP servers configured. Add later with `max mcp add`.")
 
     # ── Optional messaging gateway ──
     print()
@@ -3701,10 +3689,10 @@ def _blank_slate_walkthrough(config: dict, hermes_home):
 
     print()
     print_success("Blank Slate setup complete — minimal agent ready.")
-    print_info("  Enable more tools:   hermes tools")
-    print_info("  Seed skills:         hermes skills opt-in --sync")
-    print_info("  Add MCP servers:     hermes mcp add")
-    print_info("  Tune agent settings: hermes setup agent")
+    print_info("  Enable more tools:   max tools")
+    print_info("  Seed skills:         max skills opt-in --sync")
+    print_info("  Add MCP servers:     max mcp add")
+    print_info("  Tune agent settings: max setup agent")
     print()
 
     _print_setup_summary(config, hermes_home)
@@ -3712,7 +3700,7 @@ def _blank_slate_walkthrough(config: dict, hermes_home):
 
 def _run_quick_setup(config: dict, hermes_home):
     """Quick setup — only configure items that are missing."""
-    from hermes_cli.config import (
+    from max_cli.config import (
         get_missing_env_vars,
         get_missing_config_fields,
         check_config_version,
@@ -3741,7 +3729,7 @@ def _run_quick_setup(config: dict, hermes_home):
     if not has_anything_missing:
         print_success("Everything is configured! Nothing to do.")
         print()
-        print_info("Run 'hermes setup' and choose 'Full Setup' to reconfigure,")
+        print_info("Run 'max setup' and choose 'Full Setup' to reconfigure,")
         print_info("or pick a specific section from the menu.")
         return
 
@@ -3803,8 +3791,8 @@ def _run_quick_setup(config: dict, hermes_home):
     if missing_messaging:
         print()
         print_header("Messaging Platforms")
-        print_info("Connect Hermes to messaging apps to chat from anywhere.")
-        print_info("You can configure these later with 'hermes setup gateway'.")
+        print_info("Connect Max to messaging apps to chat from anywhere.")
+        print_info("You can configure these later with 'max setup gateway'.")
 
         # Group by platform (preserving order)
         platform_order = []

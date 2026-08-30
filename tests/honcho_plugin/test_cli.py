@@ -188,7 +188,7 @@ class TestCmdStatus:
                         "apiKey": "hch-at-deadbeef",
                         "oauth": {
                             "refreshToken": "hch-rt-x",
-                            "clientId": "hermes-agent",
+                            "clientId": "max-agent",
                             "tokenEndpoint": "https://api.honcho.dev/oauth/token",
                             "expiresAt": 9999999999,
                         },
@@ -214,7 +214,7 @@ class TestCmdStatus:
         honcho_cli.cmd_status(SimpleNamespace(all=False))
 
         out = capsys.readouterr().out
-        assert "Auth:           OAuth (hermes-agent" in out
+        assert "Auth:           OAuth (max-agent" in out
         assert "API key:" not in out
 
 
@@ -342,10 +342,10 @@ class TestSetupWizardDeploymentShape:
 
         # Bypass config.yaml + connection test side effects.
         monkeypatch.setattr(
-            "hermes_cli.config.load_config", lambda: {"memory": {}}, raising=False,
+            "max_cli.config.load_config", lambda: {"memory": {}}, raising=False,
         )
         monkeypatch.setattr(
-            "hermes_cli.config.save_config", lambda c: None, raising=False,
+            "max_cli.config.save_config", lambda c: None, raising=False,
         )
 
         class _FakeClientCfg:
@@ -659,10 +659,10 @@ class TestCmdSetupDeviceFlow:
         monkeypatch.setattr(honcho_cli, "_device_login_available", lambda: device_available)
         monkeypatch.setattr(honcho_cli, "_headless", lambda: headless)
         monkeypatch.setattr(
-            "hermes_cli.config.load_config", lambda: {"memory": {}}, raising=False,
+            "max_cli.config.load_config", lambda: {"memory": {}}, raising=False,
         )
         monkeypatch.setattr(
-            "hermes_cli.config.save_config", lambda c: None, raising=False,
+            "max_cli.config.save_config", lambda c: None, raising=False,
         )
 
         class _FakeClientCfg:
@@ -686,7 +686,7 @@ class TestCmdSetupDeviceFlow:
         calls: list[dict] = []
         cred = OAuthCredential(
             access_token="hch-at-x", refresh_token="hch-rt-x", expires_at=9_999_999_999,
-            client_id="hermes-agent", token_endpoint="http://x/oauth/token",
+            client_id="max-agent", token_endpoint="http://x/oauth/token",
             consent_peer_name="lyra",
         )
 

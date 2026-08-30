@@ -10,17 +10,17 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+from max_constants import reset_max_home_override, set_max_home_override
 from plugins.plugin_storage import plugin_data_dir, plugin_db
 
 
 @pytest.fixture
 def hermes_home(tmp_path):
-    token = set_hermes_home_override(str(tmp_path))
+    token = set_max_home_override(str(tmp_path))
     try:
         yield tmp_path
     finally:
-        reset_hermes_home_override(token)
+        reset_max_home_override(token)
 
 
 def test_data_dir_lives_outside_the_install_tree(hermes_home):
@@ -29,7 +29,7 @@ def test_data_dir_lives_outside_the_install_tree(hermes_home):
     assert root == hermes_home / "plugin-data" / "my-plugin"
     assert root.is_dir()
     # The invariant that motivated the module: data must not live under the
-    # install tree that `hermes plugins remove` deletes.
+    # install tree that `max plugins remove` deletes.
     assert (hermes_home / "plugins") not in root.parents
 
 

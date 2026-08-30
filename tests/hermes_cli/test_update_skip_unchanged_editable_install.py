@@ -1,4 +1,4 @@
-"""``hermes update`` skips the editable reinstall when the pull can't affect it.
+"""``max update`` skips the editable reinstall when the pull can't affect it.
 
 ``uv pip install -e .`` never audits an editable target — it reinstalls on
 every invocation and rewrites the console-script shims each time. On Windows
@@ -16,7 +16,7 @@ import subprocess
 
 import pytest
 
-from hermes_cli.update_cmd import _editable_install_is_current
+from max_cli.update_cmd import _editable_install_is_current
 
 GIT = ["git"]
 

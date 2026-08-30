@@ -52,23 +52,23 @@ hermes teams-pipeline maintain-subscriptions --dry-run
 
 You MUST run `maintain-subscriptions` on a schedule. Pick one of these three options:
 
-#### Option 1: Hermes cron (recommended if you already run the Hermes gateway)
+#### Option 1: Max cron (recommended if you already run the Max gateway)
 
-Hermes ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.hermes/scripts/`. First create the script:
+Max ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.max/scripts/`. First create the script:
 
 ```bash
-mkdir -p ~/.hermes/scripts
-cat > ~/.hermes/scripts/maintain-teams-subscriptions.sh <<'EOF'
+mkdir -p ~/.max/scripts
+cat > ~/.max/scripts/maintain-teams-subscriptions.sh <<'EOF'
 #!/usr/bin/env bash
-exec hermes teams-pipeline maintain-subscriptions
+exec max teams-pipeline maintain-subscriptions
 EOF
-chmod +x ~/.hermes/scripts/maintain-teams-subscriptions.sh
+chmod +x ~/.max/scripts/maintain-teams-subscriptions.sh
 ```
 
 Then register a script-only cron job that runs every 12 hours (gives 6x headroom against the 72h expiry window):
 
 ```bash
-hermes cron create "0 */12 * * *" \
+max cron create "0 */12 * * *" \
   --name "teams-pipeline-maintain-subscriptions" \
   --no-agent \
   --script maintain-teams-subscriptions.sh \
@@ -78,8 +78,8 @@ hermes cron create "0 */12 * * *" \
 Verify it was registered and inspect the next run time:
 
 ```bash
-hermes cron list
-hermes cron status        # scheduler status
+max cron list
+max cron status        # scheduler status
 ```
 
 #### Option 2: systemd timer (recommended for Linux production deployments)
@@ -88,7 +88,7 @@ Create `/etc/systemd/system/hermes-teams-pipeline-maintain.service`:
 
 ```ini
 [Unit]
-Description=Hermes Teams pipeline subscription maintenance
+Description=Max Teams pipeline subscription maintenance
 After=network-online.target
 
 [Service]
@@ -102,7 +102,7 @@ And `/etc/systemd/system/hermes-teams-pipeline-maintain.timer`:
 
 ```ini
 [Unit]
-Description=Run Hermes Teams pipeline subscription maintenance every 12 hours
+Description=Run Max Teams pipeline subscription maintenance every 12 hours
 
 [Timer]
 OnBootSec=5min
@@ -127,7 +127,7 @@ systemctl list-timers hermes-teams-pipeline-maintain.timer
 0 */12 * * * /usr/local/bin/hermes teams-pipeline maintain-subscriptions >> /var/log/hermes/teams-pipeline-maintain.log 2>&1
 ```
 
-Make sure the cron environment has the `MSGRAPH_*` credentials. Simplest fix: source `~/.hermes/.env` at the top of a wrapper script that crontab calls.
+Make sure the cron environment has the `MSGRAPH_*` credentials. Simplest fix: source `~/.max/.env` at the top of a wrapper script that crontab calls.
 
 #### Verifying renewal is working
 
@@ -189,14 +189,14 @@ hermes teams-pipeline show <job-id>
 
 ### Daily or periodic checks
 
-- run `hermes teams-pipeline maintain-subscriptions --dry-run`
-- inspect `hermes teams-pipeline list --status failed`
+- run `max teams-pipeline maintain-subscriptions --dry-run`
+- inspect `max teams-pipeline list --status failed`
 - verify the Teams delivery target is still the correct chat or channel
 
 ### Before changing webhook URLs or delivery targets
 
 - update the public notification URL or Teams target config
-- run `hermes teams-pipeline validate`
+- run `max teams-pipeline validate`
 - renew or recreate affected subscriptions
 - confirm new events land in the expected sink
 
@@ -230,7 +230,7 @@ Check:
 ### Duplicate or unexpected replays
 
 Check:
-- whether you manually replayed a job with `hermes teams-pipeline run`
+- whether you manually replayed a job with `max teams-pipeline run`
 - whether the sink record already exists for that meeting
 - whether you intentionally enabled a resend path in your local config
 
@@ -244,9 +244,9 @@ Check:
 - [ ] `ffmpeg` is installed if recording fallback is enabled
 - [ ] Teams outbound delivery target is configured and verified
 - [ ] Notion and Linear sinks are configured only if actually needed
-- [ ] `hermes teams-pipeline validate` returns an OK snapshot
-- [ ] `hermes teams-pipeline token-health --force-refresh` succeeds
-- [ ] **`maintain-subscriptions` is scheduled** (Hermes cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.
+- [ ] `max teams-pipeline validate` returns an OK snapshot
+- [ ] `max teams-pipeline token-health --force-refresh` succeeds
+- [ ] **`maintain-subscriptions` is scheduled** (Max cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.
 - [ ] a real end-to-end meeting event has produced a stored job
 - [ ] at least one summary has reached the intended delivery sink
 

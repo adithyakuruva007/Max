@@ -14,9 +14,9 @@ import pytest
 
 
 def _make_cli_stub():
-    from cli import HermesCLI
+    from cli import MaxCLI
 
-    cli = object.__new__(HermesCLI)
+    cli = object.__new__(MaxCLI)
     cli._terminal_io_broken = False
     cli._resize_recovery_pending = False
     cli._last_invalidate = 0.0

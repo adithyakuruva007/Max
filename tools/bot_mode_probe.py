@@ -45,7 +45,7 @@ _cached: dict[str, str] = {}
 
 
 def _hermes_root(home: Path) -> Path:
-    """Root ~/.hermes for both the default profile and named profiles."""
+    """Root ~/.max for both the default profile and named profiles."""
     if home.parent.name == "profiles":
         return home.parent.parent
     return home
@@ -102,7 +102,7 @@ def is_bot_mode_managed(home: str | os.PathLike | None = None) -> bool:
     """
     try:
         resolved = Path(
-            str(home) if home else (os.getenv("HERMES_HOME") or os.path.expanduser("~/.hermes"))
+            str(home) if home else (os.getenv("MAX_HOME") or os.path.expanduser("~/.max"))
         )
         root = _hermes_root(resolved)
         return any(_is_bot_managed(d) for _n, d in _roster(root))
@@ -169,7 +169,7 @@ def _roster_lines(root: Path, me: str) -> list[str]:
 
 
 def _peers(root: Path) -> list[str]:
-    """Registered peer gateway names (``hermes peer``), for the protocol text.
+    """Registered peer gateway names (``max peer``), for the protocol text.
 
     Reads config.yaml directly (cheap, no config-loader import) — the section
     is optional and absent on most installs. Never raises.
@@ -196,7 +196,7 @@ def _remote_paragraph(root: Path) -> str:
     """Protocol addendum for agents on OTHER connected machines.
 
     Fed by the Desktop relay roster (``tools/bot_relay.py``) — every gateway
-    connected to the user's Desktop (local, remote URL, SSH, Hermes Cloud,
+    connected to the user's Desktop (local, remote URL, SSH, Max Cloud,
     docker) syncs its agents here, so bots can DM across machines with the
     same message_agent tool. Only rendered when the relay roster is
     non-empty.
@@ -234,7 +234,7 @@ def _peer_paragraph(root: Path) -> str:
         "\n\nTeammates on OTHER machines: this install also has peer gateways "
         f"registered ({listed}). Message an agent on a peer the same way — "
         'message_agent with target "<peer>/<agent-name>" (or "<peer>" alone '
-        "for the peer's main agent). Run `hermes peer list` for the live "
+        "for the peer's main agent). Run `max peer list` for the live "
         "peer list."
     )
 
@@ -258,7 +258,7 @@ def _build_section(home: Path) -> str:
 
     return (
         f"{_PROTOCOL_HEADING}\n"
-        "This install runs Bot Mode: each Hermes profile is an agent teammate with "
+        "This install runs Bot Mode: each Max profile is an agent teammate with "
         'one canonical "Bot Chat" conversation, and you have the `message_agent` '
         "tool to DM any of them. It is FIRE-AND-FORGET: it delivers your message "
         "with your attribution prefixed automatically and returns an acknowledgement "
@@ -289,10 +289,10 @@ def get_bot_mode_protocol_section(home: str | os.PathLike | None = None, *, forc
     """Cached probe entry point — one filesystem pass per (process, home).
 
     ``home`` should be the AGENT'S OWN resolved home (session-db derived),
-    not the ambient HERMES_HOME — build threads can lose the ContextVar
+    not the ambient MAX_HOME — build threads can lose the ContextVar
     override and the env var would then name the wrong profile.
     """
-    resolved = str(home) if home else (os.getenv("HERMES_HOME") or os.path.expanduser("~/.hermes"))
+    resolved = str(home) if home else (os.getenv("MAX_HOME") or os.path.expanduser("~/.max"))
     with _lock:
         if force_refresh or resolved not in _cached:
             try:
@@ -332,19 +332,19 @@ def capability_fingerprint(home: str | os.PathLike | None = None) -> str:
     import hashlib
     import json
 
-    resolved = Path(str(home) if home else (os.getenv("HERMES_HOME") or os.path.expanduser("~/.hermes")))
+    resolved = Path(str(home) if home else (os.getenv("MAX_HOME") or os.path.expanduser("~/.max")))
     surface: dict = {}
     try:
         # Canonical loader (managed overlay + env expansion + normalization),
         # scoped to the bot's home via the override the loaders already honor.
-        from hermes_cli.config import load_config_readonly
-        from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+        from max_cli.config import load_config_readonly
+        from max_constants import reset_max_home_override, set_max_home_override
 
-        token = set_hermes_home_override(str(resolved))
+        token = set_max_home_override(str(resolved))
         try:
             cfg = load_config_readonly() or {}
         finally:
-            reset_hermes_home_override(token)
+            reset_max_home_override(token)
         skills_cfg = cfg.get("skills") if isinstance(cfg.get("skills"), dict) else {}
         tools_cfg = cfg.get("tools") if isinstance(cfg.get("tools"), dict) else {}
         skills_cfg = skills_cfg or {}

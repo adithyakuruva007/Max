@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import hermes_cli.main as main_mod
+import max_cli.main as main_mod
 
 
 class StaleVirtualEnvTest(unittest.TestCase):

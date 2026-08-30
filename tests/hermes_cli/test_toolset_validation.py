@@ -1,15 +1,15 @@
-"""Unit tests for hermes_cli.toolset_validation (see #38798).
+"""Unit tests for max_cli.toolset_validation (see #38798).
 
 Pure logic — the validity predicate is injected, so these tests need neither the
-tool registry nor a running Hermes.
+tool registry nor a running Max.
 """
 
 import pytest
 
-from hermes_cli.toolset_validation import validate_platform_toolsets
+from max_cli.toolset_validation import validate_platform_toolsets
 
-# A representative set of real toolset names. `hermes` is deliberately absent —
-# that is the corruption #38798 reported (`hermes-cli` rewritten to `hermes`).
+# A representative set of real toolset names. `max` is deliberately absent —
+# that is the corruption #38798 reported (`hermes-cli` rewritten to `max`).
 _KNOWN = {
     "hermes-cli",
     "hermes-telegram",

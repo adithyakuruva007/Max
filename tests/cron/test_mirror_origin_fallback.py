@@ -135,7 +135,7 @@ class TestFallbackMirrorEndToEnd:
             "cron:\n  mirror_delivery: true\n"
             "platforms:\n  slack:\n    enabled: true\n    token: xoxb-test\n"
         )
-        monkeypatch.setenv("HERMES_HOME", str(home))
+        monkeypatch.setenv("MAX_HOME", str(home))
 
         send_calls = []
 
@@ -145,7 +145,7 @@ class TestFallbackMirrorEndToEnd:
             return {"success": True, "chat_id": chat_id, "message_id": "1.2"}
 
         import gateway.platform_registry as reg
-        import hermes_cli.plugins as hp
+        import max_cli.plugins as hp
 
         entry = reg.platform_registry.get("slack")
         if entry is None:

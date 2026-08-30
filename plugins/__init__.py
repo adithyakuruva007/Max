@@ -1,1 +1,1 @@
-# Hermes plugins package
+# Max plugins package

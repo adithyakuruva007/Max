@@ -15,15 +15,15 @@ def _client():
         from starlette.testclient import TestClient
     except ImportError:
         pytest.skip("fastapi/starlette not installed")
-    import hermes_state
-    from hermes_constants import get_hermes_home
-    from hermes_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
+    import max_state
+    from max_constants import get_max_home
+    from max_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
 
     client = TestClient(app)
     client.headers[_SESSION_HEADER_NAME] = _SESSION_TOKEN
-    # Keep the state DB under the isolated HERMES_HOME for any handler that
+    # Keep the state DB under the isolated MAX_HOME for any handler that
     # touches it.
-    hermes_state.DEFAULT_DB_PATH = get_hermes_home() / "state.db"
+    max_state.DEFAULT_DB_PATH = get_max_home() / "state.db"
     return client, _SESSION_HEADER_NAME
 
 
@@ -49,7 +49,7 @@ class TestMcpEndpoints:
     def test_http_bearer_auth_separates_secret_from_config(
         self, _isolate_hermes_home
     ):
-        from hermes_constants import get_hermes_home
+        from max_constants import get_max_home
 
         secret = "dashboard-secret-value"
         response = self.client.post(
@@ -66,7 +66,7 @@ class TestMcpEndpoints:
         assert response.json()["auth"] == "header"
         assert "bearer_token" not in response.json()
 
-        hermes_home = get_hermes_home()
+        hermes_home = get_max_home()
         config_text = (hermes_home / "config.yaml").read_text()
         env_text = (hermes_home / ".env").read_text()
         assert secret not in config_text
@@ -86,7 +86,7 @@ class TestMcpEndpoints:
         assert response.status_code == 200
         assert response.json()["auth"] == "oauth"
 
-        from hermes_cli.mcp_config import _get_mcp_servers
+        from max_cli.mcp_config import _get_mcp_servers
 
         assert _get_mcp_servers()["oauth-server"]["auth"] == "oauth"
 
@@ -152,14 +152,14 @@ class TestCredentialPoolEndpoints:
     def test_env_seeded_delete_stays_deleted(self):
         """#55217: DELETE must suppress the source or load_pool() resurrects it.
 
-        load_pool() re-seeds from ~/.hermes/.env on every call, so removing
+        load_pool() re-seeds from ~/.max/.env on every call, so removing
         just the pool row silently reverts on the next dashboard refresh.
-        The endpoint must mirror `hermes auth remove`: clean up the backing
+        The endpoint must mirror `max auth remove`: clean up the backing
         source and suppress (provider, source).
         """
         from agent.credential_pool import load_pool
-        from hermes_cli.auth import is_source_suppressed
-        from hermes_cli.config import save_env_value
+        from max_cli.auth import is_source_suppressed
+        from max_cli.config import save_env_value
 
         fake_key = "sk-or-" + "x" * 20  # constructed, never a real key shape
         save_env_value("OPENROUTER_API_KEY", fake_key)
@@ -182,13 +182,13 @@ class TestCredentialPoolEndpoints:
     def test_post_readd_lifts_suppression(self):
         """Re-adding via POST is an explicit re-engagement — suppressions lift.
 
-        Mirrors `hermes auth add`, which clears every suppression for the
+        Mirrors `max auth add`, which clears every suppression for the
         provider so a user who deleted a credential and re-adds one isn't
         silently blocked from env re-seeding.
         """
         from agent.credential_pool import load_pool
-        from hermes_cli.auth import is_source_suppressed
-        from hermes_cli.config import save_env_value
+        from max_cli.auth import is_source_suppressed
+        from max_cli.config import save_env_value
 
         fake_key = "sk-or-" + "y" * 20
         save_env_value("OPENROUTER_API_KEY", fake_key)
@@ -216,9 +216,9 @@ class TestMemoryEndpoints:
     @pytest.fixture(autouse=True)
     def _setup(self, _isolate_hermes_home):
         self.client, _ = _client()
-        from hermes_constants import get_hermes_home
+        from max_constants import get_max_home
 
-        (get_hermes_home() / "memories").mkdir(parents=True, exist_ok=True)
+        (get_max_home() / "memories").mkdir(parents=True, exist_ok=True)
 
     def test_status_and_select(self):
         data = self.client.get("/api/memory").json()
@@ -233,9 +233,9 @@ class TestMemoryEndpoints:
         assert r.status_code == 400
 
     def test_reset_targets(self):
-        from hermes_constants import get_hermes_home
+        from max_constants import get_max_home
 
-        mem = get_hermes_home() / "memories"
+        mem = get_max_home() / "memories"
         (mem / "MEMORY.md").write_text("notes")
         (mem / "USER.md").write_text("user")
 
@@ -282,9 +282,9 @@ class TestPairingEndpoints:
         as approved.
         """
         from gateway.pairing import PairingStore
-        from hermes_constants import get_hermes_home
+        from max_constants import get_max_home
 
-        (get_hermes_home() / "profiles" / "work").mkdir(parents=True, exist_ok=True)
+        (get_max_home() / "profiles" / "work").mkdir(parents=True, exist_ok=True)
         PairingStore().generate_code("telegram", "global-1", "GlobalGuy")
         PairingStore(profile="work").generate_code("telegram", "work-1", "WorkGal")
 
@@ -324,7 +324,7 @@ class TestWebhookEndpoints:
 
 
     def test_create_webhook_persists_script(self):
-        from hermes_cli.config import load_config, save_config
+        from max_cli.config import load_config, save_config
 
         cfg = load_config()
         cfg.setdefault("platforms", {})["webhook"] = {
@@ -348,8 +348,8 @@ class TestWebhookEndpoints:
         assert subs[0]["script"] == "todoist_filter.py"
 
     def test_enable_platform_starts_gateway_restart(self, monkeypatch):
-        import hermes_cli.web_server as ws
-        from hermes_cli.config import load_config
+        import max_cli.web_server as ws
+        from max_cli.config import load_config
 
         ws._ACTION_PROCS.pop("gateway-restart", None)
         restart_calls = []
@@ -381,8 +381,8 @@ class TestWebhookEndpoints:
 
 
     def test_enable_platform_reuses_inflight_gateway_restart(self, monkeypatch):
-        import hermes_cli.web_server as ws
-        from hermes_cli.config import load_config
+        import max_cli.web_server as ws
+        from max_cli.config import load_config
 
         ws._ACTION_PROCS.pop("gateway-restart", None)
 
@@ -417,7 +417,7 @@ class TestOpsEndpoints:
 
 
     def test_hooks_list_reads_config(self):
-        from hermes_cli.config import load_config, save_config
+        from max_cli.config import load_config, save_config
 
         cfg = load_config()
         cfg["hooks"] = {
@@ -497,7 +497,7 @@ class TestSessionManagementEndpoints:
     @pytest.fixture(autouse=True)
     def _setup(self, _isolate_hermes_home):
         self.client, _ = _client()
-        from hermes_state import SessionDB
+        from max_state import SessionDB
 
         db = SessionDB()
         db.create_session(session_id="sess-x", source="cli")
@@ -512,7 +512,7 @@ class TestSessionManagementEndpoints:
         instead of ``list_sessions_rich`` and build preview/last-active rows
         just to count source labels.
         """
-        from hermes_state import SessionDB
+        from max_state import SessionDB
 
         def fail_list_sessions_rich(self, *args, **kwargs):
             raise AssertionError("stats should use grouped source counts, not list_sessions_rich")
@@ -531,7 +531,7 @@ class TestSessionManagementEndpoints:
         # ages (mirrors the CLI: any filter disables the implicit 90-day
         # default). dry_run so nothing is deleted; the seeded session is
         # recent + ended, so it would be invisible under a 90-day cutoff.
-        from hermes_state import SessionDB
+        from max_state import SessionDB
 
         db = SessionDB()
         db.create_session(session_id="sess-recent-ended", source="cli")
@@ -551,7 +551,7 @@ class TestSessionManagementEndpoints:
         assert all("last_active" in session for session in body["sessions"])
 
     def test_prune_reports_open_sessions_excluded_by_safety_guard(self):
-        from hermes_state import SessionDB
+        from max_state import SessionDB
 
         db = SessionDB()
         db.create_session(session_id="sess-old-open", source="skip-test")
@@ -674,7 +674,7 @@ class TestSkillsHubPreviewEndpoint:
         bundle = _FakeBundle("github/owner/repo/x")
         meta = _FakeMeta("github/owner/repo/x")
         monkeypatch.setattr(
-            "hermes_cli.skills_hub._resolve_source_meta_and_bundle",
+            "max_cli.skills_hub._resolve_source_meta_and_bundle",
             lambda ident, sources: (meta, bundle, None),
         )
         r = self.client.get(
@@ -693,7 +693,7 @@ class TestSkillsHubPreviewEndpoint:
             "tools.skills_hub.create_source_router", lambda: []
         )
         monkeypatch.setattr(
-            "hermes_cli.skills_hub._resolve_source_meta_and_bundle",
+            "max_cli.skills_hub._resolve_source_meta_and_bundle",
             lambda ident, sources: (None, None, None),
         )
         r = self.client.get("/api/skills/hub/preview?identifier=nope/x")
@@ -714,7 +714,7 @@ class TestSkillsHubScanEndpoint:
         )
         bundle = _FakeBundle("github/owner/repo/x", trust_level="community")
         monkeypatch.setattr(
-            "hermes_cli.skills_hub._resolve_source_meta_and_bundle",
+            "max_cli.skills_hub._resolve_source_meta_and_bundle",
             lambda ident, sources: (None, bundle, None),
         )
 
@@ -768,7 +768,7 @@ class TestWebhookToggleEndpoint:
     def _setup(self, _isolate_hermes_home):
         self.client, _ = _client()
         # Enable the webhook platform so a subscription can be created.
-        from hermes_cli.config import load_config, save_config
+        from max_cli.config import load_config, save_config
 
         cfg = load_config()
         cfg.setdefault("platforms", {})["webhook"] = {
@@ -784,7 +784,7 @@ class TestAdminEndpointsAuthGate:
     @pytest.fixture(autouse=True)
     def _setup(self, _isolate_hermes_home):
         from starlette.testclient import TestClient
-        from hermes_cli.web_server import app
+        from max_cli.web_server import app
 
         # No session header → must be rejected.
         self.client = TestClient(app)
@@ -795,7 +795,7 @@ class TestUpdateCheckEndpoint:
 
     Powers the dashboard's check-before-you-update flow: the System page
     shows the commit-behind count and asks the user to confirm before
-    ``POST /api/hermes/update`` runs ``hermes update``.
+    ``POST /api/hermes/update`` runs ``max update``.
     """
 
     @pytest.fixture(autouse=True)
@@ -803,11 +803,11 @@ class TestUpdateCheckEndpoint:
         self.client, _ = _client()
 
     def test_git_install_reports_behind_count(self, monkeypatch):
-        import hermes_cli.web_server as ws
+        import max_cli.web_server as ws
 
         monkeypatch.setattr(ws, "detect_install_method", lambda *a, **k: "git")
         # Stub the shared checker so the contract is deterministic (no network).
-        import hermes_cli.banner as banner
+        import max_cli.banner as banner
 
         monkeypatch.setattr(banner, "check_for_updates", lambda: 5)
 
@@ -832,7 +832,7 @@ class TestUpdateCheckEndpoint:
 
 
     def test_managed_runtime_dashboard_is_not_applyable(self, monkeypatch):
-        import hermes_cli.web_server as ws
+        import max_cli.web_server as ws
 
         monkeypatch.setattr(ws, "_dashboard_local_update_managed_externally", lambda: True)
         monkeypatch.setattr(
@@ -860,9 +860,9 @@ class TestDebugShareEndpoint:
     @pytest.fixture(autouse=True)
     def _setup(self, _isolate_hermes_home):
         self.client, self.header = _client()
-        from hermes_constants import get_hermes_home
+        from max_constants import get_max_home
 
-        logs = get_hermes_home() / "logs"
+        logs = get_max_home() / "logs"
         logs.mkdir(parents=True, exist_ok=True)
         (logs / "agent.log").write_text("agent line\n")
         (logs / "errors.log").write_text("err line\n")
@@ -870,28 +870,28 @@ class TestDebugShareEndpoint:
 
 
     def test_redact_false_is_honored(self, monkeypatch):
-        import hermes_cli.debug as dbg
+        import max_cli.debug as dbg
 
         monkeypatch.setattr(
             dbg, "upload_to_pastebin", lambda c, expiry_days=7: "https://paste.rs/x"
         )
         monkeypatch.setattr(dbg, "_schedule_auto_delete", lambda *a, **k: None)
         monkeypatch.setattr(dbg, "_best_effort_sweep_expired_pastes", lambda: None)
-        monkeypatch.setattr("hermes_cli.dump.run_dump", lambda a: None)
+        monkeypatch.setattr("max_cli.dump.run_dump", lambda a: None)
 
         r = self.client.post("/api/ops/debug-share", json={"redact": False})
         assert r.status_code == 200
         assert r.json()["redacted"] is False
 
     def test_default_body_redacts(self, monkeypatch):
-        import hermes_cli.debug as dbg
+        import max_cli.debug as dbg
 
         monkeypatch.setattr(
             dbg, "upload_to_pastebin", lambda c, expiry_days=7: "https://paste.rs/x"
         )
         monkeypatch.setattr(dbg, "_schedule_auto_delete", lambda *a, **k: None)
         monkeypatch.setattr(dbg, "_best_effort_sweep_expired_pastes", lambda: None)
-        monkeypatch.setattr("hermes_cli.dump.run_dump", lambda a: None)
+        monkeypatch.setattr("max_cli.dump.run_dump", lambda a: None)
 
         # No JSON body at all — should default redact=True.
         r = self.client.post("/api/ops/debug-share")
@@ -899,7 +899,7 @@ class TestDebugShareEndpoint:
         assert r.json()["redacted"] is True
 
     def test_upload_failure_returns_502(self, monkeypatch):
-        import hermes_cli.debug as dbg
+        import max_cli.debug as dbg
 
         monkeypatch.setattr(
             dbg,
@@ -908,7 +908,7 @@ class TestDebugShareEndpoint:
         )
         monkeypatch.setattr(dbg, "_schedule_auto_delete", lambda *a, **k: None)
         monkeypatch.setattr(dbg, "_best_effort_sweep_expired_pastes", lambda: None)
-        monkeypatch.setattr("hermes_cli.dump.run_dump", lambda a: None)
+        monkeypatch.setattr("max_cli.dump.run_dump", lambda a: None)
 
         r = self.client.post("/api/ops/debug-share", json={"redact": True})
         assert r.status_code == 502
@@ -917,7 +917,7 @@ class TestDebugShareEndpoint:
 
 class TestToolsConfigEndpoints:
     """Provider selection, API-key save, and post-setup spawn for toolsets —
-    the dashboard surface that replicates the `hermes tools` configurator."""
+    the dashboard surface that replicates the `max tools` configurator."""
 
     @pytest.fixture(autouse=True)
     def _setup(self, _isolate_hermes_home):
@@ -927,7 +927,7 @@ class TestToolsConfigEndpoints:
 
 
     def test_save_env_writes_key_and_validates_allowlist(self):
-        from hermes_cli.config import get_env_value
+        from max_cli.config import get_env_value
 
         cfg = self.client.get("/api/tools/toolsets/web/config").json()
         # Find a real env-var key from the visible provider matrix.
@@ -969,13 +969,13 @@ class TestToolsConfigEndpoints:
 
 def test_spawn_hermes_action_scrubs_gateway_loop_guard_env(monkeypatch, tmp_path):
     """The dashboard runs inside the gateway, so os.environ has
-    _HERMES_GATEWAY=1. Spawned actions (e.g. `gateway restart`) must NOT inherit
+    _MAX_GATEWAY=1. Spawned actions (e.g. `gateway restart`) must NOT inherit
     it, or the in-process restart-loop guard rejects the restart and it silently
     fails (#52470).
     """
-    import hermes_cli.web_server as ws
+    import max_cli.web_server as ws
 
-    monkeypatch.setenv("_HERMES_GATEWAY", "1")
+    monkeypatch.setenv("_MAX_GATEWAY", "1")
     monkeypatch.setattr(ws, "_ACTION_LOG_DIR", tmp_path)
     # Isolate the module-global proc registry: _spawn_hermes_action stores
     # _FakeProc (no poll()) in _ACTION_PROCS, and later tests' lifespan
@@ -995,8 +995,8 @@ def test_spawn_hermes_action_scrubs_gateway_loop_guard_env(monkeypatch, tmp_path
 
     ws._spawn_hermes_action(["gateway", "restart"], "gateway-restart")
 
-    assert "_HERMES_GATEWAY" not in captured["env"]
-    assert captured["env"]["HERMES_NONINTERACTIVE"] == "1"
+    assert "_MAX_GATEWAY" not in captured["env"]
+    assert captured["env"]["MAX_NONINTERACTIVE"] == "1"
 
 
 # ---------------------------------------------------------------------------
@@ -1012,9 +1012,9 @@ def test_desktop_lifespan_reaps_orphan_gateways_on_startup(
     Graceful shutdown reaps the managed child, but an abnormal exit reparents
     the old gateway to launchd (PPID=1) where it keeps holding the QQ
     WebSocket. The lifespan calls _reap_unsupervised_gateway_orphans() once at
-    startup under HERMES_DESKTOP=1 so the stale orphan is cleared first.
+    startup under MAX_DESKTOP=1 so the stale orphan is cleared first.
     """
-    import hermes_cli.web_server as ws
+    import max_cli.web_server as ws
 
     called = []
 
@@ -1022,14 +1022,14 @@ def test_desktop_lifespan_reaps_orphan_gateways_on_startup(
         called.append(True)
         return True
 
-    monkeypatch.setenv("HERMES_DESKTOP", "1")
+    monkeypatch.setenv("MAX_DESKTOP", "1")
     # Keep the lifespan cheap: don't re-import the gateway module or spin up the
     # real cron scheduler thread.
     monkeypatch.setattr(ws, "_warm_gateway_module", lambda: None)
     monkeypatch.setattr(ws, "_start_desktop_cron_ticker", lambda *_args: None)
-    # web_server imports the reaper lazily from hermes_cli.gateway, so patch it
+    # web_server imports the reaper lazily from max_cli.gateway, so patch it
     # on that module.
-    import hermes_cli.gateway as g
+    import max_cli.gateway as g
 
     monkeypatch.setattr(g, "_reap_unsupervised_gateway_orphans", _fake_reap)
 
@@ -1042,7 +1042,7 @@ def test_desktop_lifespan_reaps_orphan_gateways_on_startup(
 
 def test_desktop_lifespan_terminates_managed_gateway_restart(monkeypatch):
     """A Desktop-owned gateway child must not survive its serve backend."""
-    import hermes_cli.web_server as ws
+    import max_cli.web_server as ws
 
     calls = []
 
@@ -1053,7 +1053,7 @@ def test_desktop_lifespan_terminates_managed_gateway_restart(monkeypatch):
         def terminate(self):
             calls.append("terminate")
 
-    monkeypatch.setenv("HERMES_DESKTOP", "1")
+    monkeypatch.setenv("MAX_DESKTOP", "1")
     monkeypatch.setattr(ws, "_warm_gateway_module", lambda: None)
     monkeypatch.setattr(ws, "_start_desktop_cron_ticker", lambda *_args: None)
     monkeypatch.setitem(ws._ACTION_PROCS, "gateway-restart", _FakeRunningProc())

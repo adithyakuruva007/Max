@@ -21,7 +21,7 @@ class NousProfile(ProviderProfile):
         fallback, so this is cheap to call and safe offline.
         """
         try:
-            from hermes_cli.models import get_nous_recommended_aux_model
+            from max_cli.models import get_nous_recommended_aux_model
 
             return get_nous_recommended_aux_model(vision=vision) or ""
         except Exception:
@@ -80,7 +80,7 @@ class NousProfile(ProviderProfile):
         the Portal has told us it doesn't accept.
         """
         try:
-            from hermes_cli.models import (
+            from max_cli.models import (
                 nous_model_reasoning_capabilities,
                 warm_nous_reasoning_caps_async,
             )
@@ -126,16 +126,16 @@ class NousProfile(ProviderProfile):
 
 nous = NousProfile(
     name="nous",
-    aliases=("nous-portal", "nousresearch"),
+    aliases=("nous-portal", "stardustresearch"),
     env_vars=("NOUS_API_KEY",),
-    display_name="Nous Research",
-    description="Nous Research — Hermes model family",
-    signup_url="https://nousresearch.com/",
+    display_name="Stardust Research",
+    description="Stardust Research — Max model family",
+    signup_url="https://stardustresearch.com/",
     fallback_models=(
         "hermes-3-405b",
         "hermes-3-70b",
     ),
-    base_url="https://inference-api.nousresearch.com/v1",
+    base_url="https://inference-api.stardustresearch.com/v1",
     auth_type="oauth_device_code",
 )
 

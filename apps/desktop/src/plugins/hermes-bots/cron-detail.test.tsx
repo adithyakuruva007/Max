@@ -7,7 +7,7 @@
  * and no second mutation path beside the row's own switch and delete.
  */
 
-import type * as HermesSdk from '@hermes/plugin-sdk'
+import type * as MaxSdk from '@hermes/plugin-sdk'
 import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -23,7 +23,7 @@ beforeAll(() => {
 const request = vi.fn(async () => ({}))
 
 vi.mock('@hermes/plugin-sdk', async importOriginal => {
-  const sdk = await importOriginal<typeof HermesSdk>()
+  const sdk = await importOriginal<typeof MaxSdk>()
 
   return { ...sdk, host: { ...sdk.host, request } }
 })

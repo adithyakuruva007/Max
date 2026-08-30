@@ -1,6 +1,6 @@
 """Regression coverage for #88654.
 
-``hermes update`` relaunches manually-run profile gateways through
+``max update`` relaunches manually-run profile gateways through
 ``_prepare_profile_gateway_update_restart``.  When the profile-derived
 relaunch could not be armed the helper returned ``None``, and the update
 path's response to ``None`` was a bare ``continue`` -- so the gateway was
@@ -16,10 +16,10 @@ Windows post-update path already uses for exactly this case.
 
 import pytest
 
-import hermes_cli.gateway as gateway
+import max_cli.gateway as gateway
 
 
-_ARGV = ["python", "-m", "hermes_cli.main", "gateway", "run"]
+_ARGV = ["python", "-m", "max_cli.main", "gateway", "run"]
 
 
 def _stub_argv(monkeypatch, argv):

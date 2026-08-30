@@ -1,6 +1,6 @@
 """Board→project scoping in kanban_db.
 
-A kanban board can be scoped to a first-class Hermes project so every task on
+A kanban board can be scoped to a first-class Max project so every task on
 it anchors to that project (deterministic worktree + branch). Covers the
 metadata round-trip and the create-time inheritance.
 """
@@ -16,21 +16,21 @@ _WORKTREE = Path(__file__).resolve().parents[2]
 if str(_WORKTREE) not in sys.path:
     sys.path.insert(0, str(_WORKTREE))
 
-from hermes_cli import kanban_db as kb
-from hermes_cli import projects_db as pdb
+from max_cli import kanban_db as kb
+from max_cli import projects_db as pdb
 
 
 @pytest.fixture
 def fresh_home(tmp_path, monkeypatch):
     home = tmp_path / "hermes_home"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    for var in ("HERMES_KANBAN_DB", "HERMES_KANBAN_WORKSPACES_ROOT", "HERMES_KANBAN_HOME", "HERMES_KANBAN_BOARD"):
+    for var in ("MAX_KANBAN_DB", "MAX_KANBAN_WORKSPACES_ROOT", "MAX_KANBAN_HOME", "MAX_KANBAN_BOARD"):
         monkeypatch.delenv(var, raising=False)
     try:
-        import hermes_constants
-        hermes_constants._cached_default_hermes_root = None  # type: ignore[attr-defined]
+        import max_constants
+        max_constants._cached_default_hermes_root = None  # type: ignore[attr-defined]
     except Exception:
         pass
     kb._INITIALIZED_PATHS.clear()

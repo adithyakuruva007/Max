@@ -1,4 +1,4 @@
-"""Regression test for the ``HermesMCPOAuthProvider.async_auth_flow`` bidirectional
+"""Regression test for the ``MaxMCPOAuthProvider.async_auth_flow`` bidirectional
 generator bridge.
 
 PR #11383 introduced a subclass method that wrapped the SDK's ``auth_flow`` with::
@@ -53,18 +53,18 @@ async def test_hermes_provider_forwards_asend_values(tmp_path, monkeypatch):
     from mcp.shared.auth import OAuthClientMetadata, OAuthToken
     from pydantic import AnyUrl
 
-    from tools.mcp_oauth import HermesTokenStorage
-    from tools.mcp_oauth_manager import _HERMES_PROVIDER_CLS, reset_manager_for_tests
+    from tools.mcp_oauth import MaxTokenStorage
+    from tools.mcp_oauth_manager import _MAX_PROVIDER_CLS, reset_manager_for_tests
 
-    assert _HERMES_PROVIDER_CLS is not None, "SDK OAuth types must be available"
+    assert _MAX_PROVIDER_CLS is not None, "SDK OAuth types must be available"
 
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
     reset_manager_for_tests()
 
     # Seed a valid-looking token so the SDK's _initialize loads something and
     # can_refresh_token() is True (though we don't exercise refresh here — we
     # go straight through the 200 path).
-    storage = HermesTokenStorage("srv")
+    storage = MaxTokenStorage("srv")
     await storage.set_tokens(
         OAuthToken(
             access_token="old_access",
@@ -88,9 +88,9 @@ async def test_hermes_provider_forwards_asend_values(tmp_path, monkeypatch):
 
     metadata = OAuthClientMetadata(
         redirect_uris=[AnyUrl("http://127.0.0.1:12345/callback")],
-        client_name="Hermes Agent",
+        client_name="Max Agent",
     )
-    provider = _HERMES_PROVIDER_CLS(
+    provider = _MAX_PROVIDER_CLS(
         server_name="srv",
         server_url="https://example.com/mcp",
         client_metadata=metadata,
@@ -139,15 +139,15 @@ async def test_hermes_provider_forwards_401_triggers_refresh(tmp_path, monkeypat
     from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
     from pydantic import AnyUrl
 
-    from tools.mcp_oauth import HermesTokenStorage
-    from tools.mcp_oauth_manager import _HERMES_PROVIDER_CLS, reset_manager_for_tests
+    from tools.mcp_oauth import MaxTokenStorage
+    from tools.mcp_oauth_manager import _MAX_PROVIDER_CLS, reset_manager_for_tests
 
-    assert _HERMES_PROVIDER_CLS is not None
+    assert _MAX_PROVIDER_CLS is not None
 
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
     reset_manager_for_tests()
 
-    storage = HermesTokenStorage("srv")
+    storage = MaxTokenStorage("srv")
     await storage.set_tokens(
         OAuthToken(
             access_token="old_access",
@@ -168,9 +168,9 @@ async def test_hermes_provider_forwards_401_triggers_refresh(tmp_path, monkeypat
 
     metadata = OAuthClientMetadata(
         redirect_uris=[AnyUrl("http://127.0.0.1:12345/callback")],
-        client_name="Hermes Agent",
+        client_name="Max Agent",
     )
-    provider = _HERMES_PROVIDER_CLS(
+    provider = _MAX_PROVIDER_CLS(
         server_name="srv",
         server_url="https://example.com/mcp",
         client_metadata=metadata,
@@ -216,7 +216,7 @@ async def test_long_lived_resource_request_does_not_block_concurrent_post(
 
     MCP SDK 2.0.0 wraps its entire auth-flow generator in one lock.  Leaving
     the GET response pending then prevents a concurrent POST from even
-    acquiring its Bearer token.  Hermes narrows that lock around resource I/O
+    acquiring its Bearer token.  Max narrows that lock around resource I/O
     while retaining it for OAuth state transitions.
     """
     from tools.mcp_tool import sdk_httpx
@@ -224,15 +224,15 @@ async def test_long_lived_resource_request_does_not_block_concurrent_post(
     from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
     from pydantic import AnyUrl
 
-    from tools.mcp_oauth import HermesTokenStorage
-    from tools.mcp_oauth_manager import _HERMES_PROVIDER_CLS, reset_manager_for_tests
+    from tools.mcp_oauth import MaxTokenStorage
+    from tools.mcp_oauth_manager import _MAX_PROVIDER_CLS, reset_manager_for_tests
 
-    assert _HERMES_PROVIDER_CLS is not None
+    assert _MAX_PROVIDER_CLS is not None
 
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
     reset_manager_for_tests()
 
-    storage = HermesTokenStorage("srv")
+    storage = MaxTokenStorage("srv")
     await storage.set_tokens(
         OAuthToken(
             access_token="access-token",
@@ -251,12 +251,12 @@ async def test_long_lived_resource_request_does_not_block_concurrent_post(
         )
     )
 
-    provider = _HERMES_PROVIDER_CLS(
+    provider = _MAX_PROVIDER_CLS(
         server_name="srv",
         server_url="https://example.com/mcp",
         client_metadata=OAuthClientMetadata(
             redirect_uris=[AnyUrl("http://127.0.0.1:12345/callback")],
-            client_name="Hermes Agent",
+            client_name="Max Agent",
         ),
         storage=storage,
         redirect_handler=_noop_redirect,

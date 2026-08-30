@@ -1,9 +1,9 @@
 
 """Regression test: the TUI launcher must not spend time on plugin discovery.
 
-`hermes --tui` just spawns a Node process; the spawned tui_gateway backend
+`max --tui` just spawns a Node process; the spawned tui_gateway backend
 performs its own plugin discovery. Running discover_plugins() in the
-launcher added ~0.5s to every `hermes --tui` startup for work the backend
+launcher added ~0.5s to every `max --tui` startup for work the backend
 then redoes. Plain chat must still discover plugins.
 """
 
@@ -13,7 +13,7 @@ from argparse import Namespace
 import sys
 import types
 
-from hermes_cli import main as main_mod
+from max_cli import main as main_mod
 
 
 def _install_discover_spy(monkeypatch):
@@ -24,7 +24,7 @@ def _install_discover_spy(monkeypatch):
 
     monkeypatch.setitem(
         sys.modules,
-        "hermes_cli.plugins",
+        "max_cli.plugins",
         types.SimpleNamespace(
             discover_plugins=_discover,
             # main.py now kicks discovery off in a background thread; both

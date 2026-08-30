@@ -23,10 +23,10 @@ from unittest.mock import patch
 
 import pytest
 
-import hermes_cli.gateway as gateway
-import hermes_cli.main as hm
-from hermes_cli.update_cmd import _resume_windows_gateways_after_update
-from hermes_cli.update_inventory import (
+import max_cli.gateway as gateway
+import max_cli.main as hm
+from max_cli.update_cmd import _resume_windows_gateways_after_update
+from max_cli.update_inventory import (
     RuntimeRecord,
     UpdatePlan,
     match_runtime_outcomes,

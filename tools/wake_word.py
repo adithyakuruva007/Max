@@ -1,9 +1,9 @@
-"""Wake-word ("Hey Hermes") detection — hands-free session trigger.
+"""Wake-word ("Hey Max") detection — hands-free session trigger.
 
 A lightweight, always-on hotword listener that fires a callback when a wake
 phrase is spoken — the "Hey Siri" / "Alexa" pattern. Shared by the CLI, TUI, and
 desktop GUI (one of them owns it, gated by ``wake_surface_enabled``): say the
-wake word, Hermes opens a fresh session and captures voice via the existing
+wake word, Max opens a fresh session and captures voice via the existing
 pipeline, then answers.
 
 Three engines, all fully on-device (no audio leaves the machine for detection):
@@ -95,7 +95,7 @@ _BUNDLED_MODEL_ALIASES = frozenset({"", "hey_hermes", "hey hermes", "hermes"})
 
 
 def _bundled_wakeword_path(framework: str = "onnx") -> str:
-    """Path to the shipped hey_hermes model (.onnx/.tflite) for ``framework``."""
+    """Path to the shipped hey_max model (.onnx/.tflite) for ``framework``."""
     ext = "tflite" if str(framework).strip().lower() == "tflite" else "onnx"
     return os.path.join(os.path.dirname(__file__), "wakewords", f"{_BUNDLED_MODEL_NAME}.{ext}")
 
@@ -191,7 +191,7 @@ def ensure_tflite_runtime() -> bool:
 def load_wake_word_config() -> Dict[str, Any]:
     """Return the ``wake_word`` config section, shape-guarded to a dict."""
     try:
-        from hermes_cli.config import load_config
+        from max_cli.config import load_config
 
         cfg = load_config().get("wake_word")
     except Exception:
@@ -333,7 +333,7 @@ def wake_surface_enabled(surface: str, cfg: Optional[Dict[str, Any]] = None) -> 
 
 def _active_profile_name() -> str:
     try:
-        from hermes_cli.profiles import get_active_profile_name
+        from max_cli.profiles import get_active_profile_name
 
         return get_active_profile_name() or "default"
     except Exception:
@@ -351,8 +351,8 @@ def enrolled_profile_phrases() -> Dict[str, str]:
     """
     phrases: Dict[str, str] = {}
     try:
-        from hermes_cli.config import read_user_config_raw
-        from hermes_cli.profiles import get_profile_dir, list_profiles
+        from max_cli.config import read_user_config_raw
+        from max_cli.profiles import get_profile_dir, list_profiles
 
         for info in list_profiles():
             name = getattr(info, "name", None) or str(info)
@@ -476,7 +476,7 @@ def silent_audio_hint(details: Dict[str, Any]) -> str:
     """Platform-specific remediation for an armed stream delivering silence."""
     if sys.platform == "darwin":
         return (
-            "Microphone delivers only silence. Grant the Hermes backend "
+            "Microphone delivers only silence. Grant the Max backend "
             "microphone access in System Settings > Privacy & Security > "
             "Microphone, then toggle the wake word."
         )
@@ -620,7 +620,7 @@ class _OpenWakeWordEngine(_Engine):
 
 # sherpa-onnx open-vocabulary KWS model: a small streaming zipformer
 # transducer. English (GigaSpeech); one-time download, cached under
-# HERMES_HOME. Keywords are typed phrases tokenized at RUNTIME — no
+# MAX_HOME. Keywords are typed phrases tokenized at RUNTIME — no
 # training step, unlike openWakeWord/Porcupine custom models.
 _SHERPA_KWS_MODEL_URL = (
     "https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/"
@@ -630,9 +630,9 @@ _SHERPA_KWS_MODEL_DIR = "sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01"
 
 
 def _sherpa_model_root() -> Path:
-    from hermes_constants import get_hermes_home
+    from max_constants import get_max_home
 
-    return get_hermes_home() / "cache" / "wakewords"
+    return get_max_home() / "cache" / "wakewords"
 
 
 def _ensure_sherpa_model(root: Optional[Path] = None) -> Path:
@@ -947,7 +947,7 @@ def check_wake_word_requirements(cfg: Optional[Dict[str, Any]] = None) -> Dict[s
         missing = " and ".join(
             name for name, ok in (("speech-to-text", stt_ok), ("text-to-speech", tts_ok)) if not ok
         )
-        hint = (f"Wake word needs {missing} configured — run `hermes tools` "
+        hint = (f"Wake word needs {missing} configured — run `max tools` "
                 f"(Voice section) or see the voice-mode docs.")
 
     capture_mode = resolve_capture_mode(cfg)
@@ -1267,7 +1267,7 @@ class WakeWordDetector:
 
 
 # ---------------------------------------------------------------------------
-# Process-wide singleton (mirrors hermes_cli.voice's continuous API)
+# Process-wide singleton (mirrors max_cli.voice's continuous API)
 # ---------------------------------------------------------------------------
 
 _detector: Optional[WakeWordDetector] = None
@@ -1277,7 +1277,7 @@ _detector_lock = threading.Lock()
 
 
 def _lock_path() -> Path:
-    from hermes_constants import get_default_hermes_root
+    from max_constants import get_default_hermes_root
 
     return get_default_hermes_root() / "runtime" / "wake-word.lock"
 

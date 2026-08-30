@@ -31,7 +31,7 @@ def test_arbitrary_user_uid_rejected(
         f"rejection message missing 'not supported': {combined[-500:]}"
     )
     # Must mention the remediation env vars
-    assert "HERMES_UID" in combined or "PUID" in combined, (
+    assert "MAX_UID" in combined or "PUID" in combined, (
         f"rejection message missing remediation guidance: {combined[-500:]}"
     )
 
@@ -51,7 +51,7 @@ def test_root_start_works(
 def test_user_pinned_to_hermes_uid_works(
     built_image: str,
 ) -> None:
-    """docker run --user 10000:10000 (the hermes UID) must be allowed.
+    """docker run --user 10000:10000 (the max UID) must be allowed.
 
     This is the supported non-root start from #34648 / #34837.
     """

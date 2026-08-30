@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from hermes_cli.auth import (
+from max_cli.auth import (
     PROVIDER_REGISTRY,
     resolve_api_key_provider_credentials,
     resolve_provider,
 )
-from hermes_cli.model_normalize import normalize_model_for_provider
-from hermes_cli.models import (
+from max_cli.model_normalize import normalize_model_for_provider
+from max_cli.models import (
     CANONICAL_PROVIDERS,
     _PROVIDER_ALIASES,
     _PROVIDER_LABELS,
@@ -77,15 +77,15 @@ def test_nebius_canonical_provider_and_label():
 
 
 def test_nebius_provider_module_overlay():
-    from hermes_cli.providers import (
-        HERMES_OVERLAYS,
+    from max_cli.providers import (
+        MAX_OVERLAYS,
         determine_api_mode,
         get_label,
         get_provider,
         normalize_provider as normalize_provider_in_providers,
     )
 
-    overlay = HERMES_OVERLAYS["nebius-token-factory"]
+    overlay = MAX_OVERLAYS["nebius-token-factory"]
     assert overlay.transport == "openai_chat"
     assert overlay.base_url_override == "https://api.tokenfactory.nebius.com/v1"
     assert overlay.base_url_env_var == "NEBIUS_BASE_URL"
@@ -112,7 +112,7 @@ def test_nebius_model_catalog_prefers_live_profile_fetch(monkeypatch):
     profile = get_provider_profile("nebius-token-factory")
     assert profile is not None
     monkeypatch.setattr(
-        "hermes_cli.auth.resolve_api_key_provider_credentials",
+        "max_cli.auth.resolve_api_key_provider_credentials",
         lambda provider_id: {
             "provider": provider_id,
             "api_key": "nebius-live-key",
@@ -125,7 +125,7 @@ def test_nebius_model_catalog_prefers_live_profile_fetch(monkeypatch):
         "fetch_models",
         lambda *, api_key=None, base_url=None, timeout=8.0: [
             "deepseek-ai/DeepSeek-V4-Pro",
-            "NousResearch/Hermes-4-70B",
+            "NousResearch/Max-4-70B",
             "some-brand-new/Live-Only-Model",
         ],
     )
@@ -145,7 +145,7 @@ def test_nebius_model_catalog_falls_back_to_profile_models(monkeypatch):
     profile = get_provider_profile("nebius-token-factory")
     assert profile is not None
     monkeypatch.setattr(
-        "hermes_cli.auth.resolve_api_key_provider_credentials",
+        "max_cli.auth.resolve_api_key_provider_credentials",
         lambda provider_id: {
             "provider": provider_id,
             "api_key": "nebius-live-key",

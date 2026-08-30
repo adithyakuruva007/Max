@@ -1,7 +1,7 @@
 """Gateway lifecycle guard for cron job creation (#30719).
 
 An agent running inside a gateway can schedule a cron job that calls
-``hermes gateway restart`` (or ``launchctl kickstart ai.hermes.gateway``
+``max gateway restart`` (or ``launchctl kickstart ai.max.gateway``
 or ``systemctl restart hermes-gateway``).  When the cron fires, the
 gateway dies, the supervisor (launchd KeepAlive / systemd Restart=)
 revives it, auto-resume picks up the offending session, and the resumed
@@ -11,11 +11,11 @@ until manually broken.
 This module rejects cron job specs whose prompt or script contains a
 direct shell-level gateway-lifecycle command.  It is enforced at
 ``cron.jobs.create_job`` so it fires on every job-creation path: the
-``hermes cron create`` CLI subcommand AND the agent's ``cronjob`` model
+``max cron create`` CLI subcommand AND the agent's ``cronjob`` model
 tool (which calls ``create_job`` directly, bypassing the CLI layer).
 
 The pattern is intentionally command-shaped: it anchors on a concrete
-command identifier (``hermes gateway``, ``launchctl ... hermes-gateway``,
+command identifier (``max gateway``, ``launchctl ... hermes-gateway``,
 ``systemctl ... hermes-gateway``, ``pkill`` against the gateway) so it
 cannot fire on prose.  A cron ``prompt`` is fed to a future LLM, not a
 shell, so an over-broad substring match on English ("Kong API gateway
@@ -24,15 +24,15 @@ rate without preventing the actual foot-gun, which requires a real
 command shape.
 
 This is a defence-in-depth layer.  ``tools/terminal_tool.py`` blocks direct
-commands and shell scripts they reference when ``_HERMES_GATEWAY=1``. It also
+commands and shell scripts they reference when ``_MAX_GATEWAY=1``. It also
 rejects ``launchctl submit`` in gateway sessions because launchd treats that
-primitive as a persistent KeepAlive job, not a one-shot task. ``hermes gateway
+primitive as a persistent KeepAlive job, not a one-shot task. ``max gateway
 stop|restart|uninstall`` separately refuse to self-target from inside the gateway.
 Blocking cron specs at creation time as well means the agent gets an immediate,
 informative rejection instead of scheduling a job that will only fail
 (silently) when it fires.
 
-The profile-flag form (``hermes -p <profile> gateway restart|stop``, #78028)
+The profile-flag form (``max -p <profile> gateway restart|stop``, #78028)
 is handled profile-aware: it is blocked only when the named profile is the
 profile running the guard. Sibling-profile restarts are legitimate fleet
 operations and stay allowed.
@@ -60,24 +60,24 @@ class GatewayLifecycleBlocked(ValueError):
 # actual shell-command-shaped strings, not on prose.
 _GATEWAY_LIFECYCLE_PATTERN = re.compile(
     r"(?i)"
-    # Branch A: destructive `hermes gateway` operations.
+    # Branch A: destructive `max gateway` operations.
     # The destructive operations are restart, stop, and uninstall.
     # `start` is intentionally excluded: starting a gateway from inside a
     # gateway is benign (a no-op or "already running" error), and a
     # legitimate cron job might start a sibling profile's gateway.
-    # The lookbehind (#77173): `hermes` must not be a path component or a
+    # The lookbehind (#77173): `max` must not be a path component or a
     # word tail. Excluding `/`, word chars, `.` and `-` keeps file paths
-    # with embedded spaces (`/docs/hermes gateway restart-notes.md`) from
+    # with embedded spaces (`/docs/max gateway restart-notes.md`) from
     # matching via the `/hermes` tail, while every real command position
     # (start of text, whitespace, `;`/`&`/`|`, `$(`, backtick, even a
     # U+FFFD from binary-content decoding) still matches.
     r"(?:(?<![/\w.\-])hermes\s+gateway\s+(?:restart|stop|uninstall)\b)"
     # Branch B: launchctl ops on a hermes-gateway label. macOS launchd
-    # labels look like `ai.hermes.gateway` / `hermes-gateway`. Requiring the
-    # gateway identifier prevents blocking unrelated hermes services (e.g.
-    # `launchctl unload ai.hermes.update-checker.plist`).
+    # labels look like `ai.max.gateway` / `hermes-gateway`. Requiring the
+    # gateway identifier prevents blocking unrelated max services (e.g.
+    # `launchctl unload ai.max.update-checker.plist`).
     # `submit` and `bootstrap` are included alongside the direct verbs
-    # (kickstart/etc.): `launchctl submit -l ai.hermes.gateway-<suffix> --
+    # (kickstart/etc.): `launchctl submit -l ai.max.gateway-<suffix> --
     # <helper-script>` (or `launchctl bootstrap gui/<uid> <plist>`) creates
     # a NEW keepalive job wrapping an arbitrary helper, which is how a
     # blocked direct restart/kill gets laundered into a persistent restart
@@ -94,7 +94,7 @@ _GATEWAY_LIFECYCLE_PATTERN = re.compile(
     r"|(?:launchctl\s+(?:kickstart|unload|load|stop|restart|submit|bootstrap|bootout|remove|disable)\b[^\n]*\bhermes[.\-]?gateway)"
     # Branch C: systemctl ops on a hermes-gateway unit.
     r"|(?:systemctl\s+(?:-\S+\s+)*(?:restart|stop|start)\b[^\n]*\bhermes[.\-]?gateway)"
-    # Branch D: pkill / kill targeting the hermes gateway process. Both
+    # Branch D: pkill / kill targeting the max gateway process. Both
     # token orders because real reproductions show both.
     # Leading \b ensures we match "pkill" or "kill" as whole words, not as
     # suffixes of other words (e.g. "skill" -> "kill").
@@ -108,7 +108,7 @@ _GATEWAY_LIFECYCLE_PATTERN = re.compile(
 # above uses `[^\n]*` between its verb and the gateway identifier so the
 # match can't span unrelated lines of a longer cron prompt/script, but that
 # also means a real multi-line shell invocation split across continuation
-# lines (e.g. `launchctl submit \` / `  -l ai.hermes.gateway-... \` / `  -- ...`,
+# lines (e.g. `launchctl submit \` / `  -l ai.max.gateway-... \` / `  -- ...`,
 # the exact reported shape in #62891) would otherwise slip past. Collapse
 # continuations to a single space before matching, mirroring what the shell
 # itself does, rather than loosening `[^\n]*` and risking false positives
@@ -123,11 +123,11 @@ _ARGV_LIST_PUNCTUATION = re.compile(r"[\[\],]+")
 
 
 # Branch A2 (#78028): the same foot-gun written with an explicit profile
-# selector — `hermes -p <profile> gateway restart|stop` / `--profile <name>`
-# / `--profile=<name>`. The selector token between `hermes` and `gateway`
+# selector — `max -p <profile> gateway restart|stop` / `--profile <name>`
+# / `--profile=<name>`. The selector token between `max` and `gateway`
 # breaks Branch A's literal adjacency. Unlike Branch A this form is NOT
 # unconditionally self-targeting: issued from inside gateway `zeus`,
-# `hermes -p venus gateway restart` operates on a sibling profile's gateway
+# `max -p venus gateway restart` operates on a sibling profile's gateway
 # and is a legitimate fleet operation. The pattern captures the named
 # profile so `contains_gateway_lifecycle_command` can block only the
 # self-targeting shape (named profile == the profile running the guard).
@@ -150,18 +150,18 @@ _PROFILE_FLAG_LIFECYCLE_PATTERN = re.compile(
 def _current_profile_name() -> Optional[str]:
     """Return the name of the profile running the guard, if determinable.
 
-    Prefers the explicit ``HERMES_PROFILE_NAME`` / ``HERMES_PROFILE`` env
+    Prefers the explicit ``MAX_PROFILE_NAME`` / ``MAX_PROFILE`` env
     (set by the profile launcher and kanban worker spawns), falling back to
-    ``hermes_cli.profiles.get_active_profile_name`` (derived from
-    ``HERMES_HOME``, which the gateway process inherits from its launch
+    ``max_cli.profiles.get_active_profile_name`` (derived from
+    ``MAX_HOME``, which the gateway process inherits from its launch
     profile). Returns ``None`` when neither source yields a name.
     """
-    for env_name in ("HERMES_PROFILE_NAME", "HERMES_PROFILE"):
+    for env_name in ("MAX_PROFILE_NAME", "MAX_PROFILE"):
         value = os.environ.get(env_name)
         if value and value.strip():
             return value.strip()
     try:
-        from hermes_cli.profiles import get_active_profile_name
+        from max_cli.profiles import get_active_profile_name
 
         return get_active_profile_name() or None
     except Exception:
@@ -185,7 +185,7 @@ def _named_profile_is_current(named: str) -> bool:
 # — worse than `stop`/`kickstart`, which just bounce a still-registered job.
 #
 # A shell loop that builds the label from a list defined EARLIER in the same
-# command — `for item in 'ai.hermes.gateway-apollo:...' 'ai.hermes.gateway:...';
+# command — `for item in 'ai.max.gateway-apollo:...' 'ai.max.gateway:...';
 # do label=${item%%:*}; launchctl bootout "gui/$uid/$label"; done` — puts the
 # literal label text in a different `;`-separated segment than the verb, so
 # no amount of same-segment tokenization sees it: the token next to `bootout`
@@ -197,18 +197,18 @@ def _named_profile_is_current(named: str) -> bool:
 # because a NEW job's label is attacker-chosen), these verbs act on an
 # EXISTING job, so anchoring to the hermes-gateway label is still correct —
 # `test_safe_commands` requires unrelated-label ops (e.g. `launchctl unload
-# ai.hermes.update-checker.plist`) to stay unblocked. The fix is checking
+# ai.max.update-checker.plist`) to stay unblocked. The fix is checking
 # "verb anywhere AND label anywhere", not "label right after verb".
 _LAUNCHCTL_LIFECYCLE_VERBS_RE = re.compile(
     r"(?i)\blaunchctl\s+(?:kickstart|unload|load|stop|restart|bootout|kill|disable|remove)\b"
 )
-_HERMES_GATEWAY_LABEL_RE = re.compile(r"(?i)\bhermes[.\-]?gateway\b")
+_MAX_GATEWAY_LABEL_RE = re.compile(r"(?i)\bhermes[.\-]?gateway\b")
 
 
 def _contains_launchctl_gateway_lifecycle(normalized_text: str) -> bool:
     """Order-independent companion to Branch B — see comment above."""
     return bool(_LAUNCHCTL_LIFECYCLE_VERBS_RE.search(normalized_text)) and bool(
-        _HERMES_GATEWAY_LABEL_RE.search(normalized_text)
+        _MAX_GATEWAY_LABEL_RE.search(normalized_text)
     )
 
 
@@ -230,7 +230,7 @@ def contains_gateway_lifecycle_command(text: str) -> bool:
     blocked lifecycle command (#80269, reported against #80260's bootout
     parity fix). Tokenizing closes that gap while keeping the same
     gateway-label anchoring (``_GATEWAY_LIFECYCLE_PATTERN`` still requires
-    a ``hermes``/``gateway`` token) — this function is the single choke
+    a ``max``/``gateway`` token) — this function is the single choke
     point ``_contains_unsafe_gateway_action`` calls at every recursion
     level, so referenced-script and ``sh -c`` payload scanning inherit the
     fix automatically.
@@ -239,7 +239,7 @@ def contains_gateway_lifecycle_command(text: str) -> bool:
         return False
     # Heredoc bodies that are provably inert data (quoted delimiter, data-sink
     # consumer like `cat > file <<'EOF'`) are masked before scanning (#88336):
-    # a runbook line "a human can run: hermes gateway restart" inside such a
+    # a runbook line "a human can run: max gateway restart" inside such a
     # body is documentation, not a command this shell will execute. The
     # stripper fails open on ANY ambiguity (unquoted delimiter, shell
     # consumer, unterminated body), so executable heredocs are still scanned.
@@ -249,8 +249,8 @@ def contains_gateway_lifecycle_command(text: str) -> bool:
     normalized = _SHELL_LINE_CONTINUATION.sub(" ", text)
     if _GATEWAY_LIFECYCLE_PATTERN.search(normalized):
         return True
-    # Profile-flag form (#78028): `hermes -p <profile> gateway restart|stop`
-    # bypasses Branch A because the selector sits between `hermes` and
+    # Profile-flag form (#78028): `max -p <profile> gateway restart|stop`
+    # bypasses Branch A because the selector sits between `max` and
     # `gateway`. It is only the same foot-gun when the named profile IS the
     # profile running the guard — sibling-profile restarts are legitimate
     # fleet operations and stay allowed.
@@ -258,7 +258,7 @@ def contains_gateway_lifecycle_command(text: str) -> bool:
     if profile_match:
         named = profile_match.group(1) or profile_match.group(2)
         if named:
-            # Profile ids cannot contain quotes (hermes_cli.profiles
+            # Profile ids cannot contain quotes (max_cli.profiles
             # enforces `^[a-z0-9][a-z0-9_-]{0,63}$`), so a shell-quoted
             # `-p 'zeus'` compares equal to the bare name.
             named = named.strip().strip("\"'")
@@ -598,7 +598,7 @@ def contains_launchctl_submit_command(command: str) -> bool:
     """Detect an executed ``launchctl submit``/``bootstrap``, not quoted text.
 
     Label-independent by design: the label of a submitted/bootstrapped job is
-    chosen by whoever writes it, so a neutral name (``ai.hermes.svc-reload-tmp``)
+    chosen by whoever writes it, so a neutral name (``ai.max.svc-reload-tmp``)
     defeats any label-anchored regex (#62891, second reproduction). Both verbs
     register a NEW persistent launchd job (``submit`` jobs get KeepAlive
     semantics; ``bootstrap`` loads an arbitrary plist), which is never safe to
@@ -808,7 +808,7 @@ def _references_at(
         return
 
     # A bare "/" token is pathlib's division operator in Python sources
-    # (e.g. `Path.home() / ".hermes"`), not an executable reference.
+    # (e.g. `Path.home() / ".max"`), not an executable reference.
     # Resolving it walks to the filesystem root and fails the
     # regular-file check below, hard-blocking innocent .py scripts
     # (#77131). Skip pure-separator tokens.
@@ -1152,10 +1152,10 @@ def _resolve_script_path(script_path: str) -> Optional[Path]:
     """Resolve a cron ``script`` value the same way the scheduler does.
 
     The scheduler (``cron.scheduler``) resolves a bare/relative script path
-    under ``<HERMES_HOME>/scripts/`` and only accepts absolute paths as-is.
+    under ``<MAX_HOME>/scripts/`` and only accepts absolute paths as-is.
     We MUST mirror that here so the guard scans the file that will actually
     run — otherwise a job whose script lives at the scheduler's real location
-    (``~/.hermes/scripts/restart.sh``) but is passed as the bare name
+    (``~/.max/scripts/restart.sh``) but is passed as the bare name
     ``restart.sh`` would read as a nonexistent relative path and silently
     scan prompt-only content, letting the command through.
 
@@ -1164,7 +1164,7 @@ def _resolve_script_path(script_path: str) -> Optional[Path]:
     ``_expand_candidate_path``; such a value can never name a file the
     scheduler would execute, so there is nothing to scan.
     """
-    from hermes_constants import get_hermes_home
+    from max_constants import get_max_home
 
     raw = _expand_candidate_path(script_path)
     if raw is None:
@@ -1172,10 +1172,10 @@ def _resolve_script_path(script_path: str) -> Optional[Path]:
     if raw.is_absolute():
         return raw
     try:
-        return get_hermes_home() / "scripts" / raw
+        return get_max_home() / "scripts" / raw
     except (RuntimeError, OSError):
-        # get_hermes_home() falls back to Path.home(), which raises when
-        # neither HERMES_HOME nor HOME is resolvable (launchd/systemd
+        # get_max_home() falls back to Path.home(), which raises when
+        # neither MAX_HOME nor HOME is resolvable (launchd/systemd
         # environments) — same ingestion contract: nothing to scan.
         return None
 
@@ -1192,7 +1192,7 @@ def _read_script_for_scanning(script_path: str) -> str:
         return ""
     script_text, unsafe = _read_referenced_script(resolved)
     if unsafe:
-        return "hermes gateway restart"
+        return "max gateway restart"
     return script_text or ""
 
 
@@ -1237,7 +1237,7 @@ def check_gateway_lifecycle(
                     "evicted FileProvider placeholder can hang the guard's "
                     "preflight scan indefinitely, so it is refused without "
                     "being read. Move the script to a local, non-cloud path "
-                    "(e.g. ~/.hermes/scripts/) and recreate the job."
+                    "(e.g. ~/.max/scripts/) and recreate the job."
                 )
         python_script = resolved_script is not None and resolved_script.suffix == ".py"
         script_text = _read_script_for_scanning(script)
@@ -1251,7 +1251,7 @@ def check_gateway_lifecycle(
         # the filesystem root and trips the regular-file check, blocking
         # every innocent .py cron script, #77131). The direct command
         # regex below still scans the full text, so a literal
-        # `hermes gateway restart` embedded in a .py script is still
+        # `max gateway restart` embedded in a .py script is still
         # blocked. Non-regular/oversized script files still fail closed
         # via the lifecycle-shaped sentinel in _read_script_for_scanning.
         unsafe = _lifecycle_command_scan_with_data_exemption(combined)
@@ -1266,6 +1266,6 @@ def check_gateway_lifecycle(
             "Blocked: cron job contains a gateway lifecycle command or persistent "
             "launchctl submit operation. This is blocked to prevent agent-driven "
             "SIGTERM-respawn loops under launchd/systemd supervision "
-            "(#30719). Run `hermes gateway restart` from a shell outside "
+            "(#30719). Run `max gateway restart` from a shell outside "
             "the running gateway instead."
         )

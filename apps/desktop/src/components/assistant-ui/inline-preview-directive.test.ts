@@ -130,7 +130,7 @@ describe('withInlineChrome intent wiring', () => {
   it('injects hermes.send and the data-hermes-send click bridge', () => {
     const framed = withInlineChrome('<html><body><h1>w</h1></body></html>', 'tok', '')
 
-    expect(framed).toContain('window.hermes={send:send}')
+    expect(framed).toContain('window.max={send:send}')
     expect(framed).toContain('data-hermes-send')
     expect(framed).toContain('hermes-inline-preview-intent')
   })

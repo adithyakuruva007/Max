@@ -2,7 +2,7 @@
 not raw substrings.
 
 Port of earendil-works/pi#7933's bug class (DeepSeek base-URL detection used a
-substring check, missing case variants and matching lookalike URLs). Hermes
+substring check, missing case variants and matching lookalike URLs). Max
 had the same class at several sites: keyless-endpoint detection, /model
 catalog routing, local-endpoint detection, and Nous Portal cache-layout
 detection all used ``"host" in base_url``. A proxy URL that merely *contains*
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from hermes_cli.cli_agent_setup_mixin import CLIAgentSetupMixin
+from max_cli.cli_agent_setup_mixin import CLIAgentSetupMixin
 
 
 class _Host(CLIAgentSetupMixin):
@@ -28,7 +28,7 @@ class _Host(CLIAgentSetupMixin):
 def _ready_with(runtime: dict) -> bool:
     host = _Host()
     with patch(
-        "hermes_cli.runtime_provider.resolve_runtime_provider",
+        "max_cli.runtime_provider.resolve_runtime_provider",
         return_value=runtime,
     ):
         return host._runtime_credentials_ready()
@@ -85,10 +85,10 @@ def test_local_endpoint_hostname_detection():
 def test_nous_portal_host_detection():
     from utils import base_url_host_matches
 
-    assert base_url_host_matches("https://inference-api.nousresearch.com/v1", "nousresearch.com")
-    assert base_url_host_matches("https://portal.nousresearch.com", "nousresearch.com")
-    assert not base_url_host_matches("https://nousresearch.com.evil.io/v1", "nousresearch.com")
-    assert not base_url_host_matches("https://proxy.example/nousresearch.com/v1", "nousresearch.com")
+    assert base_url_host_matches("https://inference-api.stardustresearch.com/v1", "stardustresearch.com")
+    assert base_url_host_matches("https://portal.stardustresearch.com", "stardustresearch.com")
+    assert not base_url_host_matches("https://stardustresearch.com.evil.io/v1", "stardustresearch.com")
+    assert not base_url_host_matches("https://proxy.example/stardustresearch.com/v1", "stardustresearch.com")
 
 
 # ── Widened class coverage (follow-up to #85737) ─────────────────────────────

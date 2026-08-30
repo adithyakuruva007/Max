@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.plugins import (
+from max_cli.plugins import (
     PluginContext,
     PluginManager,
     PluginManifest,
@@ -43,7 +43,7 @@ def patched_manager(monkeypatch):
 
     Restored automatically after the test by monkeypatch.
     """
-    from hermes_cli import plugins as plugins_mod
+    from max_cli import plugins as plugins_mod
 
     fresh = PluginManager()
     fresh._discovered = True
@@ -95,7 +95,7 @@ def test_register_auxiliary_task_basic():
 
 
 def test_all_aux_tasks_includes_plugin_registered(patched_manager):
-    from hermes_cli.main import _AUX_TASKS, _all_aux_tasks
+    from max_cli.main import _AUX_TASKS, _all_aux_tasks
 
     manifest = PluginManifest(name="hindsight")
     ctx = PluginContext(manifest, patched_manager)
@@ -128,12 +128,12 @@ def test_all_aux_tasks_includes_plugin_registered(patched_manager):
 def test_reset_aux_to_auto_resets_plugin_tasks(tmp_path, monkeypatch, patched_manager):
     """Plugin task with non-auto config gets reset alongside built-ins."""
     from pathlib import Path
-    from hermes_cli.config import load_config, save_config
-    from hermes_cli.main import _reset_aux_to_auto
+    from max_cli.config import load_config, save_config
+    from max_cli.main import _reset_aux_to_auto
 
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    (tmp_path / ".hermes").mkdir(exist_ok=True)
+    (tmp_path / ".max").mkdir(exist_ok=True)
 
     manifest = PluginManifest(name="plug")
     ctx = PluginContext(manifest, patched_manager)

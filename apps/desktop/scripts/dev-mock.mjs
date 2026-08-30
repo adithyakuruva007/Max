@@ -203,18 +203,18 @@ async function main() {
   console.log(`  Mock server: ${mock.url}`)
 
   const sandbox = createSandbox()
-  writeMockConfig(sandbox.hermesHome, mock.url)
-  console.log(`  HERMES_HOME: ${sandbox.hermesHome}`)
+  writeMockConfig(sandbox.maxHome, mock.url)
+  console.log(`  MAX_HOME: ${sandbox.maxHome}`)
 
   const electronBin = findElectron()
 
   const env = {
     ...process.env,
-    HERMES_HOME: sandbox.hermesHome,
-    HERMES_DESKTOP_USER_DATA_DIR: sandbox.userDataDir,
-    HERMES_DESKTOP_IGNORE_EXISTING: '1',
-    HERMES_DESKTOP_HERMES_ROOT: REPO_ROOT,
-    HERMES_DESKTOP_APP_NAME: `HermesDevMock-${Date.now()}`,
+    MAX_HOME: sandbox.maxHome,
+    MAX_DESKTOP_USER_DATA_DIR: sandbox.userDataDir,
+    MAX_DESKTOP_IGNORE_EXISTING: '1',
+    MAX_DESKTOP_MAX_ROOT: REPO_ROOT,
+    MAX_DESKTOP_APP_NAME: `MaxDevMock-${Date.now()}`,
   }
 
   console.log('Launching Electron...')

@@ -66,16 +66,16 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Tuple, Union
 from pathlib import Path
 from agent.redact import redact_cdp_url
-from hermes_constants import (
+from max_constants import (
     agent_browser_runnable,
-    get_hermes_home,
-    get_hermes_home_override,
+    get_max_home,
+    get_max_home_override,
     hermes_home_key,
     node_tool_runnable,
 )
 from utils import env_int, is_truthy_value
-from hermes_cli.config import DEFAULT_CONFIG, cfg_get
-from hermes_cli._subprocess_compat import windows_hide_flags
+from max_cli.config import DEFAULT_CONFIG, cfg_get
+from max_cli._subprocess_compat import windows_hide_flags
 
 
 def __getattr__(name: str):
@@ -112,7 +112,7 @@ def _lazy_call_llm(*args, **kwargs):
 # Browser-specific tool keys passed through to the agent-browser subprocess
 # AFTER credential stripping.  agent-browser is a Node process loading npm
 # deps; handing it the full operator keyring (#29157 / GHSA-m4m8-xjp4-5rmm)
-# means a compromised transitive dependency could read every Hermes secret
+# means a compromised transitive dependency could read every Max secret
 # straight out of process.env.  Strip by default, then re-add only the
 # browser-backend keys the worker legitimately needs.
 _BROWSER_PASSTHROUGH_KEYS: tuple[str, ...] = (
@@ -128,7 +128,7 @@ _BROWSER_PASSTHROUGH_KEYS: tuple[str, ...] = (
 def _build_browser_env() -> dict:
     """Credential-scrubbed env for an agent-browser subprocess.
 
-    Strips Hermes-managed secrets (provider keys, gateway tokens, GitHub auth,
+    Strips Max-managed secrets (provider keys, gateway tokens, GitHub auth,
     infra secrets) then re-adds only the browser-backend keys the worker needs.
     The ``hermes_subprocess_env`` import is deferred to keep ``browser_tool``
     importable under test harnesses that load it against a stubbed ``tools``
@@ -246,7 +246,7 @@ def _discover_homebrew_node_dirs() -> tuple[str, ...]:
 
 def _browser_candidate_path_dirs() -> list[str]:
     """Return ordered browser CLI PATH candidates shared by discovery and execution."""
-    hermes_home = get_hermes_home()
+    hermes_home = get_max_home()
     hermes_node_bin = str(hermes_home / "node" / "bin")
     hermes_node_root = str(hermes_home / "node")
     hermes_nm_bin = str(hermes_home / "node_modules" / ".bin")
@@ -334,7 +334,7 @@ def _get_command_timeout() -> int:
 
     result = DEFAULT_COMMAND_TIMEOUT
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         val = cfg_get(cfg, "browser", "command_timeout")
         if val is not None:
@@ -374,7 +374,7 @@ def get_browser_snapshot_threshold() -> int:
 
     result = DEFAULT_SNAPSHOT_THRESHOLD
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         val = cfg_get(cfg, "browser", "snapshot_threshold")
         if val is not None:
@@ -460,7 +460,7 @@ def _format_browser_timeout_error(
             hints.append(
                 "The browser daemon may still be starting or Chromium may be "
                 "missing. Pull the latest image: "
-                "docker pull ghcr.io/nousresearch/hermes-agent:latest"
+                "docker pull ghcr.io/stardustresearch/max-agent:latest"
             )
         else:
             hints.append(
@@ -552,7 +552,7 @@ def _get_cdp_override_raw() -> str:
     This is the availability-check variant: callers that only need to know
     *whether* a CDP override is configured (tool ``check_fn`` gates,
     ``_is_local_mode`` / ``_is_local_backend`` routing decisions,
-    ``hermes doctor``) MUST use this instead of :func:`_get_cdp_override`.
+    ``max doctor``) MUST use this instead of :func:`_get_cdp_override`.
 
     Rationale: ``_get_cdp_override`` resolves the endpoint over HTTP
     (``/json/version`` discovery, 10s timeout). Tool-schema assembly runs at
@@ -569,7 +569,7 @@ def _get_cdp_override_raw() -> str:
         return env_override
 
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
 
         cfg = read_raw_config()
         browser_cfg = cfg.get("browser", {})
@@ -617,7 +617,7 @@ def _get_dialog_policy_config() -> Tuple[str, float]:
     )
 
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
 
         cfg = read_raw_config()
         browser_cfg = cfg.get("browser", {}) if isinstance(cfg, dict) else {}
@@ -712,7 +712,7 @@ def _stop_cdp_supervisor(task_id: str) -> None:
 # When the test patches ``_PROVIDER_REGISTRY``, we honour it (so the cache
 # unit tests still drive the function); otherwise the registry-backed path
 # wins. This keeps the test surface stable while letting third-party
-# plugins drop in under ``~/.hermes/plugins/browser/<vendor>/``.
+# plugins drop in under ``~/.max/plugins/browser/<vendor>/``.
 
 _PROVIDER_REGISTRY: Dict[str, type] = {
     "browserbase": BrowserbaseProvider,
@@ -778,7 +778,7 @@ def _ensure_browser_plugins_loaded() -> None:
     calls early-return inside `_ensure_plugins_discovered`.
     """
     try:
-        from hermes_cli.plugins import _ensure_plugins_discovered
+        from max_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
     except Exception as exc:
@@ -786,7 +786,7 @@ def _ensure_browser_plugins_loaded() -> None:
 
 
 def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
-    """Return the provider cached for the active Hermes profile."""
+    """Return the provider cached for the active Max profile."""
     global _cached_cloud_provider, _cloud_provider_resolved
     global _cached_cloud_provider_scope
 
@@ -836,7 +836,7 @@ def _resolve_cloud_provider_uncached() -> Optional[CloudBrowserProvider]:
     :data:`agent.browser_registry._LEGACY_PREFERENCE` walk.
 
     Selection routes through :mod:`agent.browser_registry` so third-party
-    browser plugins (``~/.hermes/plugins/browser/<vendor>/``) participate
+    browser plugins (``~/.max/plugins/browser/<vendor>/``) participate
     in explicit-config resolution. Test fixtures that override
     ``_PROVIDER_REGISTRY`` or ``BrowserUseProvider`` / ``BrowserbaseProvider``
     on this module still drive the function — see
@@ -847,7 +847,7 @@ def _resolve_cloud_provider_uncached() -> Optional[CloudBrowserProvider]:
     resolved: Optional[CloudBrowserProvider] = None
     provider_key = None
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         browser_cfg = cfg.get("browser", {})
         if isinstance(browser_cfg, dict) and "cloud_provider" in browser_cfg:
@@ -938,7 +938,7 @@ def _resolve_cloud_provider_uncached() -> Optional[CloudBrowserProvider]:
     return _cached_cloud_provider
 
 
-from hermes_constants import is_termux as _is_termux_environment
+from max_constants import is_termux as _is_termux_environment
 
 
 def _browser_install_hint() -> str:
@@ -949,8 +949,8 @@ def _browser_install_hint() -> str:
 
 # Sentinel _find_agent_browser returns/caches to mean "resolve via npx" rather
 # than a concrete executable path. A named constant + predicate keep the six
-# comparison sites (four here, plus hermes_cli/tools_config.py and
-# hermes_cli/doctor.py) from drifting if the sentinel's exact spelling ever
+# comparison sites (four here, plus max_cli/tools_config.py and
+# max_cli/doctor.py) from drifting if the sentinel's exact spelling ever
 # changes.
 NPX_AGENT_BROWSER_SENTINEL = "npx agent-browser"
 
@@ -1048,7 +1048,7 @@ def _get_browser_engine() -> str:
 
     # Config file takes priority
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         val = cfg.get("browser", {}).get("engine")
         if val and str(val).strip():
@@ -1092,7 +1092,7 @@ def _is_headed_mode() -> bool:
     _cached_headed_mode = False
 
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         val = cfg.get("browser", {}).get("headed")
         if val is not None:
@@ -1130,7 +1130,7 @@ def _lightpanda_fallback_reason(engine: str, command: str, result: Dict[str, Any
     """Return the user-visible reason a Lightpanda result needs Chrome fallback.
 
     ``None`` means no fallback should run.  The returned string is copied into
-    the fallback result so CLI/TUI/gateway users can see when Hermes silently
+    the fallback result so CLI/TUI/gateway users can see when Max silently
     switched from Lightpanda to Chrome for completeness.
     """
     if engine != "lightpanda":
@@ -1260,7 +1260,7 @@ def _run_chrome_fallback_command(
             hint = (
                 "Chrome fallback requires Chromium, but it is missing. "
                 "You're running in Docker — pull the latest image: "
-                "docker pull ghcr.io/nousresearch/hermes-agent:latest"
+                "docker pull ghcr.io/stardustresearch/max-agent:latest"
             )
         else:
             hint = (
@@ -1271,7 +1271,7 @@ def _run_chrome_fallback_command(
         return {"success": False, "error": hint}
 
     # Resolve npx via the same PATH + extended-PATH cascade _find_agent_browser
-    # uses, not a bare shutil.which("npx") — Hermes-managed-Node-only setups
+    # uses, not a bare shutil.which("npx") — Max-managed-Node-only setups
     # resolve npx only through the extended fallback path, and a bare lookup
     # would let a broken system npx shadow a healthy managed one. If npx isn't
     # found at all (Termux, bare container), fall back to the bare name and
@@ -1319,7 +1319,7 @@ def _run_chrome_fallback_command(
             #   and that grandchild's CreateProcess dies silently
             #   ("Daemon process exited during startup with no error output")
             #   when inherited parent handles are in a weird state. Observed
-            #   in the Hermes CLI where sys.stdout and sys.stderr both report
+            #   in the Max CLI where sys.stdout and sys.stderr both report
             #   fileno=1 (stderr dup'd onto stdout at the OS level).
             # * close_fds=True → block inheritance of every other handle.
             #   (Default on POSIX; must be explicit on Windows for stdio.)
@@ -1415,7 +1415,7 @@ def _auto_local_for_private_urls() -> bool:
 
     _auto_local_for_private_urls_resolved = True
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         browser_cfg = cfg.get("browser", {})
         if isinstance(browser_cfg, dict) and "auto_local_for_private_urls" in browser_cfg:
@@ -1437,7 +1437,7 @@ def _use_real_profile() -> bool:
     so there is no hot-path cost to keeping it uncached.
     """
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         browser_cfg = cfg.get("browser", {})
         if isinstance(browser_cfg, dict):
@@ -1489,7 +1489,7 @@ def _agent_browser_argv(browser_cmd: str) -> list:
 def _cdp_http_ready(http_cdp: str) -> bool:
     """True when an ``http://host:port`` CDP discovery root answers."""
     try:
-        from hermes_cli.browser_connect import is_browser_debug_ready
+        from max_cli.browser_connect import is_browser_debug_ready
 
         return is_browser_debug_ready(http_cdp, timeout=1.0)
     except Exception:
@@ -1579,7 +1579,7 @@ def _real_profile_cdp() -> tuple:
         # it so revoking consent actually removes the credential copies. Cheap
         # (one isdir check) and idempotent.
         try:
-            from hermes_cli.browser_connect import cleanup_real_profile_snapshots
+            from max_cli.browser_connect import cleanup_real_profile_snapshots
 
             cleanup_real_profile_snapshots()
         except Exception as e:
@@ -1600,7 +1600,7 @@ def _real_profile_cdp() -> tuple:
             "or turn the toggle off."
         )
 
-    from hermes_cli.browser_connect import (
+    from max_cli.browser_connect import (
         UNSUPPORTED_CHANNEL,
         detect_default_chromium,
         real_profile_copy_dir,
@@ -1638,7 +1638,7 @@ def _real_profile_cdp() -> tuple:
             )
 
         # Reuse BEFORE writing anything. A shared copy-browser may already be up
-        # from a previous hermes process; if it is driving OUR copy dir, hand it
+        # from a previous max process; if it is driving OUR copy dir, hand it
         # back untouched. CRITICAL: the snapshot overlay (which truncates and
         # rewrites Cookies / Login Data) must NOT run while that browser holds
         # the user-data-dir open — doing so corrupts the live databases (torn
@@ -1659,7 +1659,7 @@ def _real_profile_cdp() -> tuple:
         # No live browser owns the dir now — safe to (re)snapshot + overlay.
         snap_dir, err = snapshot_real_profile(browser)
         if err or not snap_dir:
-            from hermes_cli.browser_connect import _PROFILE_LOCKED_PREFIX
+            from max_cli.browser_connect import _PROFILE_LOCKED_PREFIX
 
             if err and err.startswith(_PROFILE_LOCKED_PREFIX):
                 # The user's browser is holding the profile. Surface the guidance
@@ -1670,7 +1670,7 @@ def _real_profile_cdp() -> tuple:
                 return None, (
                     body + " To close it (only after the user approves — it "
                     "quits their browser and loses unsaved tabs), run: "
-                    "`hermes browser close-profile`, then retry."
+                    "`max browser close-profile`, then retry."
                 )
             return None, f"browser.use_real_profile is on, but {err}"
         copy_dir = snap_dir
@@ -1684,7 +1684,7 @@ def _real_profile_cdp() -> tuple:
         # NO mock-keychain switches keeps the OS keychain path intact, exactly
         # as the snapshot design intends; agent-browser attaches to it after
         # via --auto-connect (--cdp <port>).
-        from hermes_cli.browser_connect import chromium_executable
+        from max_cli.browser_connect import chromium_executable
 
         real_binary = chromium_executable(browser)
         if real_binary is None:
@@ -2004,7 +2004,7 @@ def _allow_private_urls() -> bool:
 
     # The profile multiplexer scopes config with a ContextVar while sharing
     # this module. Never reuse another profile's private-network opt-out.
-    if get_hermes_home_override() is not None:
+    if get_max_home_override() is not None:
         return _resolve_allow_private_urls()
 
     if _allow_private_urls_resolved:
@@ -2018,7 +2018,7 @@ def _allow_private_urls() -> bool:
 def _resolve_allow_private_urls() -> bool:
     """Read the browser private-URL toggle from the active config scope."""
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         browser_cfg = cfg.get("browser", {})
         if isinstance(browser_cfg, dict):
@@ -2085,7 +2085,7 @@ DEFAULT_SESSION_INACTIVITY_TIMEOUT = int(
 def _get_session_inactivity_timeout() -> int:
     result = env_int("BROWSER_INACTIVITY_TIMEOUT", DEFAULT_SESSION_INACTIVITY_TIMEOUT)
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         val = cfg_get(cfg, "browser", "inactivity_timeout")
         if val is not None:
@@ -2104,7 +2104,7 @@ BROWSER_SESSION_INACTIVITY_TIMEOUT = _get_session_inactivity_timeout()
 # over 10 days in a single 18-day-uptime process, pinning ~5 CPU cores.
 BROWSER_ORPHAN_REAP_INTERVAL = 300  # seconds
 
-# Hard ceiling for a daemon whose owning hermes process is still alive but
+# Hard ceiling for a daemon whose owning max process is still alive but
 # which has fallen out of that process's in-memory session tracking.  The
 # owner-alive check alone makes such a daemon immortal: in-memory tracking is
 # lost on any exception path, yet the owner PID stays up, so the reaper skips
@@ -2231,7 +2231,7 @@ def _emergency_cleanup_all_sessions():
     Called on process exit or interrupt to prevent orphaned sessions.
 
     Also runs the orphan reaper to clean up daemons left behind by previously
-    crashed hermes processes — this way every clean hermes exit sweeps
+    crashed max processes — this way every clean max exit sweeps
     accumulated orphans, not just ones that actively used the browser tool.
     """
     global _cleanup_done
@@ -2260,9 +2260,9 @@ def _emergency_cleanup_all_sessions():
                 _session_last_activity.clear()
                 _recording_sessions.clear()
 
-    # Sweep orphans from other crashed hermes processes.  Safe even if we
+    # Sweep orphans from other crashed max processes.  Safe even if we
     # never used the browser — uses owner_pid liveness to avoid reaping
-    # daemons owned by other live hermes processes.
+    # daemons owned by other live max processes.
     try:
         _reap_orphaned_browser_sessions()
     except Exception as e:
@@ -2311,10 +2311,10 @@ def _cleanup_inactive_browser_sessions():
 
 
 def _write_owner_pid(socket_dir: str, session_name: str) -> None:
-    """Record the current hermes PID as the owner of a browser socket dir.
+    """Record the current max PID as the owner of a browser socket dir.
 
     Written atomically to ``<socket_dir>/<session_name>.owner_pid`` so the
-    orphan reaper can distinguish daemons owned by a live hermes process
+    orphan reaper can distinguish daemons owned by a live max process
     (don't reap) from daemons whose owner crashed (reap).  Best-effort —
     an OSError here just falls back to the legacy ``tracked_names``
     heuristic in the reaper.
@@ -2420,7 +2420,7 @@ def _socket_dir_idle_seconds(socket_dir: str) -> Optional[float]:
     Every browser command writes ``_stdout_<cmd>`` / ``_stderr_<cmd>`` temp
     files into the session's socket dir, so the newest mtime under that dir is
     a last-activity marker that — unlike ``_session_last_activity`` — survives
-    hermes restarts and does not depend on in-memory bookkeeping surviving an
+    max restarts and does not depend on in-memory bookkeeping surviving an
     exception path.
 
     The directory's own mtime is not sufficient: command names repeat, so
@@ -2457,13 +2457,13 @@ def _reap_orphaned_browser_sessions():
 
     This function scans the tmp directory for ``agent-browser-*`` socket dirs
     left behind by previous runs, reads the daemon PID files, and kills any
-    daemons whose owning hermes process is no longer alive.
+    daemons whose owning max process is no longer alive.
 
     Ownership detection priority:
       1. ``<session>.owner_pid`` file (written by current code) — if the
-         referenced hermes PID is alive, leave the daemon alone regardless
+         referenced max PID is alive, leave the daemon alone regardless
          of whether it's in *this* process's ``_active_sessions``.  This is
-         cross-process safe: two concurrent hermes instances won't reap each
+         cross-process safe: two concurrent max instances won't reap each
          other's daemons.
       2. Fallback for daemons that predate owner_pid: check
          ``_active_sessions`` in the current process.  If not tracked here,
@@ -2517,7 +2517,7 @@ def _reap_orphaned_browser_sessions():
 
         if owner_alive is True:
             # Owner is alive.  Normally that means the session belongs to a
-            # live hermes process and must not be touched — but "owner alive"
+            # live max process and must not be touched — but "owner alive"
             # alone made leaked daemons immortal: if the owner lost its
             # in-memory tracking (any exception path between spawn and
             # registration), nothing would ever reap the daemon, and the
@@ -2784,7 +2784,7 @@ BROWSER_TOOL_SCHEMAS = [
     },
     {
         "name": "browser_vision",
-        "description": "Take a screenshot of the current page so you can inspect it visually. Use this when you need to understand what the page looks like - especially for CAPTCHAs, visual verification challenges, complex layouts, or cases where the text snapshot misses important visual information. When your active model has native vision, the screenshot is attached to your context directly and you inspect it on the next turn; otherwise Hermes falls back to an auxiliary vision model and returns a text analysis. Includes a screenshot_path that you can share with the user by including MEDIA:<screenshot_path> in your response. Requires browser_navigate to be called first.",
+        "description": "Take a screenshot of the current page so you can inspect it visually. Use this when you need to understand what the page looks like - especially for CAPTCHAs, visual verification challenges, complex layouts, or cases where the text snapshot misses important visual information. When your active model has native vision, the screenshot is attached to your context directly and you inspect it on the next turn; otherwise Max falls back to an auxiliary vision model and returns a text analysis. Includes a screenshot_path that you can share with the user by including MEDIA:<screenshot_path> in your response. Requires browser_navigate to be called first.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -3040,11 +3040,11 @@ def _agent_browser_candidate_present(path: str | None) -> bool:
 
 
 def _resolve_npx_bin() -> Optional[str]:
-    """Resolve a runnable npx binary, preferring the Hermes-managed/Homebrew
+    """Resolve a runnable npx binary, preferring the Max-managed/Homebrew
     extended search over a bare ambient PATH lookup.
 
     Checking bare PATH first would let a broken or unrelated system npx
-    shadow a healthy Hermes-managed one with no recovery — every candidate
+    shadow a healthy Max-managed one with no recovery — every candidate
     is therefore validated with ``node_tool_runnable`` (the same check
     ``find_hermes_node_executable`` uses to self-heal a managed Node tree)
     before being trusted, falling through to the next candidate otherwise.
@@ -3064,7 +3064,7 @@ def _find_agent_browser(*, validate: bool = True) -> str:
     """
     Find the agent-browser CLI executable.
 
-    Checks in order: current PATH, Homebrew/common bin dirs, Hermes-managed
+    Checks in order: current PATH, Homebrew/common bin dirs, Max-managed
     node, local node_modules/.bin/, npx fallback.
 
     Returns:
@@ -3090,7 +3090,7 @@ def _find_agent_browser(*, validate: bool = True) -> str:
     # Every candidate below is validated with ``agent_browser_runnable`` before
     # it is cached. A bare ``shutil.which`` hit is NOT trusted: agent-browser's
     # npm postinstall re-points a global install symlink at our local
-    # node_modules binary, which disappears on the next ``hermes update`` and
+    # node_modules binary, which disappears on the next ``max update`` and
     # leaves a dangling link that ``which`` still reports but exec fails on with
     # exit 127 (issue #48521). Validating lets a dead candidate fall through to
     # the next working resolution (extended PATH → local .bin → npx) instead of
@@ -3107,7 +3107,7 @@ def _find_agent_browser(*, validate: bool = True) -> str:
         _agent_browser_resolved = True
         return which_result
 
-    # Build an extended search PATH including Hermes-managed Node, macOS
+    # Build an extended search PATH including Max-managed Node, macOS
     # versioned Homebrew installs, and fallback system dirs like Termux.
     extended_path = _merge_browser_path("")
     if extended_path:
@@ -3156,14 +3156,14 @@ def _find_agent_browser(*, validate: bool = True) -> str:
 
     # Nothing found — try lazy installation before giving up.
     try:
-        from hermes_cli.dep_ensure import ensure_dependency
+        from max_cli.dep_ensure import ensure_dependency
         if ensure_dependency("browser"):
             candidates = [
                 shutil.which("agent-browser"),
                 shutil.which("agent-browser", path=extended_path) if extended_path else None,
-                shutil.which("agent-browser", path=str(get_hermes_home() / "node_modules" / ".bin")),
-                shutil.which("agent-browser", path=str(get_hermes_home() / "node" / "bin")),
-                shutil.which("agent-browser", path=str(get_hermes_home() / "node")),
+                shutil.which("agent-browser", path=str(get_max_home() / "node_modules" / ".bin")),
+                shutil.which("agent-browser", path=str(get_max_home() / "node" / "bin")),
+                shutil.which("agent-browser", path=str(get_max_home() / "node")),
             ]
             for recheck in candidates:
                 if recheck and agent_browser_runnable(recheck):
@@ -3270,7 +3270,7 @@ def warm_agent_browser_npx_cache(timeout: float = 60.0) -> bool:
     out of the npm workspace install graph entirely (nothing to prune it
     anymore) but means the first real invocation in a session would
     otherwise pay npx's registry-lookup/fetch cost. Calling this during
-    ``hermes update`` (or ``hermes doctor --fix``) warms npx's own cache
+    ``max update`` (or ``max doctor --fix``) warms npx's own cache
     ahead of time, restoring the "available before any session starts"
     property agent-browser had while it was an eager root dependency —
     without re-entangling it with the workspace graph.
@@ -3278,8 +3278,8 @@ def warm_agent_browser_npx_cache(timeout: float = 60.0) -> bool:
     Runs a credential-scrubbed, PATH-propagated environment matching every
     other agent-browser subprocess spawn (see ``_build_browser_env``) —
     this used to inherit the full parent environment, including every
-    provider/gateway credential Hermes holds, while running registry-fetched
-    npm code on every ``hermes update`` (the GHSA-m4m8-xjp4-5rmm class of
+    provider/gateway credential Max holds, while running registry-fetched
+    npm code on every ``max update`` (the GHSA-m4m8-xjp4-5rmm class of
     risk ``_build_browser_env`` exists specifically to prevent). Runs in its
     own process group and kills the *whole* group — not just the top-level
     npx PID — on timeout, since a surviving descendant can otherwise hold a
@@ -3314,7 +3314,7 @@ def warm_agent_browser_npx_cache(timeout: float = 60.0) -> bool:
         # range, not an exact pin — a compromised future 0.26.x patch must
         # not get to run its own install-time lifecycle scripts here.
         "--ignore-scripts",
-        # --prefer-offline: once cached, repeat `hermes update`/`doctor
+        # --prefer-offline: once cached, repeat `max update`/`doctor
         # --fix` runs shouldn't hit the registry just to re-confirm
         # "latest" is still latest — that would defeat the point of
         # warming the cache in the first place.
@@ -3592,7 +3592,7 @@ def _run_browser_command(
             hint = (
                 "Chromium browser is missing. You're running in Docker — pull "
                 "the latest image to get the bundled Chromium: "
-                "docker pull ghcr.io/nousresearch/hermes-agent:latest"
+                "docker pull ghcr.io/stardustresearch/max-agent:latest"
             )
         else:
             hint = (
@@ -3666,7 +3666,7 @@ def _run_browser_command(
             f"agent-browser-{session_info['session_name']}"
         )
         os.makedirs(task_socket_dir, mode=0o700, exist_ok=True)
-        # Record this hermes PID as the session owner (cross-process safe
+        # Record this max PID as the session owner (cross-process safe
         # orphan detection — see _write_owner_pid).
         _write_owner_pid(task_socket_dir, session_info['session_name'])
         logger.debug("browser cmd=%s task=%s socket_dir=%s (%d chars)",
@@ -3894,7 +3894,7 @@ def _store_full_snapshot(snapshot_text: str) -> Optional[str]:
     """
     try:
         import hashlib
-        from hermes_constants import get_hermes_dir
+        from max_constants import get_hermes_dir
         from agent.redact import redact_sensitive_text
 
         content = redact_sensitive_text(snapshot_text, force=True)
@@ -4799,7 +4799,7 @@ def _allow_unsafe_browser_evaluate() -> bool:
     sensitive-primitive denylist even if ``browser.restrict_evaluate`` is set.
     """
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
 
         cfg = read_raw_config()
         return is_truthy_value(cfg_get(cfg, "browser", "allow_unsafe_evaluate"), default=False)
@@ -4823,7 +4823,7 @@ def _restrict_browser_evaluate() -> bool:
     ``browser.allow_unsafe_evaluate: true`` overrides it back off.
     """
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
 
         cfg = read_raw_config()
         return is_truthy_value(cfg_get(cfg, "browser", "restrict_evaluate"), default=False)
@@ -5147,8 +5147,8 @@ def _maybe_start_recording(task_id: str):
         if task_id in _recording_sessions:
             return
     try:
-        from hermes_cli.config import read_raw_config
-        hermes_home = get_hermes_home()
+        from max_cli.config import read_raw_config
+        hermes_home = get_max_home()
         cfg = read_raw_config()
         record_enabled = cfg_get(cfg, "browser", "record_sessions", default=False)
 
@@ -5270,7 +5270,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
 
     Captures what's visually displayed in the browser. When the active model
     supports native vision, the screenshot is attached directly to the
-    conversation so the model can inspect it on the next turn; otherwise Hermes
+    conversation so the model can inspect it on the next turn; otherwise Max
     falls back to the auxiliary vision model and returns a text analysis. Useful
     for visual content the text-based snapshot may not capture (CAPTCHAs,
     verification challenges, images, complex layouts, etc.).
@@ -5293,7 +5293,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
 
     import base64
     import uuid as uuid_mod
-    from hermes_constants import get_hermes_dir
+    from max_constants import get_hermes_dir
     screenshots_dir = get_hermes_dir("cache/screenshots", "browser_screenshots")
     screenshot_path = screenshots_dir / f"browser_screenshot_{uuid_mod.uuid4().hex}.png"
     effective_task_id = _last_session_key(task_id or "default")
@@ -5352,7 +5352,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
             _lp_fallback_warning = fb_result.get("fallback_warning")
             fb_path = fb_result.get("data", {}).get("path", "")
             if fb_path and os.path.exists(fb_path):
-                from hermes_constants import get_hermes_dir
+                from max_constants import get_hermes_dir
                 screenshots_dir = get_hermes_dir("cache/screenshots", "browser_screenshots")
                 screenshots_dir.mkdir(parents=True, exist_ok=True)
                 import shutil as _shutil_vision
@@ -5517,7 +5517,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
         vision_timeout = 120.0
         vision_temperature = 0.1
         try:
-            from hermes_cli.config import load_config
+            from max_cli.config import load_config
             _cfg = load_config()
             _vision_cfg = cfg_get(_cfg, "auxiliary", "vision", default={})
             _vt = _vision_cfg.get("timeout")
@@ -5623,7 +5623,7 @@ def _cleanup_old_screenshots(screenshots_dir, max_age_hours=24):
 def _cleanup_old_recordings(max_age_hours=72):
     """Remove browser recordings older than max_age_hours to prevent disk bloat."""
     try:
-        hermes_home = get_hermes_home()
+        hermes_home = get_max_home()
         recordings_dir = hermes_home / "browser_recordings"
         if not recordings_dir.exists():
             return
@@ -5830,7 +5830,7 @@ def _chromium_search_roots() -> List[str]:
     Order mirrors what agent-browser and Playwright actually probe:
 
     1. ``PLAYWRIGHT_BROWSERS_PATH`` when set (Docker image sets this to
-       ``/opt/hermes/.playwright``).
+       ``/opt/max/.playwright``).
     2. ``~/.cache/ms-playwright`` — Playwright's default on Linux/macOS.
     3. ``~/Library/Caches/ms-playwright`` — Playwright's default on macOS.
     4. ``%USERPROFILE%\\AppData\\Local\\ms-playwright`` — Playwright's default
@@ -6120,7 +6120,7 @@ if __name__ == "__main__":
                         "     Docker: pull the latest image — the current one "
                         "predates the bundled Chromium install"
                     )
-                    print("       docker pull ghcr.io/nousresearch/hermes-agent:latest")
+                    print("       docker pull ghcr.io/stardustresearch/max-agent:latest")
                 else:
                     print("     Install it with:")
                     print("       npx agent-browser install --with-deps")

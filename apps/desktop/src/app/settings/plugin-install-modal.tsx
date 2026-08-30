@@ -90,7 +90,7 @@ export function PluginInstallModal() {
       setEnableAgent(payload.enable ?? true)
       setForceReinstall(payload.force ?? false)
 
-      const probeFn = window.hermesDesktop?.probePluginRepo
+      const probeFn = window.maxDesktop?.probePluginRepo
 
       if (!probeFn) {
         if (token !== probeToken.current) {
@@ -205,7 +205,7 @@ export function PluginInstallModal() {
       }
 
       if (installDesktop && probe.desktop) {
-        const installFn = window.hermesDesktop?.installDesktopPlugin
+        const installFn = window.maxDesktop?.installDesktopPlugin
 
         if (!installFn) {
           errors.push(m.desktopUnavailable)

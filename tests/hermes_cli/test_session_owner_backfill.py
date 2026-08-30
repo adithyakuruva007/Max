@@ -21,11 +21,11 @@ def client(monkeypatch, _isolate_hermes_home):
     except ImportError:
         pytest.skip("fastapi/starlette not installed")
 
-    import hermes_state
-    from hermes_constants import get_hermes_home
-    from hermes_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
+    import max_state
+    from max_constants import get_max_home
+    from max_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
 
-    monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", get_hermes_home() / "state.db")
+    monkeypatch.setattr(max_state, "DEFAULT_DB_PATH", get_max_home() / "state.db")
 
     client = TestClient(app)
     client.headers[_SESSION_HEADER_NAME] = _SESSION_TOKEN
@@ -34,7 +34,7 @@ def client(monkeypatch, _isolate_hermes_home):
 
 def _seed(db_path, rows):
     """Insert bare session rows the way a pre-ownership install left them."""
-    from hermes_state import SessionDB
+    from max_state import SessionDB
 
     db = SessionDB(db_path=db_path)
     try:
@@ -66,9 +66,9 @@ def _profiles(db_path):
 
 
 def test_backfill_stamps_only_null_rows_and_is_idempotent(client):
-    from hermes_constants import get_hermes_home
+    from max_constants import get_max_home
 
-    db_path = get_hermes_home() / "state.db"
+    db_path = get_max_home() / "state.db"
     _seed(
         db_path,
         [
@@ -106,9 +106,9 @@ def test_backfilled_rows_circulate_owned_on_the_list_endpoint(client):
     """After the backfill, the durable stamp (not just the per-response
     serving-profile decoration) owns the rows: the raw DB column is non-NULL,
     which is what survives into any other consumer of state.db."""
-    from hermes_constants import get_hermes_home
+    from max_constants import get_max_home
 
-    db_path = get_hermes_home() / "state.db"
+    db_path = get_max_home() / "state.db"
     _seed(db_path, [("legacy-null-3", None)])
 
     assert _profiles(db_path)["legacy-null-3"] is None
@@ -125,9 +125,9 @@ def test_backfilled_rows_circulate_owned_on_the_list_endpoint(client):
 
 def test_backfill_treats_empty_string_profile_as_legacy(client):
     """TRIM('') rows are the same stranded class as NULL — stamp them too."""
-    from hermes_constants import get_hermes_home
+    from max_constants import get_max_home
 
-    db_path = get_hermes_home() / "state.db"
+    db_path = get_max_home() / "state.db"
     _seed(db_path, [("legacy-empty", None)])
 
     conn = sqlite3.connect(str(db_path))
@@ -138,4 +138,4 @@ def test_backfill_treats_empty_string_profile_as_legacy(client):
     resp = client.post("/api/sessions/owner-backfill", json={})
     assert resp.status_code == 200
     assert resp.json()["stamped"] == 1
-    assert _profiles(get_hermes_home() / "state.db")["legacy-empty"] == "default"
+    assert _profiles(get_max_home() / "state.db")["legacy-empty"] == "default"

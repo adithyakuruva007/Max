@@ -3,8 +3,8 @@
 import shutil
 import sys
 
-from hermes_cli.nous_account import NousPortalAccountInfo, NousToolAccessInfo
-from hermes_cli import nous_subscription as ns
+from max_cli.nous_account import NousPortalAccountInfo, NousToolAccessInfo
+from max_cli import nous_subscription as ns
 
 
 _POOL_COVERAGE = {
@@ -177,11 +177,11 @@ def _capture_checklist(monkeypatch, *, selected_idx):
         captured["pre_selected"] = list(pre_selected or [])
         return list(selected_idx)
 
-    import hermes_cli.setup as setup_mod
+    import max_cli.setup as setup_mod
 
     monkeypatch.setattr(setup_mod, "prompt_checklist", _fake_checklist, raising=False)
     monkeypatch.setattr(
-        "hermes_cli.config.save_config", lambda cfg: None, raising=False
+        "max_cli.config.save_config", lambda cfg: None, raising=False
     )
     return captured
 
@@ -210,7 +210,7 @@ def test_get_gateway_eligible_tools_treats_explicit_backend_as_configured(monkey
     """A keyless local backend (e.g. searxng) has no credentials to detect,
     but an explicit non-nous selection must still keep it out of
     'unconfigured' — regression for #92647, where it was pre-checked and a
-    single Enter during `hermes model` overwrote it to `web.backend: nous`.
+    single Enter during `max model` overwrote it to `web.backend: nous`.
     """
     monkeypatch.setattr(ns, "get_nous_portal_account_info", lambda **kw: _account(logged_in=True, paid=True))
     monkeypatch.setattr(
@@ -327,7 +327,7 @@ def test_prompt_enable_tool_gateway_persists_decline(monkeypatch):
     saved = []
     captured = _capture_checklist(monkeypatch, selected_idx=[])
     monkeypatch.setattr(
-        "hermes_cli.config.save_config", lambda cfg: saved.append(dict(cfg)), raising=False
+        "max_cli.config.save_config", lambda cfg: saved.append(dict(cfg)), raising=False
     )
 
     config = {"model": {"provider": "nous"}}
@@ -342,7 +342,7 @@ def test_prompt_enable_tool_gateway_persists_decline(monkeypatch):
     # Second offer with the recorded declines: nothing is pre-checked.
     captured2 = _capture_checklist(monkeypatch, selected_idx=[])
     monkeypatch.setattr(
-        "hermes_cli.config.save_config", lambda cfg: saved.append(dict(cfg)), raising=False
+        "max_cli.config.save_config", lambda cfg: saved.append(dict(cfg)), raising=False
     )
     ns.prompt_enable_tool_gateway(config)
     assert captured2["pre_selected"] == []
@@ -397,7 +397,7 @@ def test_apply_nous_managed_defaults_writes_video_gen_config(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# ensure_nous_portal_access — inline login gate for `hermes tools`
+# ensure_nous_portal_access — inline login gate for `max tools`
 # ---------------------------------------------------------------------------
 
 
@@ -445,7 +445,7 @@ def _block_legacy_agent_browser_checks(monkeypatch):
             None if cmd == "agent-browser" else real_which(cmd, *args, **kwargs)
         ),
     )
-    monkeypatch.setattr("hermes_constants.agent_browser_runnable", lambda path: False)
+    monkeypatch.setattr("max_constants.agent_browser_runnable", lambda path: False)
 
 
 def test_has_agent_browser_true_for_npx_only_resolution(monkeypatch):
@@ -516,7 +516,7 @@ def test_has_agent_browser_import_failure_falls_back_to_path_check(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        "hermes_constants.agent_browser_runnable",
+        "max_constants.agent_browser_runnable",
         lambda path: path == "/fake/bin/agent-browser",
     )
 
@@ -527,7 +527,7 @@ def test_has_agent_browser_import_failure_falls_back_to_hermes_managed_node_path
     monkeypatch, tmp_path
 ):
     """If tools.browser_tool cannot be imported, the managed-Node rung must
-    still find a runnable agent-browser under the Hermes Node dir even when
+    still find a runnable agent-browser under the Max Node dir even when
     it's absent from the probe process's PATH — the Windows installer shape
     where install succeeded but the GUI still said needs setup."""
     monkeypatch.setitem(sys.modules, "tools.browser_tool", None)
@@ -548,10 +548,10 @@ def test_has_agent_browser_import_failure_falls_back_to_hermes_managed_node_path
         ),
     )
     monkeypatch.setattr(
-        "hermes_constants.with_hermes_node_path", lambda: {"PATH": str(managed_dir)}
+        "max_constants.with_hermes_node_path", lambda: {"PATH": str(managed_dir)}
     )
     monkeypatch.setattr(
-        "hermes_constants.agent_browser_runnable",
+        "max_constants.agent_browser_runnable",
         lambda p: bool(p) and str(p) == str(managed_bin),
     )
 

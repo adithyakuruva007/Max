@@ -12,7 +12,7 @@ vi.mock('./client', () => ({
 const client = await import('./client')
 const { listSidebarSessions } = await import('./sessions')
 
-const hermesApi = vi.mocked(client.hermesApi)
+const hermesApi = vi.mocked(client.maxApi)
 
 beforeEach(() => {
   vi.clearAllMocks()

@@ -4,7 +4,7 @@ silently shadow a valid credential-pool key.
 Before the fix, ``_resolve_api_key_provider_secret`` returned the FIRST env
 value that passed ``has_usable_secret`` (length + placeholder check only), so
 an obviously malformed OPENROUTER_API_KEY (e.g. a truncated paste or another
-provider's key) in ~/.hermes/.env won over a valid pool entry and produced
+provider's key) in ~/.max/.env won over a valid pool entry and produced
 opaque ``401 Missing Authentication header`` errors.
 
 The fix:
@@ -26,7 +26,7 @@ import pytest
 
 
 def _make_pconfig(provider_id, env_vars=None):
-    from hermes_cli.auth import ProviderConfig
+    from max_cli.auth import ProviderConfig
     return ProviderConfig(
         id=provider_id,
         name=provider_id.title(),
@@ -37,10 +37,10 @@ def _make_pconfig(provider_id, env_vars=None):
 
 @pytest.fixture
 def isolated_hermes_home(tmp_path, monkeypatch):
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     for key in ["OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY"]:
         monkeypatch.delenv(key, raising=False)
     return home
@@ -75,7 +75,7 @@ class TestMalformedEnvKeySkipped:
         _write_env_file(isolated_hermes_home, OPENROUTER_API_KEY="not-a-real-openrouter-key")
         pool = _mock_pool(_entry("sk-or-v1-valid-pool-key-abc123"))
 
-        from hermes_cli.auth import _resolve_api_key_provider_secret
+        from max_cli.auth import _resolve_api_key_provider_secret
         with patch("agent.credential_pool.load_pool", return_value=pool):
             with caplog.at_level(logging.WARNING):
                 key, source = _resolve_api_key_provider_secret(
@@ -95,7 +95,7 @@ class TestMalformedEnvKeySkipped:
         _write_env_file(isolated_hermes_home, OPENROUTER_API_KEY="sk-proj-wrong-provider-key")
         pool = _mock_pool()
 
-        from hermes_cli.auth import _resolve_api_key_provider_secret
+        from max_cli.auth import _resolve_api_key_provider_secret
         with patch("agent.credential_pool.load_pool", return_value=pool):
             with caplog.at_level(logging.WARNING):
                 key, source = _resolve_api_key_provider_secret(
@@ -112,7 +112,7 @@ class TestMalformedEnvKeySkipped:
             _entry("sk-or-v1-second-entry-good"),
         )
 
-        from hermes_cli.auth import _resolve_api_key_provider_secret
+        from max_cli.auth import _resolve_api_key_provider_secret
         with patch("agent.credential_pool.load_pool", return_value=pool):
             key, source = _resolve_api_key_provider_secret(
                 provider_id="openrouter",
@@ -128,7 +128,7 @@ class TestNoDeclaredPrefixUnaffected:
     def test_undeclared_provider_env_key_returned_verbatim(self, isolated_hermes_home):
         _write_env_file(isolated_hermes_home, DEEPSEEK_API_KEY="totally-unknown-format-key")
 
-        from hermes_cli.auth import _resolve_api_key_provider_secret
+        from max_cli.auth import _resolve_api_key_provider_secret
         pool = _mock_pool(_entry("pool-key-should-not-win"))
         with patch("agent.credential_pool.load_pool", return_value=pool) as mp:
             key, source = _resolve_api_key_provider_secret(
@@ -147,7 +147,7 @@ class TestValidEnvKeyStillWins:
         _write_env_file(isolated_hermes_home, OPENROUTER_API_KEY="sk-or-v1-env-key-wins")
         pool = _mock_pool(_entry("sk-or-v1-pool-key-loses"))
 
-        from hermes_cli.auth import _resolve_api_key_provider_secret
+        from max_cli.auth import _resolve_api_key_provider_secret
         with patch("agent.credential_pool.load_pool", return_value=pool) as mp:
             key, source = _resolve_api_key_provider_secret(
                 provider_id="openrouter",
@@ -165,7 +165,7 @@ class TestValidEnvKeyStillWins:
             OPENROUTER_KEY="sk-or-v1-second-var-good",
         )
 
-        from hermes_cli.auth import _resolve_api_key_provider_secret
+        from max_cli.auth import _resolve_api_key_provider_secret
         key, source = _resolve_api_key_provider_secret(
             provider_id="openrouter",
             pconfig=_make_pconfig(

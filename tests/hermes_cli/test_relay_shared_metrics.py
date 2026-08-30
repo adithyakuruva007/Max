@@ -1,4 +1,4 @@
-"""Focused tests for the Hermes shared-metrics durable store."""
+"""Focused tests for the Max shared-metrics durable store."""
 
 from __future__ import annotations
 
@@ -20,9 +20,9 @@ from typing import Any
 
 import pytest
 from agent import relay_runtime
-from hermes_cli.observability import shared_metrics as shared_metrics_module
-from hermes_cli.observability.shared_metrics import SharedMetricsStore
-from hermes_cli.observability.shared_metrics_contract import (
+from max_cli.observability import shared_metrics as shared_metrics_module
+from max_cli.observability.shared_metrics import SharedMetricsStore
+from max_cli.observability.shared_metrics_contract import (
     CLIENT_ACTIVE_METRIC,
     CLIENT_ARCHITECTURES,
     CLIENT_INSTALL_METHODS,
@@ -81,7 +81,7 @@ from hermes_cli.observability.shared_metrics_contract import (
 
 SCHEMA_PATH = (
     Path(__file__).resolve().parents[2]
-    / "hermes_cli"
+    / "max_cli"
     / "observability"
     / "schemas"
     / "hermes.shared_metrics.v2.schema.json"

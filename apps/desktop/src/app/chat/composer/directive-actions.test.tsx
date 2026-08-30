@@ -48,7 +48,7 @@ afterEach(() => {
   cleanup()
   document.body.replaceChildren()
   closeRightRail()
-  delete desktopWindow.hermesDesktop
+  delete desktopWindow.maxDesktop
   openSession.mockReset()
   vi.useRealTimers()
 })
@@ -67,7 +67,7 @@ describe('ComposerDirectiveActions', () => {
   it('opens a url in the in-app browser rather than navigating the app', async () => {
     const openExternal = vi.fn().mockResolvedValue(undefined)
 
-    desktopWindow.hermesDesktop = { openExternal } as unknown as Window['hermesDesktop']
+    desktopWindow.maxDesktop = { openExternal } as unknown as Window['hermesDesktop']
 
     const editor = mountEditor([{ kind: 'url', value: 'https://example.com/docs' }])
 

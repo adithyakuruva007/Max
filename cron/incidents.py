@@ -30,8 +30,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
-from hermes_constants import get_hermes_home
-from hermes_time import now as _hermes_now
+from max_constants import get_max_home
+from max_time import now as _hermes_now
 
 # Optional test override (mirrors ``cron.executions.EXECUTIONS_FILE``).
 EXECUTIONS_FILE: Optional[Path] = None
@@ -77,11 +77,11 @@ def _db_path() -> Path:
         pass
     if EXECUTIONS_FILE is not None:
         return Path(EXECUTIONS_FILE)
-    return get_hermes_home().resolve() / "cron" / "executions.db"
+    return get_max_home().resolve() / "cron" / "executions.db"
 
 
 def _initialize_schema(conn: sqlite3.Connection) -> None:
-    from hermes_state import apply_wal_with_fallback
+    from max_state import apply_wal_with_fallback
 
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA busy_timeout=5000")

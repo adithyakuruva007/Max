@@ -1,8 +1,8 @@
-"""Tests for SIGHUP protection and stdout mirroring in ``hermes update``.
+"""Tests for SIGHUP protection and stdout mirroring in ``max update``.
 
 Covers ``_UpdateOutputStream``, ``_install_hangup_protection``, and
-``_finalize_update_output`` in ``hermes_cli/main.py``.  These exist so
-that ``hermes update`` survives a terminal disconnect mid-install
+``_finalize_update_output`` in ``max_cli/main.py``.  These exist so
+that ``max update`` survives a terminal disconnect mid-install
 (SSH drop, shell close) without leaving the venv half-installed.
 """
 
@@ -14,7 +14,7 @@ import sys
 
 import pytest
 
-from hermes_cli.main import (
+from max_cli.main import (
     _UpdateOutputStream,
     _finalize_update_output,
     _install_hangup_protection,
@@ -25,11 +25,11 @@ from hermes_cli.main import (
 
 
 def test_update_completion_includes_bounded_action_identity(monkeypatch, capsys):
-    monkeypatch.setenv("HERMES_ACTION_ID", "a" * 32)
+    monkeypatch.setenv("MAX_ACTION_ID", "a" * 32)
     # These tests pin the action-identity receipt contract, not the branch
     # display — neutralize the branch+HEAD suffix added for the 2026-08-17
     # parked-branch incident (covered by test_update_parked_branch_guard.py).
-    monkeypatch.setattr("hermes_cli.update_cmd._branch_head_suffix", lambda: "")
+    monkeypatch.setattr("max_cli.update_cmd._branch_head_suffix", lambda: "")
 
     _print_update_completion("✓ Update complete!")
 
@@ -40,8 +40,8 @@ def test_update_completion_includes_bounded_action_identity(monkeypatch, capsys)
 
 
 def test_update_completion_rejects_untrusted_action_identity(monkeypatch, capsys):
-    monkeypatch.setenv("HERMES_ACTION_ID", "not-safe\nforged")
-    monkeypatch.setattr("hermes_cli.update_cmd._branch_head_suffix", lambda: "")
+    monkeypatch.setenv("MAX_ACTION_ID", "not-safe\nforged")
+    monkeypatch.setattr("max_cli.update_cmd._branch_head_suffix", lambda: "")
 
     _print_update_completion("✓ Update complete!")
 
@@ -107,11 +107,11 @@ class TestInstallHangupProtection:
 
 
     def test_wraps_stdout_and_stderr_with_mirror(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         # Nuke any cached home path
-        import hermes_cli.config as _cfg
-        if hasattr(_cfg, "_HERMES_HOME_CACHE"):
-            _cfg._HERMES_HOME_CACHE = None  # type: ignore[attr-defined]
+        import max_cli.config as _cfg
+        if hasattr(_cfg, "_MAX_HOME_CACHE"):
+            _cfg._MAX_HOME_CACHE = None  # type: ignore[attr-defined]
 
         prev_out, prev_err = sys.stdout, sys.stderr
         state = _install_hangup_protection(gateway_mode=False)
@@ -130,7 +130,7 @@ class TestInstallHangupProtection:
             assert log_path.exists()
             contents = log_path.read_text(encoding="utf-8")
             assert "checking mirror" in contents
-            assert "hermes update started" in contents
+            assert "max update started" in contents
         finally:
             _finalize_update_output(state)
             # Sanity-check restoration
@@ -139,7 +139,7 @@ class TestInstallHangupProtection:
 
 
     def test_non_fatal_if_log_setup_fails(self, monkeypatch):
-        """If get_hermes_home() raises, stdio must be left untouched but SIGHUP still handled."""
+        """If get_max_home() raises, stdio must be left untouched but SIGHUP still handled."""
         prev_out, prev_err = sys.stdout, sys.stderr
 
         def _boom():
@@ -147,7 +147,7 @@ class TestInstallHangupProtection:
 
         # Patch the import inside _install_hangup_protection.
         monkeypatch.setattr(
-            "hermes_cli.config.get_hermes_home", _boom, raising=True
+            "max_cli.config.get_max_home", _boom, raising=True
         )
 
         original_handler = (

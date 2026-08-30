@@ -80,9 +80,9 @@ class TestBuildAnthropicClient:
             )
             kwargs = mock_sdk.Anthropic.call_args[1]
             headers = kwargs["default_headers"]
-            assert headers["HTTP-Referer"] == "https://hermes-agent.nousresearch.com"
-            assert headers["X-Title"] == "Hermes Agent"
-            assert headers["User-Agent"].startswith("HermesAgent/")
+            assert headers["HTTP-Referer"] == "https://max-agent.stardustresearch.com"
+            assert headers["X-Title"] == "Max Agent"
+            assert headers["User-Agent"].startswith("MaxAgent/")
             # Auth branch is unchanged: x-api-key via api_key, betas kept.
             assert kwargs["api_key"] == "sk-opencode-secret"
             assert "anthropic-beta" in headers
@@ -282,7 +282,7 @@ class TestResolveAnthropicToken:
         monkeypatch.setattr("agent.anthropic_adapter.Path.home", lambda: tmp_path)
         # Isolate source #5 (credential_pool): ensure source #4 (Claude Code
         # creds, incl. the macOS keychain read which Path.home does not cover)
-        # returns nothing, mirroring a Hermes-PKCE-only setup.
+        # returns nothing, mirroring a Max-PKCE-only setup.
         monkeypatch.setattr("agent.anthropic_credentials.read_claude_code_credentials", lambda: None)
 
         pool_entry = SimpleNamespace(
@@ -1452,7 +1452,7 @@ class TestConvertToolsToAnthropicDedup:
 
     Anthropic rejects requests with duplicate tool names.  This guard converts
     a hard failure into a warning log.  See:
-    https://github.com/NousResearch/hermes-agent/issues/18478
+    https://github.com/NousResearch/max-agent/issues/18478
     """
 
     def _make_openai_tool(self, name: str) -> dict:

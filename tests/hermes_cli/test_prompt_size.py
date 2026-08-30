@@ -1,4 +1,4 @@
-"""Tests for the ``hermes prompt-size`` diagnostic (issue #34667)."""
+"""Tests for the ``max prompt-size`` diagnostic (issue #34667)."""
 
 import json
 import sys
@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from hermes_cli.prompt_size import (
+from max_cli.prompt_size import (
     _SKILLS_BLOCK_RE,
     _build_inspection_agent,
     _compute_skills_breakdown,
@@ -36,9 +36,9 @@ def _seed_skill(hermes_home, name, description):
 
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
-    hermes_home = tmp_path / ".hermes"
+    hermes_home = tmp_path / ".max"
     hermes_home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
     monkeypatch.chdir(tmp_path)  # avoid picking up the repo's AGENTS.md
     return hermes_home
 

@@ -1,7 +1,7 @@
 """macOS Full Disk Access onboarding guidance (issue #52010 follow-up).
 
 One FDA grant silences every per-folder TCC prompt permanently. Doctor
-reports the state and prints the one-switch setup; `hermes setup` surfaces
+reports the state and prints the one-switch setup; `max setup` surfaces
 the same tip at onboarding. The probe must never itself trigger a prompt —
 it reads the FDA-gated TCC db directory, which returns EPERM (no dialog)
 without the grant.
@@ -10,8 +10,8 @@ without the grant.
 import io
 import contextlib
 
-import hermes_cli.doctor as doctor_mod
-from hermes_cli.setup import _print_macos_fda_tip
+import max_cli.doctor as doctor_mod
+from max_cli.setup import _print_macos_fda_tip
 
 
 def _capture(fn):
@@ -63,14 +63,14 @@ class TestDoctorFdaCheck:
 
 class TestSetupFdaTip:
     def test_silent_on_non_macos(self, monkeypatch):
-        import hermes_cli.setup as setup_mod
+        import max_cli.setup as setup_mod
 
         monkeypatch.setattr(setup_mod.sys, "platform", "linux")
         out = _capture(_print_macos_fda_tip)
         assert out == ""
 
     def test_silent_when_already_granted(self, monkeypatch, tmp_path):
-        import hermes_cli.setup as setup_mod
+        import max_cli.setup as setup_mod
 
         monkeypatch.setattr(setup_mod.sys, "platform", "darwin")
         tcc = tmp_path / "Library" / "Application Support" / "com.apple.TCC"
@@ -80,7 +80,7 @@ class TestSetupFdaTip:
         assert out == ""
 
     def test_tip_printed_when_denied(self, monkeypatch, tmp_path):
-        import hermes_cli.setup as setup_mod
+        import max_cli.setup as setup_mod
 
         monkeypatch.setattr(setup_mod.sys, "platform", "darwin")
         tcc = tmp_path / "Library" / "Application Support" / "com.apple.TCC"
@@ -94,4 +94,4 @@ class TestSetupFdaTip:
         out = _capture(_print_macos_fda_tip)
         assert "Full Disk Access" in out
         assert "Privacy_AllFiles" in out
-        assert "survives every Hermes update" in out
+        assert "survives every Max update" in out

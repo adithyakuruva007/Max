@@ -12,7 +12,7 @@ These tests pin the fail-closed contract: an unopenable profile store raises a
 clear error (no agent turn), and NO path — deferred build or the
 ``_init_session`` cwd hydration — touches the launch ``state.db`` instead.
 
-#88532 made SessionStore follow HERMES_HOME; this covers the TUI/agent
+#88532 made SessionStore follow MAX_HOME; this covers the TUI/agent
 SessionDB handle. Related to #87723 and #89789.
 """
 
@@ -25,8 +25,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import hermes_state
-from hermes_state import SessionDB
+import max_state
+from max_state import SessionDB
 
 
 @pytest.fixture
@@ -35,8 +35,8 @@ def homes(tmp_path, monkeypatch):
     profile = root / "profiles" / "worker"
     root.mkdir(parents=True)
     profile.mkdir(parents=True)
-    monkeypatch.setenv("HERMES_HOME", str(root))
-    monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", hermes_state._IMPORT_DEFAULT_DB_PATH)
+    monkeypatch.setenv("MAX_HOME", str(root))
+    monkeypatch.setattr(max_state, "DEFAULT_DB_PATH", max_state._IMPORT_DEFAULT_DB_PATH)
     return root, profile
 
 
@@ -96,7 +96,7 @@ def test_open_profile_session_db_does_not_fallback_on_open_failure(homes, monkey
     def boom_db(**_kwargs):
         raise Boom("profile store unavailable")
 
-    monkeypatch.setattr("hermes_state.SessionDB", boom_db)
+    monkeypatch.setattr("max_state.SessionDB", boom_db)
     with pytest.raises(RuntimeError, match="profile session store unavailable") as ei:
         server._open_profile_session_db(str(profile))
     assert isinstance(ei.value.__cause__, Boom)

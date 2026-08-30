@@ -1,4 +1,4 @@
-"""Orphan Desktop-local ``hermes serve`` reap at backend start.
+"""Orphan Desktop-local ``max serve`` reap at backend start.
 
 When Desktop dies uncleanly, local ``serve --host 127.0.0.1 --port 0``
 children can be reparented to pid 1 and keep full MCP trees alive. The next
@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
-from hermes_cli.dashboard_procs import (
+from max_cli.dashboard_procs import (
     _is_desktop_local_serve_cmdline,
     _reap_orphaned_desktop_local_serves,
 )
@@ -19,10 +19,10 @@ from hermes_cli.dashboard_procs import (
 
 def test_desktop_local_serve_shape_matches_ephemeral_loopback():
     assert _is_desktop_local_serve_cmdline(
-        "python -m hermes_cli.main serve --host 127.0.0.1 --port 0"
+        "python -m max_cli.main serve --host 127.0.0.1 --port 0"
     )
     assert _is_desktop_local_serve_cmdline(
-        "hermes serve --isolated --host 127.0.0.1 --port 0 --ssh-owner-nonce abc"
+        "max serve --isolated --host 127.0.0.1 --port 0 --ssh-owner-nonce abc"
     )
     assert _is_desktop_local_serve_cmdline(
         "/venv/bin/hermes serve --host=127.0.0.1 --port=0"
@@ -31,23 +31,23 @@ def test_desktop_local_serve_shape_matches_ephemeral_loopback():
 
 def test_desktop_local_serve_shape_spares_fixed_port_and_non_serve():
     assert not _is_desktop_local_serve_cmdline(
-        "hermes serve --host 100.106.105.2 --port 9119 --skip-build"
+        "max serve --host 100.106.105.2 --port 9119 --skip-build"
     )
     assert not _is_desktop_local_serve_cmdline(
-        "hermes serve --host 127.0.0.1 --port 9119"
+        "max serve --host 127.0.0.1 --port 9119"
     )
-    assert not _is_desktop_local_serve_cmdline("hermes gateway run --replace")
+    assert not _is_desktop_local_serve_cmdline("max gateway run --replace")
     assert not _is_desktop_local_serve_cmdline(
-        "vim notes about hermes serve --port 0"
+        "vim notes about max serve --port 0"
     )
 
 
 def test_reap_only_kills_ppid1_local_serves():
     scanned = [
-        (111, "hermes serve --host 127.0.0.1 --port 0"),  # orphan local
-        (222, "hermes serve --host 127.0.0.1 --port 0"),  # still has parent
-        (333, "hermes serve --host 100.1.2.3 --port 9119"),  # fixed remote
-        (444, "hermes serve --isolated --host 127.0.0.1 --port 0"),  # orphan isolated
+        (111, "max serve --host 127.0.0.1 --port 0"),  # orphan local
+        (222, "max serve --host 127.0.0.1 --port 0"),  # still has parent
+        (333, "max serve --host 100.1.2.3 --port 9119"),  # fixed remote
+        (444, "max serve --isolated --host 127.0.0.1 --port 0"),  # orphan isolated
     ]
     ppids = {111: 1, 222: 50, 333: 1, 444: 1}
     terms: list[int] = []
@@ -69,17 +69,17 @@ def test_reap_only_kills_ppid1_local_serves():
 
     with (
         patch(
-            "hermes_cli.dashboard_procs._scan_dashboard_processes",
+            "max_cli.dashboard_procs._scan_dashboard_processes",
             return_value=scanned,
         ),
         patch(
-            "hermes_cli.dashboard_procs._process_ppid",
+            "max_cli.dashboard_procs._process_ppid",
             side_effect=lambda pid: ppids.get(pid),
         ),
         patch("os.kill", side_effect=fake_kill),
         patch("sys.platform", "darwin"),
     ):
-        os.environ.pop("HERMES_DESKTOP_CHILD_PID", None)
+        os.environ.pop("MAX_DESKTOP_CHILD_PID", None)
         result = _reap_orphaned_desktop_local_serves(
             sleep_fn=lambda _s: None,
             signal_term=15,
@@ -97,11 +97,11 @@ def test_reap_only_kills_ppid1_local_serves():
 def test_reap_passes_child_pid_exclude_to_scan():
     with (
         patch(
-            "hermes_cli.dashboard_procs._scan_dashboard_processes",
+            "max_cli.dashboard_procs._scan_dashboard_processes",
             return_value=[],
         ) as scan,
         patch("sys.platform", "darwin"),
-        patch.dict(os.environ, {"HERMES_DESKTOP_CHILD_PID": "999,111"}, clear=False),
+        patch.dict(os.environ, {"MAX_DESKTOP_CHILD_PID": "999,111"}, clear=False),
     ):
         result = _reap_orphaned_desktop_local_serves(sleep_fn=lambda _s: None)
 
@@ -120,7 +120,7 @@ def test_reap_passes_child_pid_exclude_to_scan():
 # ---------------------------------------------------------------------------
 
 import json
-from hermes_cli.dashboard_procs import (
+from max_cli.dashboard_procs import (
     _lock_owned_serve_pids,
     _valid_lockfile_payload,
 )
@@ -137,9 +137,9 @@ def _valid_lock_payload(pid: int, ownership_id: str, spawn_nonce: str) -> dict:
         "pid": pid,
         "port": 0,
         "profile": "default",
-        "hermesPath": "/opt/hermes/bin/hermes",
-        "hermesHome": "~/.hermes",
-        "logPath": f"~/.hermes/desktop-ssh/{ownership_id}/{spawn_nonce}.log",
+        "hermesPath": "/opt/max/bin/hermes",
+        "hermesHome": "~/.max",
+        "logPath": f"~/.max/desktop-ssh/{ownership_id}/{spawn_nonce}.log",
         "startedAt": "2026-08-04T20:00:00Z",
     }
 
@@ -184,7 +184,7 @@ def test_valid_lockfile_payload_rejects_wrong_owner_and_shape():
     assert _valid_lockfile_payload(bad_nonce, oid) is False
     # logPath not ending in <oid>/<nonce>.log.
     bad_log = _valid_lock_payload(1, oid, nonce)
-    bad_log["logPath"] = "~/.hermes/desktop-ssh/{oid}/other.log".format(oid=oid)
+    bad_log["logPath"] = "~/.max/desktop-ssh/{oid}/other.log".format(oid=oid)
     assert _valid_lockfile_payload(bad_log, oid) is False
 
 
@@ -193,8 +193,8 @@ def test_reap_spare_lock_owned_ssh_remote_backend_of_foreign_client():
     matches the Desktop-local serve shape and is orphaned at ppid 1, but a valid
     backend.lock.json owns its PID. The reap must NOT kill it."""
     scanned = [
-        (555, "hermes serve --host 127.0.0.1 --port 0"),  # lock-owned remote
-        (666, "hermes serve --host 127.0.0.1 --port 0"),  # genuine orphan
+        (555, "max serve --host 127.0.0.1 --port 0"),  # lock-owned remote
+        (666, "max serve --host 127.0.0.1 --port 0"),  # genuine orphan
     ]
     ppids = {555: 1, 666: 1}
     terms: list[int] = []
@@ -219,17 +219,17 @@ def test_reap_spare_lock_owned_ssh_remote_backend_of_foreign_client():
 
     with (
         patch(
-            "hermes_cli.dashboard_procs._scan_dashboard_processes",
+            "max_cli.dashboard_procs._scan_dashboard_processes",
             return_value=scanned,
         ),
         patch(
-            "hermes_cli.dashboard_procs._process_ppid",
+            "max_cli.dashboard_procs._process_ppid",
             side_effect=lambda pid: ppids.get(pid),
         ),
         patch("os.kill", side_effect=fake_kill),
         patch("sys.platform", "darwin"),
     ):
-        os.environ.pop("HERMES_DESKTOP_CHILD_PID", None)
+        os.environ.pop("MAX_DESKTOP_CHILD_PID", None)
         result = _reap_orphaned_desktop_local_serves(
             sleep_fn=lambda _s: None,
             signal_term=15,
@@ -247,7 +247,7 @@ def test_reap_spare_lock_owned_ssh_remote_backend_of_foreign_client():
 
 def test_reap_spares_young_backend_until_desktop_can_write_lock():
     """A concurrently-starting sibling has no lock yet but is not an orphan."""
-    scanned = [(777, "hermes serve --isolated --host 127.0.0.1 --port 0")]
+    scanned = [(777, "max serve --isolated --host 127.0.0.1 --port 0")]
     terms: list[int] = []
 
     def fake_kill(pid, sig):
@@ -259,10 +259,10 @@ def test_reap_spares_young_backend_until_desktop_can_write_lock():
 
     with (
         patch(
-            "hermes_cli.dashboard_procs._scan_dashboard_processes",
+            "max_cli.dashboard_procs._scan_dashboard_processes",
             return_value=scanned,
         ),
-        patch("hermes_cli.dashboard_procs._process_ppid", return_value=1),
+        patch("max_cli.dashboard_procs._process_ppid", return_value=1),
         patch("os.kill", side_effect=fake_kill),
         patch("sys.platform", "darwin"),
     ):
@@ -279,7 +279,7 @@ def test_reap_spares_young_backend_until_desktop_can_write_lock():
 
 
 def test_reap_spares_backend_when_process_age_is_unknown():
-    scanned = [(778, "hermes serve --isolated --host 127.0.0.1 --port 0")]
+    scanned = [(778, "max serve --isolated --host 127.0.0.1 --port 0")]
     terms: list[int] = []
 
     def fake_age(_pid):
@@ -287,10 +287,10 @@ def test_reap_spares_backend_when_process_age_is_unknown():
 
     with (
         patch(
-            "hermes_cli.dashboard_procs._scan_dashboard_processes",
+            "max_cli.dashboard_procs._scan_dashboard_processes",
             return_value=scanned,
         ),
-        patch("hermes_cli.dashboard_procs._process_ppid", return_value=1),
+        patch("max_cli.dashboard_procs._process_ppid", return_value=1),
         patch("os.kill", side_effect=lambda pid, sig: terms.append(pid) if sig == 15 else None),
         patch("sys.platform", "darwin"),
     ):
@@ -308,8 +308,8 @@ def test_reap_spares_backend_when_process_age_is_unknown():
 
 def test_reap_age_boundary_makes_180_second_orphan_eligible():
     scanned = [
-        (779, "hermes serve --isolated --host 127.0.0.1 --port 0"),
-        (780, "hermes serve --isolated --host 127.0.0.1 --port 0"),
+        (779, "max serve --isolated --host 127.0.0.1 --port 0"),
+        (780, "max serve --isolated --host 127.0.0.1 --port 0"),
     ]
     terms: list[int] = []
     live = {779, 780}
@@ -327,10 +327,10 @@ def test_reap_age_boundary_makes_180_second_orphan_eligible():
     ages = {779: 179.999, 780: 180.0}
     with (
         patch(
-            "hermes_cli.dashboard_procs._scan_dashboard_processes",
+            "max_cli.dashboard_procs._scan_dashboard_processes",
             return_value=scanned,
         ),
-        patch("hermes_cli.dashboard_procs._process_ppid", return_value=1),
+        patch("max_cli.dashboard_procs._process_ppid", return_value=1),
         patch("os.kill", side_effect=fake_kill),
         patch("sys.platform", "darwin"),
     ):
@@ -348,7 +348,7 @@ def test_reap_age_boundary_makes_180_second_orphan_eligible():
 
 def test_reap_spare_lock_owned_backend_even_without_exclude_match(tmp_path):
     """End-to-end through the real lock scanner: a backend.lock.json on disk
-    spares a matching orphaned serve even when HERMES_DESKTOP_CHILD_PID is
+    spares a matching orphaned serve even when MAX_DESKTOP_CHILD_PID is
     unset (foreign-client backend, not ours by env either)."""
     oid = "a" * 32
     nonce = "b" * 16
@@ -358,7 +358,7 @@ def test_reap_spare_lock_owned_backend_even_without_exclude_match(tmp_path):
         json.dumps(_valid_lock_payload(4242, oid, nonce))
     )
 
-    scanned = [(4242, "hermes serve --host 127.0.0.1 --port 0")]
+    scanned = [(4242, "max serve --host 127.0.0.1 --port 0")]
     terms: list[int] = []
 
     def fake_kill(pid, sig):
@@ -368,17 +368,17 @@ def test_reap_spare_lock_owned_backend_even_without_exclude_match(tmp_path):
 
     with (
         patch(
-            "hermes_cli.dashboard_procs._scan_dashboard_processes",
+            "max_cli.dashboard_procs._scan_dashboard_processes",
             return_value=scanned,
         ),
         patch(
-            "hermes_cli.dashboard_procs._process_ppid",
+            "max_cli.dashboard_procs._process_ppid",
             return_value=1,
         ),
         patch("os.kill", side_effect=fake_kill),
         patch("sys.platform", "darwin"),
     ):
-        os.environ.pop("HERMES_DESKTOP_CHILD_PID", None)
+        os.environ.pop("MAX_DESKTOP_CHILD_PID", None)
         result = _reap_orphaned_desktop_local_serves(
             sleep_fn=lambda _s: None,
             signal_term=15,

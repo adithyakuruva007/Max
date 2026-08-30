@@ -107,7 +107,7 @@ test('paste enables when the clipboard holds text', async () => {
   await page.evaluate(() =>
     (
       window as unknown as { hermesDesktop?: { writeClipboard?: (text: string) => Promise<boolean> } }
-    ).hermesDesktop?.writeClipboard?.('clipboard payload')
+    ).maxDesktop?.writeClipboard?.('clipboard payload')
   )
   await composer.click()
   await composer.click({ button: 'right' })

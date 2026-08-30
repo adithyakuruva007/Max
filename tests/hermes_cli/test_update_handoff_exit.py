@@ -1,7 +1,7 @@
 """Windows hand-off child must hard-exit once the update is durably done (#93581).
 
 The re-exec'd venv child (spawned by
-``_reexec_dependency_sync_off_windows_shim`` with ``HERMES_UPDATE_REEXEC=1``)
+``_reexec_dependency_sync_off_windows_shim`` with ``MAX_UPDATE_REEXEC=1``)
 completes all update work — the receipt records ``success`` / ``completed at
 command boundary`` — but then hangs in interpreter shutdown on a leftover
 non-daemon thread, freezing the PowerShell window for minutes. The fix: on
@@ -20,8 +20,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import hermes_cli.main as main_mod
-from hermes_cli.main import cmd_update
+import max_cli.main as main_mod
+from max_cli.main import cmd_update
 
 
 class _FakeLock:
@@ -59,18 +59,18 @@ def _run_cmd_update(monkeypatch, impl, *, reexec: bool):
         events["order"].append("hard-exit")
         events["exit_codes"].append(code)
 
-    monkeypatch.setattr("hermes_cli.config.is_managed", lambda: False)
-    monkeypatch.setattr("hermes_cli.config.detect_install_method", lambda root: "git")
-    monkeypatch.setattr("hermes_cli.update_lock.UpdateLock", lambda: _FakeLock(events["order"]))
+    monkeypatch.setattr("max_cli.config.is_managed", lambda: False)
+    monkeypatch.setattr("max_cli.config.detect_install_method", lambda root: "git")
+    monkeypatch.setattr("max_cli.update_lock.UpdateLock", lambda: _FakeLock(events["order"]))
     monkeypatch.setattr(main_mod, "_cmd_update_impl", fake_impl)
     monkeypatch.setattr(main_mod, "_install_hangup_protection", lambda gateway_mode=False: None)
     monkeypatch.setattr(main_mod, "_finalize_update_output", fake_finalize_io)
-    monkeypatch.setattr("hermes_cli.update_receipt.finalize_pending_update_receipt", fake_receipt)
+    monkeypatch.setattr("max_cli.update_receipt.finalize_pending_update_receipt", fake_receipt)
     monkeypatch.setattr("os._exit", fake_exit)
     if reexec:
-        monkeypatch.setenv("HERMES_UPDATE_REEXEC", "1")
+        monkeypatch.setenv("MAX_UPDATE_REEXEC", "1")
     else:
-        monkeypatch.delenv("HERMES_UPDATE_REEXEC", raising=False)
+        monkeypatch.delenv("MAX_UPDATE_REEXEC", raising=False)
 
     args = SimpleNamespace(plan=False, check=False, gateway=False, branch=None)
     try:

@@ -7,12 +7,12 @@ import { reachablePreviewUrl } from './preview-reach'
 const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
 
 function installBridge(reachPreviewUrl?: unknown) {
-  desktopWindow.hermesDesktop = { reachPreviewUrl } as unknown as Window['hermesDesktop']
+  desktopWindow.maxDesktop = { reachPreviewUrl } as unknown as Window['hermesDesktop']
 }
 
 afterEach(() => {
   $connection.set(null)
-  delete desktopWindow.hermesDesktop
+  delete desktopWindow.maxDesktop
 })
 
 describe('reachablePreviewUrl', () => {

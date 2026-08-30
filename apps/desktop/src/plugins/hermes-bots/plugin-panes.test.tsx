@@ -16,7 +16,7 @@
  *    bot-scoped, so the tile must not sit beside a group chat.
  */
 
-import type * as HermesSdk from '@hermes/plugin-sdk'
+import type * as MaxSdk from '@hermes/plugin-sdk'
 import type { PluginContext } from '@hermes/plugin-sdk'
 import { atom } from 'nanostores'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -32,7 +32,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@hermes/plugin-sdk', async importOriginal => {
-  const original = await importOriginal<typeof HermesSdk>()
+  const original = await importOriginal<typeof MaxSdk>()
 
   return {
     ...original,

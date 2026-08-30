@@ -15,7 +15,7 @@ metadata hostnames (metadata.google.internal, 169.254.169.254) are
 Limitations:
   - DNS rebinding (TOCTOU): an attacker-controlled DNS server with TTL=0
     can return a public IP for the check, then a private IP for the actual
-    connection. Hermes-owned direct httpx request paths should use
+    connection. Max-owned direct httpx request paths should use
     ``create_ssrf_safe_client()`` / ``create_ssrf_safe_async_client()`` so the
     same policy is applied immediately before TCP connect and the client
     connects to the validated IP while preserving Host/SNI semantics.
@@ -34,7 +34,7 @@ import re
 from typing import Any, Optional
 from urllib.parse import parse_qsl, quote, unquote, urljoin, urlparse, urlsplit, urlunsplit
 
-from hermes_constants import get_hermes_home_override
+from max_constants import get_max_home_override
 from utils import is_truthy_value
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def _proxy_is_configured() -> bool:
 
 
 def normalize_url_for_request(url: str) -> str:
-    """Return an ASCII-safe HTTP URL for Hermes-owned URL tools.
+    """Return an ASCII-safe HTTP URL for Max-owned URL tools.
 
     Browsers and HTTP clients expect URIs, but users and models often provide
     IRIs such as ``https://wttr.in/Köln``.  Preserve URL syntax and existing
@@ -221,7 +221,7 @@ def _global_allow_private_urls() -> bool:
     """Return True when the user has opted out of private-IP blocking.
 
     Checks (in priority order):
-    1. ``HERMES_ALLOW_PRIVATE_URLS`` env var  (``true``/``1``/``yes``)
+    1. ``MAX_ALLOW_PRIVATE_URLS`` env var  (``true``/``1``/``yes``)
     2. ``security.allow_private_urls`` in config.yaml
     3. ``browser.allow_private_urls`` in config.yaml  (legacy / backward compat)
 
@@ -234,7 +234,7 @@ def _global_allow_private_urls() -> bool:
     # A multiplex gateway serves several independently configured profiles in
     # one process. Reusing the first profile's opt-out here would let it disable
     # private-network blocking for every later profile in that process.
-    if get_hermes_home_override() is not None:
+    if get_max_home_override() is not None:
         return _resolve_allow_private_urls()
 
     if _allow_private_resolved:
@@ -249,7 +249,7 @@ def _resolve_allow_private_urls() -> bool:
     """Resolve the effective private-URL toggle from the active config scope."""
 
     # 1. Env var override (highest priority)
-    env_val = os.getenv("HERMES_ALLOW_PRIVATE_URLS", "").strip().lower()
+    env_val = os.getenv("MAX_ALLOW_PRIVATE_URLS", "").strip().lower()
     if env_val in {"true", "1", "yes"}:
         return True
     if env_val in {"false", "0", "no"}:
@@ -258,7 +258,7 @@ def _resolve_allow_private_urls() -> bool:
 
     # 2. Config file
     try:
-        from hermes_cli.config import read_raw_config
+        from max_cli.config import read_raw_config
         cfg = read_raw_config()
         # security.allow_private_urls (preferred)
         sec = cfg.get("security", {})
@@ -419,7 +419,7 @@ def is_safe_url(url: str) -> bool:
     Fails closed: DNS errors and unexpected exceptions block the request.
 
     When ``security.allow_private_urls`` is enabled (or the env var
-    ``HERMES_ALLOW_PRIVATE_URLS=true``), private-IP blocking is skipped.
+    ``MAX_ALLOW_PRIVATE_URLS=true``), private-IP blocking is skipped.
     Cloud metadata endpoints (169.254.169.254, metadata.google.internal)
     remain blocked regardless — they are never legitimate agent targets.
     """

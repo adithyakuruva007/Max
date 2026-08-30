@@ -4,7 +4,7 @@ Anthropic OAuth refresh tokens are single-use: the POST that returns a new
 pair also invalidates the one that was sent.  The replacement therefore exists
 only in memory until it reaches its authoritative on-disk store —
 ``~/.claude/.credentials.json`` for ``claude_code`` entries,
-``~/.hermes/.anthropic_oauth.json`` for ``hermes_pkce`` ones.  Those singletons
+``~/.max/.anthropic_oauth.json`` for ``hermes_pkce`` ones.  Those singletons
 are authoritative in the strict sense: ``_seed_from_singletons()`` re-reads
 them on every ``load_pool()`` and writes what it finds over the pool row.
 
@@ -69,17 +69,17 @@ def _clean_spent_registry():
 
 @pytest.fixture
 def hermes_home(tmp_path, monkeypatch):
-    """Real on-disk HERMES_HOME so ``load_pool()`` re-reads what we persisted."""
+    """Real on-disk MAX_HOME so ``load_pool()`` re-reads what we persisted."""
     home = tmp_path / "hermes"
     home.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_TOKEN", raising=False)
     (home / "auth.json").write_text(
         json.dumps({"version": 1, "providers": {}}), encoding="utf-8"
     )
     monkeypatch.setattr(
-        "hermes_cli.auth.is_provider_explicitly_configured", lambda pid: True
+        "max_cli.auth.is_provider_explicitly_configured", lambda pid: True
     )
     return home
 
@@ -309,11 +309,11 @@ def test_reauthentication_clears_the_persist_failure_quarantine(
     # Restore a working filesystem, then simulate the re-login rewriting the
     # authoritative file with a genuinely new pair.
     monkeypatch.undo()
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_TOKEN", raising=False)
     monkeypatch.setattr(
-        "hermes_cli.auth.is_provider_explicitly_configured", lambda pid: True
+        "max_cli.auth.is_provider_explicitly_configured", lambda pid: True
     )
     monkeypatch.setattr(AA, "claude_code_credentials_path", lambda: claude_credentials)
     monkeypatch.setattr(AA, "_read_claude_code_credentials_from_keychain", lambda: None)

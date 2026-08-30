@@ -1,15 +1,15 @@
-// Unit tests for the pure Windows `hermes` resolution helpers extracted from
+// Unit tests for the pure Windows `max` resolution helpers extracted from
 // main.ts's findOnPath(), handOffWindowsBootstrapRecovery(), and
-// unwrapWindowsVenvHermesCommand(). These pin the two Windows resolution bugs
+// unwrapWindowsVenvMaxCommand(). These pin the two Windows resolution bugs
 // that caused desktop reinstall loops:
 //   1. buildPathExtCandidates() — PATHEXT extensions must be tried BEFORE the
-//      empty extension, or an extensionless Git-Bash `hermes` shim shadows
+//      empty extension, or an extensionless Git-Bash `max` shim shadows
 //      the real hermes.cmd/hermes.exe.
 //   2. chooseUpdaterArgs() — must distinguish a runnable updater from stale
 //      install provenance. The bootstrap marker can outlive the venv, and a
 //      partial venv cannot run the updater; those states require --repair.
-//   3. resolveVenvHermesCommand() — must probe the venv python via
-//      canImportHermesCli() before trusting it, or a broken venv gets
+//   3. resolveVenvMaxCommand() — must probe the venv python via
+//      canImportMaxCli() before trusting it, or a broken venv gets
 //      re-selected forever instead of falling through to bootstrap.
 
 import assert from 'node:assert/strict'
@@ -21,7 +21,7 @@ import {
   buildPathExtCandidates,
   chooseUpdaterArgs,
   getVenvSitePackagesEntries,
-  resolveVenvHermesCommand
+  resolveVenvMaxCommand
 } from './windows-hermes-path'
 
 test('buildPathExtCandidates: Windows tries PATHEXT extensions before the empty extension', () => {
@@ -46,7 +46,7 @@ test('buildPathExtCandidates: non-Windows only tries the bare name', () => {
 })
 
 test('chooseUpdaterArgs: gentle --update when both updater runtime files exist', () => {
-  assert.deepEqual(chooseUpdaterArgs({ hasBootstrapMarker: true, hasVenvHermes: true, hasVenvPython: true }, 'main'), [
+  assert.deepEqual(chooseUpdaterArgs({ hasBootstrapMarker: true, hasVenvMax: true, hasVenvPython: true }, 'main'), [
     '--update',
     '--branch',
     'main'
@@ -55,18 +55,18 @@ test('chooseUpdaterArgs: gentle --update when both updater runtime files exist',
 
 test('chooseUpdaterArgs: marker-only install uses --repair when the venv is gone', () => {
   assert.deepEqual(
-    chooseUpdaterArgs({ hasBootstrapMarker: true, hasVenvHermes: false, hasVenvPython: false }, 'main'),
+    chooseUpdaterArgs({ hasBootstrapMarker: true, hasVenvMax: false, hasVenvPython: false }, 'main'),
     ['--repair', '--branch', 'main']
   )
 })
 
 test('chooseUpdaterArgs: partial updater runtimes use --repair', () => {
-  assert.deepEqual(chooseUpdaterArgs({ hasBootstrapMarker: true, hasVenvHermes: false, hasVenvPython: true }, 'main'), [
+  assert.deepEqual(chooseUpdaterArgs({ hasBootstrapMarker: true, hasVenvMax: false, hasVenvPython: true }, 'main'), [
     '--repair',
     '--branch',
     'main'
   ])
-  assert.deepEqual(chooseUpdaterArgs({ hasBootstrapMarker: true, hasVenvHermes: true, hasVenvPython: false }, 'main'), [
+  assert.deepEqual(chooseUpdaterArgs({ hasBootstrapMarker: true, hasVenvMax: true, hasVenvPython: false }, 'main'), [
     '--repair',
     '--branch',
     'main'
@@ -75,22 +75,22 @@ test('chooseUpdaterArgs: partial updater runtimes use --repair', () => {
 
 test('chooseUpdaterArgs: passes the branch through unchanged in both modes', () => {
   assert.deepEqual(
-    chooseUpdaterArgs({ hasBootstrapMarker: false, hasVenvHermes: true, hasVenvPython: true }, 'release/1.2'),
+    chooseUpdaterArgs({ hasBootstrapMarker: false, hasVenvMax: true, hasVenvPython: true }, 'release/1.2'),
     ['--update', '--branch', 'release/1.2']
   )
   assert.deepEqual(
-    chooseUpdaterArgs({ hasBootstrapMarker: false, hasVenvHermes: false, hasVenvPython: false }, 'release/1.2'),
+    chooseUpdaterArgs({ hasBootstrapMarker: false, hasVenvMax: false, hasVenvPython: false }, 'release/1.2'),
     ['--repair', '--branch', 'release/1.2']
   )
 })
 
-function makeDeps(overrides: Partial<Parameters<typeof resolveVenvHermesCommand>[2]> = {}) {
+function makeDeps(overrides: Partial<Parameters<typeof resolveVenvMaxCommand>[2]> = {}) {
   return {
     isWindows: true,
     isCommandScript: () => false,
     fileExists: () => true,
     directoryExists: () => false,
-    canImportHermesCli: () => true,
+    canImportMaxCli: () => true,
     getVenvPython: (venvRoot: string) => `${venvRoot}/Scripts/python.exe`,
     getVenvSitePackagesEntries: () => [],
     buildDesktopBackendEnv: () => ({ FAKE_ENV: '1' }),
@@ -103,41 +103,41 @@ function makeDeps(overrides: Partial<Parameters<typeof resolveVenvHermesCommand>
   }
 }
 
-test('resolveVenvHermesCommand: returns null off Windows', () => {
+test('resolveVenvMaxCommand: returns null off Windows', () => {
   const deps = makeDeps({ isWindows: false })
 
-  assert.equal(resolveVenvHermesCommand('/root/venv/Scripts/hermes.exe', [], deps), null)
+  assert.equal(resolveVenvMaxCommand('/root/venv/Scripts/hermes.exe', [], deps), null)
 })
 
-test('resolveVenvHermesCommand: returns null for a .cmd/.bat script command', () => {
+test('resolveVenvMaxCommand: returns null for a .cmd/.bat script command', () => {
   const deps = makeDeps({ isCommandScript: () => true })
 
-  assert.equal(resolveVenvHermesCommand('/root/venv/Scripts/hermes.cmd', [], deps), null)
+  assert.equal(resolveVenvMaxCommand('/root/venv/Scripts/hermes.cmd', [], deps), null)
 })
 
-test('resolveVenvHermesCommand: returns null when the basename is not hermes/hermes.exe', () => {
+test('resolveVenvMaxCommand: returns null when the basename is not hermes/hermes.exe', () => {
   const deps = makeDeps()
 
-  assert.equal(resolveVenvHermesCommand('/root/venv/Scripts/python.exe', [], deps), null)
+  assert.equal(resolveVenvMaxCommand('/root/venv/Scripts/python.exe', [], deps), null)
 })
 
-test('resolveVenvHermesCommand: returns null when the parent dir is not Scripts', () => {
+test('resolveVenvMaxCommand: returns null when the parent dir is not Scripts', () => {
   const deps = makeDeps()
 
-  assert.equal(resolveVenvHermesCommand('/root/venv/bin/hermes.exe', [], deps), null)
+  assert.equal(resolveVenvMaxCommand('/root/venv/bin/hermes.exe', [], deps), null)
 })
 
-test('resolveVenvHermesCommand: returns null when the venv python does not exist on disk', () => {
+test('resolveVenvMaxCommand: returns null when the venv python does not exist on disk', () => {
   const deps = makeDeps({ fileExists: () => false })
 
-  assert.equal(resolveVenvHermesCommand('/root/venv/Scripts/hermes.exe', [], deps), null)
+  assert.equal(resolveVenvMaxCommand('/root/venv/Scripts/hermes.exe', [], deps), null)
 })
 
-test('resolveVenvHermesCommand: probes the venv python before trusting it (returns null on failed probe)', () => {
+test('resolveVenvMaxCommand: probes the venv python before trusting it (returns null on failed probe)', () => {
   let probed = false
 
   const deps = makeDeps({
-    canImportHermesCli: (python: string) => {
+    canImportMaxCli: (python: string) => {
       probed = true
       assert.equal(python, '/root/venv/Scripts/python.exe')
 
@@ -145,30 +145,30 @@ test('resolveVenvHermesCommand: probes the venv python before trusting it (retur
     }
   })
 
-  const result = resolveVenvHermesCommand('/root/venv/Scripts/hermes.exe', ['serve'], deps)
+  const result = resolveVenvMaxCommand('/root/venv/Scripts/hermes.exe', ['serve'], deps)
 
   assert.equal(probed, true, 'must probe the venv interpreter; a broken venv must not be re-selected forever')
   assert.equal(result, null, 'a failed probe must fall through (return null) so the resolver reaches bootstrap')
 })
 
-test('resolveVenvHermesCommand: returns the resolved python backend descriptor when the probe passes', () => {
+test('resolveVenvMaxCommand: returns the resolved python backend descriptor when the probe passes', () => {
   const deps = makeDeps()
-  const result = resolveVenvHermesCommand('/root/venv/Scripts/hermes.exe', ['serve', '--port', '0'], deps)
+  const result = resolveVenvMaxCommand('/root/venv/Scripts/hermes.exe', ['serve', '--port', '0'], deps)
 
   assert.ok(result, 'a passing probe must return a backend descriptor, not null')
   assert.equal(result.command, '/root/venv/Scripts/python.exe')
-  assert.deepEqual(result.args, ['-m', 'hermes_cli.main', 'serve', '--port', '0'])
+  assert.deepEqual(result.args, ['-m', 'max_cli.main', 'serve', '--port', '0'])
   assert.equal(result.bootstrap, false)
   assert.equal(result.kind, 'python')
   assert.equal(result.shell, false)
   assert.deepEqual(result.env, { FAKE_ENV: '1' })
 })
 
-test('resolveVenvHermesCommand: is case-insensitive on hermes.exe and the Scripts dir name', () => {
+test('resolveVenvMaxCommand: is case-insensitive on hermes.exe and the Scripts dir name', () => {
   const deps = makeDeps()
 
-  assert.ok(resolveVenvHermesCommand('/root/venv/Scripts/HERMES.EXE', [], deps))
-  assert.ok(resolveVenvHermesCommand('/root/venv/SCRIPTS/hermes.exe', [], deps))
+  assert.ok(resolveVenvMaxCommand('/root/venv/Scripts/HERMES.EXE', [], deps))
+  assert.ok(resolveVenvMaxCommand('/root/venv/SCRIPTS/hermes.exe', [], deps))
 })
 
 // ── getVenvSitePackagesEntries ─────────────────────────────────────────────

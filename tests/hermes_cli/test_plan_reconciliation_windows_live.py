@@ -1,11 +1,11 @@
 """LIVE Windows E2E for plan-reconciliation (#92902) on windows-latest.
 
-Real processes with real Hermes-shaped argv, real inventory collection
+Real processes with real Max-shaped argv, real inventory collection
 (PID-file discovery + supervisor detection on REAL Windows), real
 reconciliation. No mocks on the components under test.
 
  1. Spawn a real process registered as a profile gateway (PID file + state
-    file in a temp HERMES_HOME) — real collect_runtime_inventory() must find
+    file in a temp MAX_HOME) — real collect_runtime_inventory() must find
     it, classify supervisor=manual, mechanism id 'manual'.
  2. Reconcile with bookkeeping that MISSES it -> unaccounted + escalation.
  3. Reconcile with it in killed_pids -> 'stopped', no escalation.
@@ -23,9 +23,9 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="live Windows E2
 
 
 def test_plan_reconciliation_live_windows(tmp_path, monkeypatch):
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
 
     # Real live process standing in for a manual gateway
     child = subprocess.Popen(
@@ -48,11 +48,11 @@ def test_plan_reconciliation_live_windows(tmp_path, monkeypatch):
             "code_version": "0.20.5",
         }), encoding="utf-8")
 
-        import hermes_cli.profiles as profiles_mod
+        import max_cli.profiles as profiles_mod
         monkeypatch.setattr(profiles_mod, "_get_default_hermes_home", lambda: home)
         monkeypatch.setattr(profiles_mod, "_get_profiles_root", lambda: tmp_path / "none")
 
-        from hermes_cli.update_inventory import (
+        from max_cli.update_inventory import (
             collect_runtime_inventory,
             match_runtime_outcomes,
             report_unaccounted_runtimes,

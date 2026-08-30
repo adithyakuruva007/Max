@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import kanban_db as kb
+from max_cli import kanban_db as kb
 
 
 @pytest.fixture
@@ -156,9 +156,9 @@ def test_dashboard_and_db_paths_produce_identical_outcomes(tmp_path, monkeypatch
     import importlib.util
     import sys
 
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     kb.init_db()
 

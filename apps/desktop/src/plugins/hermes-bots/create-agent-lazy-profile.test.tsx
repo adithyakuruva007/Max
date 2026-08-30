@@ -12,7 +12,7 @@
  *    every later open after a create or cancel silently started fresh.
  */
 
-import type * as HermesSdk from '@hermes/plugin-sdk'
+import type * as MaxSdk from '@hermes/plugin-sdk'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -42,7 +42,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@hermes/plugin-sdk', async importOriginal => {
-  const original = await importOriginal<typeof HermesSdk>()
+  const original = await importOriginal<typeof MaxSdk>()
 
   const SkillsViewStub = (props: SkillsViewProps) => {
     mocks.skillsView.push(props)

@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli import config as hermes_config
-from hermes_cli import main as hermes_main
+from max_cli import config as hermes_config
+from max_cli import main as hermes_main
 
 
 # ---------------------------------------------------------------------------
@@ -34,9 +34,9 @@ def _patch_managed_uv(request):
     def _fake_update_managed_uv(**kwargs):
         return None  # never actually self-update in tests
 
-    with patch("hermes_cli.managed_uv.resolve_uv", side_effect=_fake_resolve_uv), \
-         patch("hermes_cli.managed_uv.ensure_uv", side_effect=_fake_ensure_uv), \
-         patch("hermes_cli.managed_uv.update_managed_uv", side_effect=_fake_update_managed_uv):
+    with patch("max_cli.managed_uv.resolve_uv", side_effect=_fake_resolve_uv), \
+         patch("max_cli.managed_uv.ensure_uv", side_effect=_fake_ensure_uv), \
+         patch("max_cli.managed_uv.update_managed_uv", side_effect=_fake_update_managed_uv):
         yield
 
 
@@ -76,11 +76,11 @@ def test_refresh_active_memory_provider_dependencies_reinstalls_active_provider(
     recorded = []
 
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "max_cli.config.load_config",
         lambda: {"memory": {"provider": "mem0"}},
     )
     monkeypatch.setattr(
-        "hermes_cli.memory_setup._install_dependencies",
+        "max_cli.memory_setup._install_dependencies",
         lambda provider_name, force=False: recorded.append((provider_name, force)),
     )
 
@@ -91,16 +91,16 @@ def test_refresh_active_memory_provider_dependencies_reinstalls_active_provider(
 
 
 
-def test_reload_updated_runtime_modules_restores_new_hermes_constants_symbol(monkeypatch):
+def test_reload_updated_runtime_modules_restores_new_max_constants_symbol(monkeypatch):
     """A pre-pull module object missing a new helper is repaired by reload."""
-    import hermes_constants
+    import max_constants
 
-    monkeypatch.delattr(hermes_constants, "apply_subprocess_home_env", raising=False)
-    assert not hasattr(hermes_constants, "apply_subprocess_home_env")
+    monkeypatch.delattr(max_constants, "apply_subprocess_home_env", raising=False)
+    assert not hasattr(max_constants, "apply_subprocess_home_env")
 
     hermes_main._reload_updated_runtime_modules()
 
-    assert callable(hermes_constants.apply_subprocess_home_env)
+    assert callable(max_constants.apply_subprocess_home_env)
 
 
 
@@ -261,7 +261,7 @@ def _setup_keep_stash_test(monkeypatch, tmp_path):
     # a live gateway PID would trip the test-suite kill guard and turn the
     # run into exit 1 (gateway_fleet_restart_incomplete).
     monkeypatch.setattr(
-        "hermes_cli.gateway.find_gateway_pids", lambda **kw: [], raising=False
+        "max_cli.gateway.find_gateway_pids", lambda **kw: [], raising=False
     )
     return restore_calls, discard_calls, park_calls
 
@@ -315,7 +315,7 @@ def test_update_parser_accepts_keep_stash():
     """The flag parses and defaults off."""
     import argparse
 
-    from hermes_cli.subcommands.update import build_update_parser
+    from max_cli.subcommands.update import build_update_parser
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
@@ -333,7 +333,7 @@ def test_update_parser_accepts_keep_stash():
 
 def test_bootstrap_marker_not_autostashed_by_update(tmp_path):
     """#38529: the Desktop bootstrap marker must be git-ignored so that
-    ``hermes update``'s ``git stash push --include-untracked`` does not sweep it
+    ``max update``'s ``git stash push --include-untracked`` does not sweep it
     into an autostash on every run.
 
     Behavioral + hermetic: build a throwaway repo that adopts the project's real
@@ -361,21 +361,21 @@ def test_bootstrap_marker_not_autostashed_by_update(tmp_path):
     git("add", "-A")
     git("commit", "-qm", "init")
 
-    marker = tmp_path / ".hermes-bootstrap-complete"
+    marker = tmp_path / ".max-bootstrap-complete"
     marker.write_text("")
 
-    # Exact flags used by hermes update (hermes_cli/main.py).
+    # Exact flags used by max update (max_cli/main.py).
     git("stash", "push", "--include-untracked", "-m", "hermes-update-autostash")
 
     assert marker.exists(), (
-        ".hermes-bootstrap-complete was swept into the update autostash — it must "
+        ".max-bootstrap-complete was swept into the update autostash — it must "
         "be listed in .gitignore so `git stash -u` skips it (#38529)."
     )
     # It must not even register as a dirty/untracked change.
     status = subprocess.run(
         ["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True
     ).stdout
-    assert ".hermes-bootstrap-complete" not in status
+    assert ".max-bootstrap-complete" not in status
 
 
 # ---------------------------------------------------------------------------
@@ -418,7 +418,7 @@ def test_update_autostash_survives_undeletable_untracked_dir(tmp_path):
     (tmp_path / "tracked.txt").write_text("v2 local change\n")
     pkg = tmp_path / "packaging" / "homebrew"
     pkg.mkdir(parents=True)
-    (pkg / "hermes-agent.rb").write_text("formula\n")
+    (pkg / "max-agent.rb").write_text("formula\n")
     os.chmod(pkg, 0o555)  # undeletable contents, like a root-owned dir
     try:
         stash_ref = hermes_main._stash_local_changes_if_needed(["git"], tmp_path)
@@ -432,6 +432,6 @@ def test_update_autostash_survives_undeletable_untracked_dir(tmp_path):
         )
         assert restored is True
         assert (tmp_path / "tracked.txt").read_text() == "v2 local change\n"
-        assert (pkg / "hermes-agent.rb").read_text() == "formula\n"
+        assert (pkg / "max-agent.rb").read_text() == "formula\n"
     finally:
         os.chmod(pkg, 0o755)

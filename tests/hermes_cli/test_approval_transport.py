@@ -10,7 +10,7 @@ import time
 import pytest
 import yaml
 
-from hermes_cli.plugins import PluginContext, PluginManager, PluginManifest
+from max_cli.plugins import PluginContext, PluginManager, PluginManifest
 
 
 def _manifest(name: str = "fixture-approval") -> PluginManifest:
@@ -28,7 +28,7 @@ def _context(manager: PluginManager, name: str = "fixture-approval") -> PluginCo
 
 
 def _request():
-    from hermes_cli.approval_transport import ApprovalRequest
+    from max_cli.approval_transport import ApprovalRequest
 
     return ApprovalRequest.create(
         command="rm -rf /tmp/example",
@@ -79,17 +79,17 @@ def test_force_reload_clears_transport_registry(monkeypatch):
 def test_transport_registry_is_manager_and_profile_isolated(monkeypatch, tmp_path):
     first = PluginManager()
     second = PluginManager()
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "profiles" / "work"))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path / "profiles" / "work"))
     _context(first).register_approval_transport("phone", lambda request: None)
 
     assert first.get_approval_transport("phone") is not None
     assert second.get_approval_transport("phone") is None
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "profiles" / "personal"))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path / "profiles" / "personal"))
     assert first.get_approval_transport("phone") is None
 
 
 def test_host_accepts_bound_sync_and_async_decisions():
-    from hermes_cli.approval_transport import invoke_approval_transport
+    from max_cli.approval_transport import invoke_approval_transport
 
     request = _request()
     sync_result = invoke_approval_transport(
@@ -109,7 +109,7 @@ def test_host_accepts_bound_sync_and_async_decisions():
 
 
 def test_host_rejects_scope_not_offered_by_request():
-    from hermes_cli.approval_transport import ApprovalRequest, invoke_approval_transport
+    from max_cli.approval_transport import ApprovalRequest, invoke_approval_transport
 
     request = ApprovalRequest.create(
         command="dangerous",
@@ -154,7 +154,7 @@ def test_host_rejects_scope_not_offered_by_request():
     ],
 )
 def test_host_rejects_invalid_or_stale_decisions(present, failure):
-    from hermes_cli.approval_transport import invoke_approval_transport
+    from max_cli.approval_transport import invoke_approval_transport
 
     result = invoke_approval_transport(present, _request(), timeout_seconds=1)
 
@@ -163,7 +163,7 @@ def test_host_rejects_invalid_or_stale_decisions(present, failure):
 
 
 def test_host_timeout_and_exception_deny_without_waiting_forever():
-    from hermes_cli.approval_transport import invoke_approval_transport
+    from max_cli.approval_transport import invoke_approval_transport
 
     def hangs(_request):
         time.sleep(1)
@@ -181,7 +181,7 @@ def test_host_timeout_and_exception_deny_without_waiting_forever():
 
 
 def test_host_transport_wait_is_interruptible_and_pollable():
-    from hermes_cli.approval_transport import invoke_approval_transport
+    from max_cli.approval_transport import invoke_approval_transport
 
     polls = []
 
@@ -203,7 +203,7 @@ def test_host_transport_wait_is_interruptible_and_pollable():
 
 
 def test_host_rejects_decision_completed_after_deadline(monkeypatch):
-    import hermes_cli.approval_transport as transport_module
+    import max_cli.approval_transport as transport_module
 
     main_thread = threading.get_ident()
 
@@ -226,7 +226,7 @@ def test_host_rejects_decision_completed_after_deadline(monkeypatch):
 
 
 def test_host_caps_hung_transport_workers():
-    from hermes_cli.approval_transport import (
+    from max_cli.approval_transport import (
         _MAX_ACTIVE_TRANSPORT_WORKERS,
         invoke_approval_transport,
     )
@@ -440,8 +440,8 @@ def test_explicit_builtin_fallback_uses_existing_surface(monkeypatch):
 def test_live_temp_home_fixture_plugin_routes_and_hardline_stays_core_owned(
     tmp_path, monkeypatch
 ):
-    """Real discovery + config + guard path under an isolated HERMES_HOME."""
-    import hermes_cli.plugins as plugins_module
+    """Real discovery + config + guard path under an isolated MAX_HOME."""
+    import max_cli.plugins as plugins_module
     from tools import approval
 
     home = tmp_path / "hermes-home"
@@ -465,7 +465,7 @@ from pathlib import Path
 
 
 def present(request):
-    output = Path(os.environ["HERMES_HOME"]) / "transport-invocations.jsonl"
+    output = Path(os.environ["MAX_HOME"]) / "transport-invocations.jsonl"
     with output.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps({
             "request_id": request.request_id,
@@ -494,9 +494,9 @@ def register(ctx):
             }
         )
     )
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    monkeypatch.setenv("HERMES_BUNDLED_PLUGINS", str(bundled))
-    monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
+    monkeypatch.setenv("MAX_HOME", str(home))
+    monkeypatch.setenv("MAX_BUNDLED_PLUGINS", str(bundled))
+    monkeypatch.delenv("MAX_GATEWAY_SESSION", raising=False)
     monkeypatch.setattr(approval, "_YOLO_MODE_FROZEN", False)
     manager = PluginManager()
     monkeypatch.setattr(plugins_module, "_plugin_manager", manager)
@@ -512,7 +512,7 @@ def register(ctx):
             "rm -rf /tmp/hermes-approval-transport-fixture-reloaded", "local"
         )
         gateway_token = approval.set_hermes_interactive_context(False)
-        monkeypatch.setenv("HERMES_GATEWAY_SESSION", "1")
+        monkeypatch.setenv("MAX_GATEWAY_SESSION", "1")
         try:
             gateway_routed = approval.check_all_command_guards(
                 "rm -rf /tmp/hermes-approval-transport-fixture-gateway", "local"

@@ -8,8 +8,8 @@ from gateway.browser_control_broker import (
     ControllerRejected,
     get_browser_control_broker,
 )
-from hermes_cli import web_server
-from hermes_cli.dashboard_auth.ws_tickets import _reset_for_tests, mint_ticket
+from max_cli import web_server
+from max_cli.dashboard_auth.ws_tickets import _reset_for_tests, mint_ticket
 from tui_gateway import server
 from tui_gateway.ws import WSTransport
 from tui_gateway.methods_browser_control import _broker_event_writer, _principal_digest
@@ -101,11 +101,11 @@ def test_cloud_agent_context_binds_registration_principal_and_transport_family()
     tokens = []
     try:
         tokens = server._set_session_context("stored-context-session")
-        assert get_session_env("HERMES_BROWSER_CONTROL_PRINCIPAL") == _principal_digest(
+        assert get_session_env("MAX_BROWSER_CONTROL_PRINCIPAL") == _principal_digest(
             identity
         )
         assert (
-            get_session_env("HERMES_BROWSER_CONTROL_TRANSPORT_FAMILY")
+            get_session_env("MAX_BROWSER_CONTROL_TRANSPORT_FAMILY")
             == "cloud-ticket-ws"
         )
     finally:

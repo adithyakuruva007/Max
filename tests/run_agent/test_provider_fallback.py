@@ -222,7 +222,7 @@ class TestFallbackChainAdvancement:
         activation has to re-derive api_mode from the model and rebuild the
         Anthropic client — otherwise the turn POSTs /chat/completions.
         """
-        portal = "https://inference-api.nousresearch.com/v1"
+        portal = "https://inference-api.stardustresearch.com/v1"
         fbs = [
             {
                 "provider": "nous",
@@ -251,7 +251,7 @@ class TestFallbackChainAdvancement:
                 ),
             ),
             patch(
-                "hermes_cli.model_normalize.normalize_model_for_provider",
+                "max_cli.model_normalize.normalize_model_for_provider",
                 side_effect=lambda m, p: m,
             ),
             patch(
@@ -271,7 +271,7 @@ class TestFallbackChainAdvancement:
         assert agent._anthropic_client is not None
 
     def test_nous_non_anthropic_fallback_stays_on_chat_completions(self):
-        portal = "https://inference-api.nousresearch.com/v1"
+        portal = "https://inference-api.stardustresearch.com/v1"
         fbs = [{"provider": "nous", "model": "hermes-4-405b"}]
         agent = _make_agent(fallback_model=fbs)
         with (
@@ -287,7 +287,7 @@ class TestFallbackChainAdvancement:
                 ),
             ),
             patch(
-                "hermes_cli.model_normalize.normalize_model_for_provider",
+                "max_cli.model_normalize.normalize_model_for_provider",
                 side_effect=lambda m, p: m,
             ),
             patch(
@@ -352,7 +352,7 @@ class TestFallbackChainDedup:
             called.append((provider, model))
             return _mock_client(), model
         with patch("agent.auxiliary_client.resolve_provider_client", side_effect=_resolve):
-            with patch("hermes_cli.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m):
+            with patch("max_cli.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m):
                 ok = agent._try_activate_fallback()
 
         assert ok is True
@@ -405,7 +405,7 @@ class TestFallbackChainDedup:
 
         with patch("agent.auxiliary_client.resolve_provider_client", side_effect=_resolve):
             with patch(
-                "hermes_cli.model_normalize.normalize_model_for_provider",
+                "max_cli.model_normalize.normalize_model_for_provider",
                 side_effect=lambda m, p: m,
             ):
                 ok = agent._try_activate_fallback()

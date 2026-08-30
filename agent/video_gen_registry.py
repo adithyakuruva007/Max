@@ -13,7 +13,7 @@ If unset, :func:`get_active_provider` applies fallback logic:
 
 1. If exactly one *available* provider is registered, use it.
 2. Otherwise return ``None`` (the tool surfaces a helpful error pointing
-   the user at ``hermes tools``).
+   the user at ``max tools``).
 
 Mirrors ``agent/image_gen_registry.py`` so the two surfaces behave the
 same: the unconfigured fallback is filtered by ``is_available()`` so a box
@@ -29,7 +29,7 @@ import threading
 from typing import Dict, List, Optional
 
 from agent.video_gen_provider import VideoGenProvider
-from hermes_constants import hermes_home_key
+from max_constants import hermes_home_key
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ def get_active_provider() -> Optional[VideoGenProvider]:
     """
     configured: Optional[str] = None
     try:
-        from hermes_cli.config import load_config_readonly
+        from max_cli.config import load_config_readonly
 
         cfg = load_config_readonly()
         section = cfg.get("video_gen") if isinstance(cfg, dict) else None

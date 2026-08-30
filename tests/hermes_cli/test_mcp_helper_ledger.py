@@ -1,7 +1,7 @@
 """Tests for stdio MCP helper children in the spawn ledger (#61514).
 
 Covers ``register_child`` (the ledger mirror of ``register_self`` for
-subprocesses that never import Hermes code), the live-spawner protection
+subprocesses that never import Max code), the live-spawner protection
 contract, dead-spawner reap eligibility through BOTH consumers (the updater's
 ``_ledger_reapable_backend_pids`` rung and the startup
 ``reap_orphaned_mcp_helpers`` sweep), and prune-on-write of exited children.
@@ -23,7 +23,7 @@ from unittest.mock import patch
 import psutil
 import pytest
 
-from hermes_cli import process_identity as pi
+from max_cli import process_identity as pi
 
 pytestmark = pytest.mark.skipif(
     sys.platform == "win32", reason="uses POSIX sleep children"
@@ -182,7 +182,7 @@ def test_reap_ignores_non_mcp_purposes(ledger, child):
 # ---------------------------------------------------------------------------
 
 def test_updater_ledger_rung_flows_mcp_helper(ledger, child):
-    from hermes_cli import update_cmd
+    from max_cli import update_cmd
 
     pi.register_child(child.pid, "mcp-helper")
     matches = [(child.pid, "python", "sleep 300")]

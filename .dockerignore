@@ -40,8 +40,8 @@ ui-tui/packages/hermes-ink/dist/
 # Environment files
 .env
 .env.*
-# ...but keep the template: docker/stage2-hook.sh seeds $HERMES_HOME/.env from
-# /opt/hermes/.env.example on first boot (OOF-285 — excluding it silently broke
+# ...but keep the template: docker/stage2-hook.sh seeds $MAX_HOME/.env from
+# /opt/max/.env.example on first boot (OOF-285 — excluding it silently broke
 # first-boot .env seeding and the API_SERVER_KEY generation that depends on it).
 !.env.example
 
@@ -61,7 +61,7 @@ htmlcov/
 
 # Runtime data (bind-mounted at /opt/data; must not leak into build context)
 data/
-.hermes-docker/
+.max-docker/
 .notebooklm-home/
 
 # Compose/profile runtime state (bind-mounted; avoid ownership/secret issues)

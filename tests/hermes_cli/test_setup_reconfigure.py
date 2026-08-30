@@ -1,10 +1,10 @@
 """Tests for the setup wizard's returning-user behavior.
 
 On an existing install:
-- Bare `hermes setup` drops straight into the full reconfigure wizard
+- Bare `max setup` drops straight into the full reconfigure wizard
   (every prompt shows the current value as its default).
-- `hermes setup --quick` runs the narrower "fill in missing items" flow.
-- `hermes setup --reconfigure` is a backwards-compat alias for the
+- `max setup --quick` runs the narrower "fill in missing items" flow.
+- `max setup --reconfigure` is a backwards-compat alias for the
   bare-setup default.
 
 On a fresh install, all three are no-ops — fall through to first-time setup.
@@ -30,20 +30,20 @@ def _make_setup_args(**overrides):
 @pytest.fixture
 def existing_install(tmp_path, monkeypatch):
     """Simulate a returning user with an existing configured install."""
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     home.mkdir()
     monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     return home
 
 
 @pytest.fixture
 def fresh_install(tmp_path, monkeypatch):
     """Simulate a first-time user with no existing configuration."""
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     home.mkdir()
     monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     return home
 
 
@@ -55,15 +55,15 @@ def _enter_existing_install_patches(stack, **extra):
     """
     # Unconditional mocks (no return values to assert against).
     for target, kwargs in [
-        ("hermes_cli.setup.ensure_hermes_home", {}),
-        ("hermes_cli.setup.is_interactive_stdin", {"return_value": True}),
-        ("hermes_cli.config.is_managed", {"return_value": False}),
-        ("hermes_cli.setup.load_config", {"return_value": {}}),
-        ("hermes_cli.setup.save_config", {}),
-        ("hermes_cli.setup.get_env_value", {"return_value": None}),
-        ("hermes_cli.auth.get_active_provider", {"return_value": "openrouter"}),
-        ("hermes_cli.setup._print_setup_summary", {}),
-        ("hermes_cli.setup._offer_openclaw_migration", {"return_value": False}),
+        ("max_cli.setup.ensure_hermes_home", {}),
+        ("max_cli.setup.is_interactive_stdin", {"return_value": True}),
+        ("max_cli.config.is_managed", {"return_value": False}),
+        ("max_cli.setup.load_config", {"return_value": {}}),
+        ("max_cli.setup.save_config", {}),
+        ("max_cli.setup.get_env_value", {"return_value": None}),
+        ("max_cli.auth.get_active_provider", {"return_value": "openrouter"}),
+        ("max_cli.setup._print_setup_summary", {}),
+        ("max_cli.setup._offer_openclaw_migration", {"return_value": False}),
     ]:
         stack.enter_context(patch(target, **kwargs))
 
@@ -76,14 +76,14 @@ def _enter_existing_install_patches(stack, **extra):
 
 def _enter_fresh_install_patches(stack, **extra):
     for target, kwargs in [
-        ("hermes_cli.setup.ensure_hermes_home", {}),
-        ("hermes_cli.setup.is_interactive_stdin", {"return_value": True}),
-        ("hermes_cli.config.is_managed", {"return_value": False}),
-        ("hermes_cli.setup.load_config", {"return_value": {}}),
-        ("hermes_cli.setup.save_config", {}),
-        ("hermes_cli.auth.get_active_provider", {"return_value": None}),
-        ("hermes_cli.setup.get_env_value", {"return_value": None}),
-        ("hermes_cli.setup._offer_openclaw_migration", {"return_value": False}),
+        ("max_cli.setup.ensure_hermes_home", {}),
+        ("max_cli.setup.is_interactive_stdin", {"return_value": True}),
+        ("max_cli.config.is_managed", {"return_value": False}),
+        ("max_cli.setup.load_config", {"return_value": {}}),
+        ("max_cli.setup.save_config", {}),
+        ("max_cli.auth.get_active_provider", {"return_value": None}),
+        ("max_cli.setup.get_env_value", {"return_value": None}),
+        ("max_cli.setup._offer_openclaw_migration", {"return_value": False}),
     ]:
         stack.enter_context(patch(target, **kwargs))
 
@@ -98,7 +98,7 @@ def _enter_fresh_install_patches(stack, **extra):
 
 
 class TestExistingInstallDefault:
-    """Bare `hermes setup` on an existing install = full reconfigure wizard."""
+    """Bare `max setup` on an existing install = full reconfigure wizard."""
 
     def test_bare_setup_runs_full_reconfigure_without_menu(self, existing_install):
         """No menu, no prompt_choice — just run every section in sequence."""
@@ -107,15 +107,15 @@ class TestExistingInstallDefault:
         with ExitStack() as stack:
             m = _enter_existing_install_patches(
                 stack,
-                prompt_choice="hermes_cli.setup.prompt_choice",
-                quick="hermes_cli.setup._run_quick_setup",
-                model="hermes_cli.setup.setup_model_provider",
-                terminal="hermes_cli.setup.setup_terminal_backend",
-                agent="hermes_cli.setup.setup_agent_settings",
-                gateway="hermes_cli.setup.setup_gateway",
-                tools="hermes_cli.setup.setup_tools",
+                prompt_choice="max_cli.setup.prompt_choice",
+                quick="max_cli.setup._run_quick_setup",
+                model="max_cli.setup.setup_model_provider",
+                terminal="max_cli.setup.setup_terminal_backend",
+                agent="max_cli.setup.setup_agent_settings",
+                gateway="max_cli.setup.setup_gateway",
+                tools="max_cli.setup.setup_tools",
             )
-            from hermes_cli.setup import run_setup_wizard
+            from max_cli.setup import run_setup_wizard
             run_setup_wizard(args)
 
         # No menu shown.
@@ -140,15 +140,15 @@ class TestQuickFlag:
         with ExitStack() as stack:
             m = _enter_existing_install_patches(
                 stack,
-                quick="hermes_cli.setup._run_quick_setup",
-                model="hermes_cli.setup.setup_model_provider",
-                terminal="hermes_cli.setup.setup_terminal_backend",
-                agent="hermes_cli.setup.setup_agent_settings",
-                gateway="hermes_cli.setup.setup_gateway",
-                tools="hermes_cli.setup.setup_tools",
+                quick="max_cli.setup._run_quick_setup",
+                model="max_cli.setup.setup_model_provider",
+                terminal="max_cli.setup.setup_terminal_backend",
+                agent="max_cli.setup.setup_agent_settings",
+                gateway="max_cli.setup.setup_gateway",
+                tools="max_cli.setup.setup_tools",
             )
-            from hermes_cli.setup import run_setup_wizard
-            from hermes_cli import setup as setup_mod
+            from max_cli.setup import run_setup_wizard
+            from max_cli import setup as setup_mod
 
             section_indexes = []
             m["quick"].side_effect = lambda *_args: section_indexes.append(
@@ -176,11 +176,11 @@ class TestFreshInstall:
         with ExitStack() as stack:
             m = _enter_fresh_install_patches(
                 stack,
-                prompt=("hermes_cli.setup.prompt_choice", {"return_value": 0}),
-                first="hermes_cli.setup._run_first_time_quick_setup",
+                prompt=("max_cli.setup.prompt_choice", {"return_value": 0}),
+                first="max_cli.setup._run_first_time_quick_setup",
             )
-            from hermes_cli.setup import run_setup_wizard
-            from hermes_cli import setup as setup_mod
+            from max_cli.setup import run_setup_wizard
+            from max_cli import setup as setup_mod
 
             section_indexes = []
             m["first"].side_effect = lambda *_args: section_indexes.append(
@@ -198,10 +198,10 @@ class TestFreshInstall:
         with ExitStack() as stack:
             m = _enter_fresh_install_patches(
                 stack,
-                prompt=("hermes_cli.setup.prompt_choice", {"return_value": 2}),
-                blank="hermes_cli.setup._run_blank_slate_setup",
+                prompt=("max_cli.setup.prompt_choice", {"return_value": 2}),
+                blank="max_cli.setup._run_blank_slate_setup",
             )
-            from hermes_cli import setup as setup_mod
+            from max_cli import setup as setup_mod
 
             section_indexes = []
             m["blank"].side_effect = lambda *_args: section_indexes.append(
@@ -218,11 +218,11 @@ class TestArgparse:
 
     def test_reconfigure_flag_reaches_cmd_setup(self, monkeypatch):
         import sys
-        from hermes_cli.main import main
+        from max_cli.main import main
 
         captured = {}
         monkeypatch.setattr(
-            "hermes_cli.setup.run_setup_wizard",
+            "max_cli.setup.run_setup_wizard",
             lambda args: captured.setdefault("args", args),
         )
         monkeypatch.setattr(sys, "argv", ["hermes", "setup", "--reconfigure"])

@@ -6,17 +6,17 @@ import { $keepAwake, setKeepAwake } from './keep-awake'
 
 const KEY = 'hermes.desktop.keepAwake.v1'
 const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
-const initialHermesDesktop = desktopWindow.hermesDesktop
+const initialMaxDesktop = desktopWindow.maxDesktop
 const setKeepAwakeBridge = vi.fn()
 
 beforeEach(() => {
-  desktopWindow.hermesDesktop = { setKeepAwake: setKeepAwakeBridge } as unknown as Window['hermesDesktop']
+  desktopWindow.maxDesktop = { setKeepAwake: setKeepAwakeBridge } as unknown as Window['hermesDesktop']
   setKeepAwake(false)
   setKeepAwakeBridge.mockClear()
 })
 
 afterEach(() => {
-  desktopWindow.hermesDesktop = initialHermesDesktop
+  desktopWindow.maxDesktop = initialMaxDesktop
 })
 
 describe('keep-awake store', () => {

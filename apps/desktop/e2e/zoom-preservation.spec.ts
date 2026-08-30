@@ -24,7 +24,7 @@ async function readZoomPercent(): Promise<number> {
       hermesDesktop: { zoom: { get: () => Promise<{ percent: number }> } }
     }
 
-    return (await desktop.hermesDesktop.zoom.get()).percent
+    return (await desktop.maxDesktop.zoom.get()).percent
   })
 }
 
@@ -34,7 +34,7 @@ async function setZoomPercent(percent: number): Promise<void> {
       hermesDesktop: { zoom: { setPercent: (percent: number) => void } }
     }
 
-    desktop.hermesDesktop.zoom.setPercent(target)
+    desktop.maxDesktop.zoom.setPercent(target)
   }, percent)
   await expect.poll(readZoomPercent).toBe(percent)
 }

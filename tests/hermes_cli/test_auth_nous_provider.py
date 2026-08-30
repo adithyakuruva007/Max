@@ -11,7 +11,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from hermes_cli.auth import AuthError, get_provider_auth_state, resolve_nous_runtime_credentials
+from max_cli.auth import AuthError, get_provider_auth_state, resolve_nous_runtime_credentials
 
 
 # =============================================================================
@@ -25,7 +25,7 @@ class TestResolveVerifyFallback:
 
     def test_missing_ca_bundle_in_auth_state_falls_back(self):
         import ssl
-        from hermes_cli.auth import _resolve_verify
+        from max_cli.auth import _resolve_verify
 
         result = _resolve_verify(auth_state={
             "tls": {"insecure": False, "ca_bundle": "/nonexistent/ca-bundle.pem"},
@@ -41,7 +41,7 @@ class TestResolveVerifyFallback:
 
     def test_valid_ca_bundle_in_auth_state_is_returned(self, tmp_path, monkeypatch):
         import ssl
-        from hermes_cli.auth import _resolve_verify
+        from max_cli.auth import _resolve_verify
 
         ca_file = tmp_path / "ca-bundle.pem"
         ca_file.write_text("fake cert")
@@ -60,7 +60,7 @@ class TestResolveVerifyFallback:
 
 
     def test_insecure_takes_precedence_over_missing_ca(self):
-        from hermes_cli.auth import _resolve_verify
+        from max_cli.auth import _resolve_verify
 
         result = _resolve_verify(
             insecure=True,
@@ -70,14 +70,14 @@ class TestResolveVerifyFallback:
 
     def test_string_false_in_auth_state_does_not_disable_tls_verify(self):
         import ssl
-        from hermes_cli.auth import _resolve_verify
+        from max_cli.auth import _resolve_verify
 
         result = _resolve_verify(auth_state={"tls": {"insecure": "false"}})
         assert result is not False
         assert result is True or isinstance(result, ssl.SSLContext)
 
     def test_string_true_in_auth_state_disables_tls_verify(self):
-        from hermes_cli.auth import _resolve_verify
+        from max_cli.auth import _resolve_verify
 
         result = _resolve_verify(auth_state={"tls": {"insecure": "true"}})
         assert result is False
@@ -149,7 +149,7 @@ def test_resolve_nous_runtime_credentials_prefers_invoke_jwt_and_mirrors(
     tmp_path,
     monkeypatch,
 ):
-    import hermes_cli.auth as auth_mod
+    import max_cli.auth as auth_mod
 
     hermes_home = tmp_path / "hermes"
     token = _invoke_jwt(seconds=3600)
@@ -160,7 +160,7 @@ def test_resolve_nous_runtime_credentials_prefers_invoke_jwt_and_mirrors(
         expires_at=_future_iso(3600),
         expires_in=3600,
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     creds = auth_mod.resolve_nous_runtime_credentials()
 
@@ -183,7 +183,7 @@ def test_resolve_nous_runtime_credentials_invoke_jwt_is_idempotent(
     tmp_path,
     monkeypatch,
 ):
-    import hermes_cli.auth as auth_mod
+    import max_cli.auth as auth_mod
 
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
@@ -200,8 +200,8 @@ def test_resolve_nous_runtime_credentials_invoke_jwt_is_idempotent(
         "active_provider": "nous",
         "providers": {
             "nous": {
-                "portal_base_url": "https://portal.nousresearch.com",
-                "inference_base_url": "https://inference-api.nousresearch.com/v1",
+                "portal_base_url": "https://portal.stardustresearch.com",
+                "inference_base_url": "https://inference-api.stardustresearch.com/v1",
                 "client_id": "hermes-cli",
                 "token_type": "Bearer",
                 "scope": auth_mod.DEFAULT_NOUS_SCOPE,
@@ -224,7 +224,7 @@ def test_resolve_nous_runtime_credentials_invoke_jwt_is_idempotent(
     auth_path.write_text(json.dumps(auth_store, indent=2))
     before_content = auth_path.read_text()
     before_mtime = auth_path.stat().st_mtime_ns
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     def _unexpected_shared_write(*args, **kwargs):
         raise AssertionError("unchanged invoke JWT resolution should not sync shared store")
@@ -256,7 +256,7 @@ def test_resolve_nous_runtime_credentials_reauths_when_invoke_scope_missing(
     tmp_path,
     monkeypatch,
 ):
-    import hermes_cli.auth as auth_mod
+    import max_cli.auth as auth_mod
 
     hermes_home = tmp_path / "hermes"
     token = _jwt_with_claims({
@@ -272,7 +272,7 @@ def test_resolve_nous_runtime_credentials_reauths_when_invoke_scope_missing(
         expires_at=_future_iso(3600),
         expires_in=3600,
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     with pytest.raises(AuthError) as exc:
         auth_mod.resolve_nous_runtime_credentials()
@@ -287,7 +287,7 @@ def test_resolve_nous_runtime_credentials_reauths_when_invoke_scope_missing(
 
 
 def test_removed_legacy_session_env_var_does_not_change_jwt_auth(tmp_path, monkeypatch):
-    import hermes_cli.auth as auth_mod
+    import max_cli.auth as auth_mod
 
     hermes_home = tmp_path / "hermes"
     token = _invoke_jwt(seconds=3600)
@@ -298,8 +298,8 @@ def test_removed_legacy_session_env_var_does_not_change_jwt_auth(tmp_path, monke
         expires_at=_future_iso(3600),
         expires_in=3600,
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-    monkeypatch.setenv("HERMES_AGENT_USE_LEGACY_SESSION_KEYS", "true")
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_AGENT_USE_LEGACY_SESSION_KEYS", "true")
 
     creds = auth_mod.resolve_nous_runtime_credentials()
 
@@ -350,7 +350,7 @@ def test_nous_inference_auth_logs_do_not_include_secret_values(
     monkeypatch,
     caplog,
 ):
-    import hermes_cli.auth as auth_mod
+    import max_cli.auth as auth_mod
 
     hermes_home = tmp_path / "hermes"
     token = _invoke_jwt(seconds=3600)
@@ -364,7 +364,7 @@ def test_nous_inference_auth_logs_do_not_include_secret_values(
         expires_at=_future_iso(3600),
         expires_in=3600,
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     def _fake_refresh_access_token(*, client, portal_base_url, client_id, refresh_token):
         del client, portal_base_url, client_id, refresh_token
@@ -378,7 +378,7 @@ def test_nous_inference_auth_logs_do_not_include_secret_values(
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _fake_refresh_access_token)
 
-    caplog.set_level(logging.DEBUG, logger="hermes_cli.auth")
+    caplog.set_level(logging.DEBUG, logger="max_cli.auth")
     auth_mod.resolve_nous_runtime_credentials(
         force_refresh=True,
     )
@@ -401,7 +401,7 @@ def test_get_nous_auth_status_checks_credential_pool(tmp_path, monkeypatch):
     case when login happened via the dashboard device-code flow which
     saves to the pool only.
     """
-    from hermes_cli.auth import get_nous_auth_status
+    from max_cli.auth import get_nous_auth_status
 
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
@@ -409,7 +409,7 @@ def test_get_nous_auth_status_checks_credential_pool(tmp_path, monkeypatch):
     (hermes_home / "auth.json").write_text(json.dumps({
         "version": 1, "providers": {},
     }))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     # Seed the credential pool with a Nous entry
     from agent.credential_pool import PooledCredential, load_pool
@@ -440,14 +440,14 @@ def test_get_nous_auth_status_empty_returns_not_logged_in(tmp_path, monkeypatch)
     """get_nous_auth_status() returns logged_in=False when both pool
     and auth store are empty.
     """
-    from hermes_cli.auth import get_nous_auth_status
+    from max_cli.auth import get_nous_auth_status
 
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
     (hermes_home / "auth.json").write_text(json.dumps({
         "version": 1, "providers": {},
     }))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     status = get_nous_auth_status()
     assert status["logged_in"] is False
@@ -465,7 +465,7 @@ def test_get_nous_auth_status_empty_returns_not_logged_in(tmp_path, monkeypatch)
 
 
 class TestLoginNousSkipKeepsCurrent:
-    """When a user runs `hermes model` → Nous Portal → Skip (keep current) after
+    """When a user runs `max model` → Nous Portal → Skip (keep current) after
     a successful OAuth login, the prior provider and model MUST be preserved.
 
     Regression: previously, _update_config_for_provider was called
@@ -478,7 +478,7 @@ class TestLoginNousSkipKeepsCurrent:
         import yaml
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir(parents=True, exist_ok=True)
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
         config_path = hermes_home / "config.yaml"
         config_path.write_text(yaml.safe_dump({
@@ -498,15 +498,15 @@ class TestLoginNousSkipKeepsCurrent:
 
     def _patch_login_internals(self, monkeypatch, *, prompt_returns):
         """Patch OAuth + model-list + prompt so _login_nous doesn't hit network."""
-        import hermes_cli.auth as auth_mod
-        import hermes_cli.models as models_mod
-        import hermes_cli.nous_subscription as ns
+        import max_cli.auth as auth_mod
+        import max_cli.models as models_mod
+        import max_cli.nous_subscription as ns
 
         fake_auth_state = {
             "access_token": "fake-nous-token",
             "agent_key": "fake-agent-key",
-            "inference_base_url": "https://inference-api.nousresearch.com",
-            "portal_base_url": "https://portal.nousresearch.com",
+            "inference_base_url": "https://inference-api.stardustresearch.com",
+            "portal_base_url": "https://portal.stardustresearch.com",
             "refresh_token": "fake-refresh",
             "token_expires_at": 9999999999,
         }
@@ -537,7 +537,7 @@ class TestLoginNousSkipKeepsCurrent:
         """User picks Skip → config.yaml untouched, Nous creds still saved."""
         import argparse
         import yaml
-        from hermes_cli.auth import PROVIDER_REGISTRY, _login_nous
+        from max_cli.auth import PROVIDER_REGISTRY, _login_nous
 
         hermes_home, config_path, auth_path = self._setup_home_with_openrouter(
             tmp_path, monkeypatch,
@@ -568,7 +568,7 @@ class TestLoginNousSkipKeepsCurrent:
         """User picks a Nous model → provider flips to nous with that model."""
         import argparse
         import yaml
-        from hermes_cli.auth import PROVIDER_REGISTRY, _login_nous
+        from max_cli.auth import PROVIDER_REGISTRY, _login_nous
 
         hermes_home, config_path, auth_path = self._setup_home_with_openrouter(
             tmp_path, monkeypatch,
@@ -596,11 +596,11 @@ class TestLoginNousSkipKeepsCurrent:
         instead of leaving it as nous."""
         import argparse
         import yaml
-        from hermes_cli.auth import PROVIDER_REGISTRY, _login_nous
+        from max_cli.auth import PROVIDER_REGISTRY, _login_nous
 
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir(parents=True, exist_ok=True)
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
         config_path = hermes_home / "config.yaml"
         config_path.write_text(yaml.safe_dump({"model": {}}, sort_keys=False))
@@ -656,21 +656,21 @@ def _full_state_fixture() -> dict:
 def test_persist_nous_credentials_writes_both_pool_and_providers(tmp_path, monkeypatch):
     """Helper must populate BOTH credential_pool.nous AND providers.nous.
 
-    Regression guard: before this helper existed, `hermes auth add nous`
+    Regression guard: before this helper existed, `max auth add nous`
     wrote only the pool. After the Nous agent_key's 24h TTL expired, the
     401-recovery path in run_agent.py called resolve_nous_runtime_credentials
     which reads providers.nous, found it empty, raised AuthError, and the
     agent failed with "Non-retryable client error". Both stores must stay
     in sync at write time.
     """
-    from hermes_cli.auth import persist_nous_credentials, NOUS_DEVICE_CODE_SOURCE
+    from max_cli.auth import persist_nous_credentials, NOUS_DEVICE_CODE_SOURCE
 
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
     (hermes_home / "auth.json").write_text(json.dumps({
         "version": 1, "providers": {},
     }))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     state = _full_state_fixture()
     entry = persist_nous_credentials(state)
@@ -707,14 +707,14 @@ def test_persist_nous_credentials_idempotent_no_duplicate_pool_entries(tmp_path,
     materialise the pool entry under the canonical ``device_code`` source, so
     two persists still leave the pool with exactly one row.
     """
-    from hermes_cli.auth import persist_nous_credentials, NOUS_DEVICE_CODE_SOURCE
+    from max_cli.auth import persist_nous_credentials, NOUS_DEVICE_CODE_SOURCE
 
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
     (hermes_home / "auth.json").write_text(json.dumps({
         "version": 1, "providers": {},
     }))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     first = _full_state_fixture()
     persist_nous_credentials(first)
@@ -747,14 +747,14 @@ def test_persist_nous_credentials_no_label_uses_auto_derived(tmp_path, monkeypat
     """When the caller doesn't pass ``label``, the auto-derived fingerprint
     is used (unchanged default behaviour — regression guard).
     """
-    from hermes_cli.auth import persist_nous_credentials
+    from max_cli.auth import persist_nous_credentials
 
     hermes_home = tmp_path / "hermes"
     hermes_home.mkdir(parents=True, exist_ok=True)
     (hermes_home / "auth.json").write_text(json.dumps({
         "version": 1, "providers": {},
     }))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     entry = persist_nous_credentials(_full_state_fixture())
     assert entry is not None
@@ -773,14 +773,14 @@ def test_refresh_token_reuse_detection_surfaces_actionable_message():
     """Regression for #15099.
 
     When the Nous Portal server returns ``invalid_grant`` with
-    ``error_description`` containing "reuse detected", Hermes must surface an
+    ``error_description`` containing "reuse detected", Max must surface an
     actionable message explaining that an external process consumed the
     refresh token.  The default opaque "Refresh token reuse detected; please
-    re-authenticate" string led users to report this as a Hermes persistence
+    re-authenticate" string led users to report this as a Max persistence
     bug when the true cause is external RT consumption (monitoring scripts,
     custom self-heal hooks).
     """
-    from hermes_cli.auth import _refresh_access_token
+    from max_cli.auth import _refresh_access_token
 
     class _FakeResponse:
         status_code = 400
@@ -798,7 +798,7 @@ def test_refresh_token_reuse_detection_surfaces_actionable_message():
     with pytest.raises(AuthError) as exc_info:
         _refresh_access_token(
             client=_FakeClient(),
-            portal_base_url="https://portal.nousresearch.com",
+            portal_base_url="https://portal.stardustresearch.com",
             client_id="hermes-cli",
             refresh_token="rt_consumed_elsewhere",
         )
@@ -807,7 +807,7 @@ def test_refresh_token_reuse_detection_surfaces_actionable_message():
     assert "refresh-token reuse" in message.lower() or "refresh token reuse" in message.lower()
     # The message must mention the external-process cause and give next steps.
     assert "external process" in message.lower() or "monitoring script" in message.lower()
-    assert "hermes auth add nous" in message.lower()
+    assert "max auth add nous" in message.lower()
     # Must still be classified as invalid_grant + relogin_required.
     assert exc_info.value.code == "invalid_grant"
     assert exc_info.value.relogin_required is True
@@ -817,7 +817,7 @@ def test_refresh_token_exchange_sends_refresh_token_header():
     """Nous refresh tokens must be sent in a header so sandbox proxies can
     substitute placeholder credentials without parsing form bodies.
     """
-    from hermes_cli.auth import _refresh_access_token
+    from max_cli.auth import _refresh_access_token
 
     class _FakeResponse:
         status_code = 200
@@ -838,7 +838,7 @@ def test_refresh_token_exchange_sends_refresh_token_header():
 
     payload = _refresh_access_token(
         client=client,
-        portal_base_url="https://portal.nousresearch.com",
+        portal_base_url="https://portal.stardustresearch.com",
         client_id="hermes-cli",
         refresh_token="refresh-1",
     )
@@ -862,7 +862,7 @@ def test_refresh_token_exchange_sends_refresh_token_header():
 
 @pytest.fixture
 def shared_store_env(tmp_path, monkeypatch):
-    """Redirect HERMES_SHARED_AUTH_DIR to a tmp_path.
+    """Redirect MAX_SHARED_AUTH_DIR to a tmp_path.
 
     Required for every test that exercises the shared Nous store — the
     in-auth.py seat belt refuses to touch the real user's shared store
@@ -870,20 +870,20 @@ def shared_store_env(tmp_path, monkeypatch):
     of corrupting real state.
     """
     shared_dir = tmp_path / "shared"
-    monkeypatch.setenv("HERMES_SHARED_AUTH_DIR", str(shared_dir))
+    monkeypatch.setenv("MAX_SHARED_AUTH_DIR", str(shared_dir))
     return shared_dir
 
 
 def test_shared_store_seat_belt_refuses_real_home_under_pytest(monkeypatch):
-    """Without HERMES_SHARED_AUTH_DIR override, the seat belt must trip.
+    """Without MAX_SHARED_AUTH_DIR override, the seat belt must trip.
 
     Mirrors the existing ``_auth_file_path`` seat belt: forgetting to
     redirect this store in a test must fail loudly instead of silently
-    writing to the user's real ``~/.hermes/shared/`` across CI runs.
+    writing to the user's real ``~/.max/shared/`` across CI runs.
     """
-    from hermes_cli.auth import _nous_shared_store_path
+    from max_cli.auth import _nous_shared_store_path
 
-    monkeypatch.delenv("HERMES_SHARED_AUTH_DIR", raising=False)
+    monkeypatch.delenv("MAX_SHARED_AUTH_DIR", raising=False)
 
     with pytest.raises(RuntimeError, match="shared Nous auth store"):
         _nous_shared_store_path()
@@ -891,7 +891,7 @@ def test_shared_store_seat_belt_refuses_real_home_under_pytest(monkeypatch):
 
 def test_shared_store_write_and_read_roundtrip(shared_store_env):
     """Write → read must preserve refresh_token + OAuth URLs."""
-    from hermes_cli.auth import (
+    from max_cli.auth import (
         _nous_shared_store_path,
         _read_shared_nous_state,
         _write_shared_nous_state,
@@ -923,10 +923,10 @@ def test_persist_nous_credentials_mirrors_to_shared_store(
     tmp_path, monkeypatch, shared_store_env,
 ):
     """persist_nous_credentials must populate BOTH per-profile auth.json
-    AND the shared store, so a future profile's `hermes auth add nous
+    AND the shared store, so a future profile's `max auth add nous
     --type oauth` can one-tap import instead of redoing device-code.
     """
-    from hermes_cli.auth import (
+    from max_cli.auth import (
         _nous_shared_store_path,
         _read_shared_nous_state,
         persist_nous_credentials,
@@ -937,7 +937,7 @@ def test_persist_nous_credentials_mirrors_to_shared_store(
     (hermes_home / "auth.json").write_text(
         json.dumps({"version": 1, "providers": {}})
     )
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("MAX_HOME", str(hermes_home))
 
     persist_nous_credentials(_full_state_fixture())
 
@@ -961,7 +961,7 @@ def test_try_import_shared_rehydrates_on_success(shared_store_env, monkeypatch):
     returns a fresh access_token JWT, and the returned dict has
     every field persist_nous_credentials() needs.
     """
-    from hermes_cli import auth as auth_mod
+    from max_cli import auth as auth_mod
 
     auth_mod._write_shared_nous_state(_full_state_fixture())
     fresh_jwt = _invoke_jwt(seconds=7200)
@@ -1002,16 +1002,16 @@ class TestStalePortalBaseUrlMigration:
     """_migrate_stale_nous_portal_url auto-corrects stale portal_base_url on load."""
 
     def test_migrates_stale_portal_url_on_load(self, tmp_path, monkeypatch):
-        from hermes_cli.auth import _load_auth_store, DEFAULT_NOUS_PORTAL_URL
+        from max_cli.auth import _load_auth_store, DEFAULT_NOUS_PORTAL_URL
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
         auth_file = tmp_path / "auth.json"
         auth_file.write_text(json.dumps({
             "version": 1,
             "active_provider": "nous",
             "providers": {
                 "nous": {
-                    "portal_base_url": "https://api.nousresearch.com",
+                    "portal_base_url": "https://api.stardustresearch.com",
                     "access_token": "test-token",
                     "refresh_token": "test-refresh",
                 }
@@ -1030,10 +1030,10 @@ class TestStalePortalBaseUrlMigration:
         self, tmp_path, monkeypatch,
     ):
         """An allowlisted production host is still unsafe over plain HTTP."""
-        from hermes_cli import auth as auth_mod
+        from max_cli import auth as auth_mod
 
         hermes_home = tmp_path / "hermes"
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        monkeypatch.setenv("MAX_HOME", str(hermes_home))
         _setup_nous_auth(
             hermes_home,
             access_token=_invoke_jwt(seconds=-60),
@@ -1044,7 +1044,7 @@ class TestStalePortalBaseUrlMigration:
         auth_file = hermes_home / "auth.json"
         store = json.loads(auth_file.read_text())
         store["providers"]["nous"]["portal_base_url"] = (
-            "http://portal.nousresearch.com"
+            "http://portal.stardustresearch.com"
         )
         auth_file.write_text(json.dumps(store, indent=2))
 
@@ -1077,17 +1077,17 @@ class TestStalePortalBaseUrlMigration:
 
 class TestNousDeviceAuthTimeoutMessage:
     def test_timeout_message_mentions_captcha_login_and_retry(self):
-        from hermes_cli.auth import _nous_device_auth_timeout_message
+        from max_cli.auth import _nous_device_auth_timeout_message
 
-        msg = _nous_device_auth_timeout_message("https://portal.nousresearch.com")
+        msg = _nous_device_auth_timeout_message("https://portal.stardustresearch.com")
         assert "CAPTCHA" in msg
-        assert "hermes portal" in msg
-        assert "https://portal.nousresearch.com/login" in msg
+        assert "max portal" in msg
+        assert "https://portal.stardustresearch.com/login" in msg
         # Must NOT point at the nonexistent /device page (live Portal 404s it).
         assert "/device" not in msg
 
     def test_timeout_message_falls_back_to_default_portal(self):
-        from hermes_cli.auth import (
+        from max_cli.auth import (
             DEFAULT_NOUS_PORTAL_URL,
             _nous_device_auth_timeout_message,
         )
@@ -1103,7 +1103,7 @@ def test_poll_for_token_timeout_raises_actionable_message():
     import httpx
     import pytest
 
-    import hermes_cli.auth as auth_mod
+    import max_cli.auth as auth_mod
 
     class _PendingClient:
         def post(self, url, data=None):
@@ -1119,7 +1119,7 @@ def test_poll_for_token_timeout_raises_actionable_message():
     with pytest.raises(TimeoutError) as excinfo:
         auth_mod._poll_for_token(
             client=cast(httpx.Client, _PendingClient()),
-            portal_base_url="https://portal.nousresearch.com",
+            portal_base_url="https://portal.stardustresearch.com",
             client_id="hermes-cli",
             device_code="device",
             expires_in=1,
@@ -1128,8 +1128,8 @@ def test_poll_for_token_timeout_raises_actionable_message():
 
     msg = str(excinfo.value)
     assert "CAPTCHA" in msg
-    assert "hermes portal" in msg
-    assert "https://portal.nousresearch.com/login" in msg
+    assert "max portal" in msg
+    assert "https://portal.stardustresearch.com/login" in msg
 
 
 def test_nous_device_code_login_timeout_raises_actionable_message(monkeypatch):
@@ -1137,7 +1137,7 @@ def test_nous_device_code_login_timeout_raises_actionable_message(monkeypatch):
     login flow (propagates unchanged from _poll_for_token)."""
     import pytest
 
-    import hermes_cli.auth as auth_mod
+    import max_cli.auth as auth_mod
 
     monkeypatch.setattr(
         auth_mod,
@@ -1145,9 +1145,9 @@ def test_nous_device_code_login_timeout_raises_actionable_message(monkeypatch):
         lambda **kwargs: {
             "device_code": "device",
             "user_code": "SMCL-97YT",
-            "verification_uri": "https://portal.nousresearch.com/manage-subscription",
+            "verification_uri": "https://portal.stardustresearch.com/manage-subscription",
             "verification_uri_complete": (
-                "https://portal.nousresearch.com/manage-subscription"
+                "https://portal.stardustresearch.com/manage-subscription"
                 "?user_code=SMCL-97YT"
             ),
             "expires_in": 600,
@@ -1168,7 +1168,7 @@ def test_nous_device_code_login_timeout_raises_actionable_message(monkeypatch):
 
     with pytest.raises(TimeoutError) as excinfo:
         auth_mod._nous_device_code_login(
-            portal_base_url="https://portal.nousresearch.com",
+            portal_base_url="https://portal.stardustresearch.com",
             inference_base_url="https://inference.example.com/v1",
             open_browser=False,
             timeout_seconds=1,
@@ -1176,5 +1176,5 @@ def test_nous_device_code_login_timeout_raises_actionable_message(monkeypatch):
 
     msg = str(excinfo.value)
     assert "CAPTCHA" in msg
-    assert "hermes portal" in msg
-    assert "https://portal.nousresearch.com/login" in msg
+    assert "max portal" in msg
+    assert "https://portal.stardustresearch.com/login" in msg

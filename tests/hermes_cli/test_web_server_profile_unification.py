@@ -2,9 +2,9 @@
 
 The dashboard is ONE machine-level management surface: config, env, MCP,
 model, and chat-PTY endpoints accept an optional ``profile`` so the global
-profile switcher can target any profile's HERMES_HOME. These tests pin:
+profile switcher can target any profile's MAX_HOME. These tests pin:
 reads/writes land in the REQUESTED profile, the dashboard's own profile
-stays untouched, and the chat PTY env is scoped via HERMES_HOME.
+stays untouched, and the chat PTY env is scoped via MAX_HOME.
 """
 import json
 
@@ -15,10 +15,10 @@ import yaml
 @pytest.fixture
 def isolated_profiles(tmp_path, monkeypatch, _isolate_hermes_home):
     """Isolated default home + one named profile, each with config + .env."""
-    from hermes_constants import get_hermes_home
-    from hermes_cli import profiles
+    from max_constants import get_max_home
+    from max_cli import profiles
 
-    default_home = get_hermes_home()
+    default_home = get_max_home()
     profiles_root = default_home / "profiles"
     worker_home = profiles_root / "worker_beta"
     for home in (default_home, worker_home):
@@ -38,11 +38,11 @@ def client(monkeypatch, isolated_profiles):
     except ImportError:
         pytest.skip("fastapi/starlette not installed")
 
-    import hermes_state
-    from hermes_constants import get_hermes_home
-    from hermes_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
+    import max_state
+    from max_constants import get_max_home
+    from max_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
 
-    monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", get_hermes_home() / "state.db")
+    monkeypatch.setattr(max_state, "DEFAULT_DB_PATH", get_max_home() / "state.db")
     c = TestClient(app)
     c.headers[_SESSION_HEADER_NAME] = _SESSION_TOKEN
     return c
@@ -138,7 +138,7 @@ class TestProfileScopedMcp:
     ):
         """An `auth: oauth` server that serves tools/list anonymously must not
         false-green: a successful probe with no token on disk reports needs-auth."""
-        import hermes_cli.mcp_config as mcp_config
+        import max_cli.mcp_config as mcp_config
 
         (isolated_profiles["worker_beta"] / "config.yaml").write_text(
             "mcp_servers:\n  oauth-srv:\n    url: http://x/sse\n    auth: oauth\n",
@@ -172,7 +172,7 @@ class TestProfileScopedMcp:
         """The probe's per-tool `schema_chars` (details out-param) surfaces as an
         ADDITIVE per-tool field on the wire; tools without a size stay bare so
         older/partial probes degrade to 'no estimate' in the renderer."""
-        import hermes_cli.mcp_config as mcp_config
+        import max_cli.mcp_config as mcp_config
 
         (isolated_profiles["worker_beta"] / "config.yaml").write_text(
             "mcp_servers:\n  sized-srv:\n    url: http://x/mcp\n",
@@ -202,7 +202,7 @@ class TestProfileScopedMcp:
     ):
         """A probe that never fills schema_chars (older code path) produces the
         exact pre-overlay tool objects — nothing new for old renderers."""
-        import hermes_cli.mcp_config as mcp_config
+        import max_cli.mcp_config as mcp_config
 
         (isolated_profiles["worker_beta"] / "config.yaml").write_text(
             "mcp_servers:\n  plain-srv:\n    url: http://x/mcp\n",
@@ -365,9 +365,9 @@ class TestProfileScopedPostSetup:
         self, client, isolated_profiles, monkeypatch
     ):
         """Post-setup runs in a -p scoped subprocess so hooks that read
-        config / write per-profile state see the same HERMES_HOME the rest
+        config / write per-profile state see the same MAX_HOME the rest
         of the drawer's writes targeted."""
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         calls = []
 
@@ -380,7 +380,7 @@ class TestProfileScopedPostSetup:
             lambda subcommand, name: calls.append(list(subcommand)) or _FakeProc(),
         )
         monkeypatch.setattr(
-            "hermes_cli.tools_config.valid_post_setup_keys",
+            "max_cli.tools_config.valid_post_setup_keys",
             lambda: {"agent_browser"},
         )
         resp = client.post(
@@ -395,7 +395,7 @@ class TestProfileScopedPostSetup:
     def test_post_setup_without_profile_keeps_legacy_argv(
         self, client, isolated_profiles, monkeypatch
     ):
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         calls = []
 
@@ -408,7 +408,7 @@ class TestProfileScopedPostSetup:
             lambda subcommand, name: calls.append(list(subcommand)) or _FakeProc(),
         )
         monkeypatch.setattr(
-            "hermes_cli.tools_config.valid_post_setup_keys",
+            "max_cli.tools_config.valid_post_setup_keys",
             lambda: {"agent_browser"},
         )
         resp = client.post(
@@ -424,15 +424,15 @@ class TestProfileScopedGateway:
     def test_status_reads_requested_profile_home(
         self, client, isolated_profiles, monkeypatch
     ):
-        import hermes_cli.web_server as web_server
-        from hermes_constants import get_hermes_home
+        import max_cli.web_server as web_server
+        from max_constants import get_max_home
 
         seen_homes = []
 
         def fake_get_running_pid(*args, **kwargs):
             # /api/status?profile= now passes pid_path= explicitly (the TTL
             # cache would otherwise serve another profile's PID) — accept it.
-            seen_homes.append(str(get_hermes_home()))
+            seen_homes.append(str(get_max_home()))
             return None
 
         monkeypatch.setattr(web_server, "check_config_version", lambda: (1, 1))
@@ -455,7 +455,7 @@ class TestProfileScopedGateway:
     def test_status_uses_runtime_pid_when_profile_pid_file_is_missing(
         self, client, isolated_profiles, monkeypatch
     ):
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         worker_home = isolated_profiles["worker_beta"]
         (worker_home / ".env").write_text(
@@ -513,7 +513,7 @@ class TestProfileScopedGateway:
         Non-fatal leftovers (e.g. a platform that connected before the crash)
         are still dropped — only fatals survive.
         """
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         runtime = {
             "pid": 4242,
@@ -553,7 +553,7 @@ class TestProfileScopedGateway:
         self, client, isolated_profiles, monkeypatch
     ):
         """A cleanly stopped gateway still reports no platforms (stale-noise rule)."""
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         runtime = {
             "pid": 4242,
@@ -582,7 +582,7 @@ class TestProfileScopedTelegramOnboarding:
         self, client, isolated_profiles, monkeypatch
     ):
         import time
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         with web_server._telegram_onboarding_lock:
             web_server._telegram_onboarding_pairings.clear()
@@ -637,23 +637,23 @@ class TestProfileScopedTelegramOnboarding:
 
 class TestProfileScopedChatPty:
     def test_chat_argv_scopes_hermes_home(self, isolated_profiles, monkeypatch):
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         monkeypatch.setattr(
-            "hermes_cli.main._make_tui_argv",
+            "max_cli.main._make_tui_argv",
             lambda root, tui_dev=False: (["cat"], None),
             raising=False,
         )
         argv, cwd, env = web_server._resolve_chat_argv(profile="worker_beta")
         assert env is not None
-        assert env["HERMES_HOME"] == str(isolated_profiles["worker_beta"])
+        assert env["MAX_HOME"] == str(isolated_profiles["worker_beta"])
         # Scoped chat must NOT attach to the dashboard's in-memory gateway.
-        assert "HERMES_TUI_GATEWAY_URL" not in env
+        assert "MAX_TUI_GATEWAY_URL" not in env
 
     def test_chat_argv_bridges_selected_profile_terminal_config(
         self, isolated_profiles, monkeypatch
     ):
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         (isolated_profiles["default"] / "config.yaml").write_text(
             "terminal:\n"
@@ -672,7 +672,7 @@ class TestProfileScopedChatPty:
         monkeypatch.setenv("TERMINAL_DOCKER_IMAGE", "launch-profile-image")
         monkeypatch.setenv("TERMINAL_SSH_USER", "operator-user")
         monkeypatch.setattr(
-            "hermes_cli.main._make_tui_argv",
+            "max_cli.main._make_tui_argv",
             lambda root, tui_dev=False: (["cat"], None),
             raising=False,
         )
@@ -680,7 +680,7 @@ class TestProfileScopedChatPty:
         _argv, _cwd, env = web_server._resolve_chat_argv(profile="worker_beta")
 
         assert env is not None
-        assert env["HERMES_HOME"] == str(isolated_profiles["worker_beta"])
+        assert env["MAX_HOME"] == str(isolated_profiles["worker_beta"])
         assert env["TERMINAL_ENV"] == "ssh"
         assert env["TERMINAL_SSH_HOST"] == "worker.example.test"
         assert env["TERMINAL_CWD"] == "~"
@@ -690,7 +690,7 @@ class TestProfileScopedChatPty:
     def test_chat_argv_default_profile_preserves_exported_terminal_values(
         self, isolated_profiles, monkeypatch
     ):
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         (isolated_profiles["default"] / "config.yaml").write_text(
             "terminal:\n  backend: docker\n",
@@ -699,7 +699,7 @@ class TestProfileScopedChatPty:
         monkeypatch.setenv("TERMINAL_ENV", "docker")
         monkeypatch.setenv("TERMINAL_SSH_USER", "operator-user")
         monkeypatch.setattr(
-            "hermes_cli.main._make_tui_argv",
+            "max_cli.main._make_tui_argv",
             lambda root, tui_dev=False: (["cat"], None),
             raising=False,
         )
@@ -714,7 +714,7 @@ class TestProfileScopedChatPty:
     def test_chat_argv_placeholder_cwd_preserves_exported_value(
         self, isolated_profiles, monkeypatch, placeholder
     ):
-        import hermes_cli.web_server as web_server
+        import max_cli.web_server as web_server
 
         (isolated_profiles["default"] / "config.yaml").write_text(
             f"terminal:\n  backend: docker\n  cwd: {placeholder}\n",
@@ -727,7 +727,7 @@ class TestProfileScopedChatPty:
         monkeypatch.setenv("TERMINAL_ENV", "docker")
         monkeypatch.setenv("TERMINAL_CWD", "/operator/work")
         monkeypatch.setattr(
-            "hermes_cli.main._make_tui_argv",
+            "max_cli.main._make_tui_argv",
             lambda root, tui_dev=False: (["cat"], None),
             raising=False,
         )
@@ -743,8 +743,8 @@ class TestProfileScopedChatPty:
     ):
         import logging
 
-        import hermes_cli.config as config_mod
-        import hermes_cli.web_server as web_server
+        import max_cli.config as config_mod
+        import max_cli.web_server as web_server
 
         (isolated_profiles["default"] / "config.yaml").write_text(
             "terminal:\n  backend: docker\n",
@@ -752,7 +752,7 @@ class TestProfileScopedChatPty:
         )
         monkeypatch.setenv("TERMINAL_ENV", "docker")
         monkeypatch.setattr(
-            "hermes_cli.main._make_tui_argv",
+            "max_cli.main._make_tui_argv",
             lambda root, tui_dev=False: (["cat"], None),
             raising=False,
         )
@@ -766,7 +766,7 @@ class TestProfileScopedChatPty:
             _argv, _cwd, env = web_server._resolve_chat_argv(profile="worker_beta")
 
         assert env is not None
-        assert env["HERMES_HOME"] == str(isolated_profiles["worker_beta"])
+        assert env["MAX_HOME"] == str(isolated_profiles["worker_beta"])
         assert "TERMINAL_ENV" not in env
         assert "Failed to apply terminal config bridge for dashboard chat" in caplog.text
 
@@ -792,9 +792,9 @@ class TestProfileScopedAudio:
         seen = {}
 
         def _fake_transcribe(path):
-            from hermes_constants import get_hermes_home
+            from max_constants import get_max_home
 
-            seen["home"] = str(get_hermes_home())
+            seen["home"] = str(get_max_home())
             return {"success": True, "transcript": "hi", "provider": "fake"}
 
         monkeypatch.setattr(voice_mode, "transcribe_recording", _fake_transcribe)

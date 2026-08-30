@@ -1,7 +1,7 @@
 """Tests for interrupted-install self-heal (the ``.update-incomplete`` marker).
 
 Covers the breadcrumb lifecycle and the launch-time recovery guard added so a
-``hermes update`` killed mid-install (Ctrl-C, terminal close, WSL OOM) gets
+``max update`` killed mid-install (Ctrl-C, terminal close, WSL OOM) gets
 finished automatically on the next launch instead of leaving a half-built venv.
 """
 
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import hermes_cli.main as m
+import max_cli.main as m
 
 
 def test_marker_round_trip(tmp_path, monkeypatch):
@@ -40,11 +40,11 @@ def _stub_install_env(monkeypatch, m, seen):
 
     monkeypatch.setattr(m.subprocess, "run", lambda *a, **k: R())
     monkeypatch.setattr(m, "_is_termux_env", lambda *a, **k: False)
-    monkeypatch.setattr("hermes_cli.managed_uv.ensure_uv", lambda: None)
-    # The install executor moved to hermes_cli._install_repair (shared between
+    monkeypatch.setattr("max_cli.managed_uv.ensure_uv", lambda: None)
+    # The install executor moved to max_cli._install_repair (shared between
     # the pre-import early pass and this late recovery path) — stub WHERE it
     # is executed, not the legacy main.py wrapper it replaced.
-    import hermes_cli._install_repair as ir
+    import max_cli._install_repair as ir
 
     monkeypatch.setattr(
         ir, "run_core_install", lambda _root: seen.__setitem__("install", True)

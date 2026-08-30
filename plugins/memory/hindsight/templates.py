@@ -1,7 +1,7 @@
 """Starter bank templates for the Hindsight memory-provider setup wizard.
 
 Fetches the Hindsight Bank Templates catalog, filters to templates tagged for
-the ``hermes`` integration, and applies a chosen manifest to the user's bank
+the ``max`` integration, and applies a chosen manifest to the user's bank
 via the import API (``POST /v1/default/banks/{bank}/import``, which creates the
 bank if it doesn't exist).
 
@@ -18,7 +18,7 @@ import os
 import urllib.request
 from urllib.parse import urljoin
 
-from hermes_cli.urllib_security import open_credentialed_url
+from max_cli.urllib_security import open_credentialed_url
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ def _get_json(url: str) -> dict:
 
 
 def fetch_hermes_templates(url: str | None = None) -> list[dict]:
-    """Return catalog entries tagged for the ``hermes`` integration."""
+    """Return catalog entries tagged for the ``max`` integration."""
     catalog = _get_json(url or catalog_url())
     entries = catalog.get("templates", []) if isinstance(catalog, dict) else []
     return [e for e in entries if "hermes" in (e.get("integrations") or [])]

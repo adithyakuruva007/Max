@@ -23,13 +23,13 @@ const ownershipId = '0123456789abcdef0123456789abcdef'
 
 test('Windows spawn holds the update mutex across marker check and helper spawn', () => {
   const command = atomicWindowsSpawnCommand({
-    hermesHome: 'C:\\Users\\andre\\.hermes',
-    python: 'C:\\Users\\andre\\.hermes\\python.exe'
+    hermesHome: 'C:\\Users\\andre\\.max',
+    python: 'C:\\Users\\andre\\.max\\python.exe'
   })
 
   const encoded = command.match(/-EncodedCommand\s+([^\s]+)$/)?.[1]
   const script = encoded ? Buffer.from(encoded, 'base64').toString('utf16le') : ''
-  assert.match(script, /\.hermes-update-in-progress/)
+  assert.match(script, /\.max-update-in-progress/)
   assert.match(script, /\$mutexPath=\$marker\+"\.mutex"/)
   assert.match(script, /\.Lock\(0,1\)/)
   assert.match(script, /windows_ssh_runtime.*spawn/)
@@ -39,15 +39,15 @@ test('Windows spawn holds the update mutex across marker check and helper spawn'
 test('Windows spawn publishes the initial ownership record before releasing the mutex', () => {
   const command = atomicWindowsSpawnCommand(
     {
-      hermesHome: 'C:\\Users\\andre\\.hermes',
-      python: 'C:\\Users\\andre\\.hermes\\python.exe'
+      hermesHome: 'C:\\Users\\andre\\.max',
+      python: 'C:\\Users\\andre\\.max\\python.exe'
     },
     {
       ownershipId,
       spawnNonce: '0123456789abcdef',
       profile: 'default',
-      hermesPath: 'C:\\Hermes\\hermes.exe',
-      hermesHome: 'C:\\Users\\andre\\.hermes',
+      hermesPath: 'C:\\Max\\hermes.exe',
+      hermesHome: 'C:\\Users\\andre\\.max',
       tokenFingerprint: 'a'.repeat(32),
       startedAt: '2026-07-14T00:00:00.000Z'
     }
@@ -83,13 +83,13 @@ test('Windows relaunch gate refuses live and uncertain markers before executing 
         return JSON.stringify({
           os: 'Windows',
           arch: 'AMD64',
-          hermesHome: 'C:\\Users\\alice\\.hermes',
-          hermesPath: 'C:\\Hermes\\hermes.exe',
-          python: 'C:\\Hermes\\python.exe'
+          hermesHome: 'C:\\Users\\alice\\.max',
+          hermesPath: 'C:\\Max\\hermes.exe',
+          python: 'C:\\Max\\python.exe'
         })
       }
 
-      if (script.includes('.hermes-update-in-progress')) {
+      if (script.includes('.max-update-in-progress')) {
         return observation
       }
 
@@ -104,13 +104,13 @@ test('Windows relaunch gate refuses live and uncertain markers before executing 
           pickLocalPort: async () => 50000,
           forward: async () => {},
           cancelForward: async () => {},
-          waitForHermes: async () => {},
+          waitForMax: async () => {},
           probeReuseProof: async () => 'authenticated-ok'
         }),
       (error: any) => error.kind === 'update-in-progress'
     )
     assert.equal(
-      scripts.some(script => script.includes('hermes_cli.windows_ssh_runtime')),
+      scripts.some(script => script.includes('max_cli.windows_ssh_runtime')),
       false
     )
   }
@@ -125,8 +125,8 @@ test('Windows relaunch gate uses strict install-wide marker parsing and fail-clo
     return 'CLEAR'
   })
 
-  await assertWindowsRemoteInstallUpdateClear(ssh, 'C:\\Users\\alice\\.hermes\\profiles\\research')
-  assert.match(script, /\.hermes-update-in-progress/)
+  await assertWindowsRemoteInstallUpdateClear(ssh, 'C:\\Users\\alice\\.max\\profiles\\research')
+  assert.match(script, /\.max-update-in-progress/)
   assert.match(script, /Split-Path -Leaf \$parent.*profiles/)
   assert.match(script, /UTF8Encoding.*true/)
   assert.match(script, /\\A\(\[1-9\]/)
@@ -134,7 +134,7 @@ test('Windows relaunch gate uses strict install-wide marker parsing and fail-clo
   assert.doesNotMatch(script, /ErrorAction SilentlyContinue/)
 })
 
-test('Windows probe validates Hermes and Python topology before selection', async () => {
+test('Windows probe validates Max and Python topology before selection', async () => {
   let script = ''
   await probeWindowsRemote(
     sshWith(async command => {
@@ -218,22 +218,22 @@ test('platform detection surfaces transport failures as themselves, not unsuppor
           throw new Error('not recognized')
         }
 
-        throw new Error('Hermes is not installed on the remote Windows host.')
+        throw new Error('Max is not installed on the remote Windows host.')
       })
     ),
-    (err: any) => err.kind === 'unsupported-platform' && /Hermes is not installed/.test(err.message)
+    (err: any) => err.kind === 'unsupported-platform' && /Max is not installed/.test(err.message)
   )
 })
 
 test('helper command uses the fixed remote Python entry point and quotes path data', () => {
-  const command = helperCommand({ python: "C:\\Program Files\\Hermes's\\python.exe" }, 'inspect', [
+  const command = helperCommand({ python: "C:\\Program Files\\Max's\\python.exe" }, 'inspect', [
     'C:\\x y\\hermes.exe'
   ])
 
   const encoded = command.split(' ').pop()!
   const script = Buffer.from(encoded, 'base64').toString('utf16le')
-  assert.match(script, /-m' 'hermes_cli\.windows_ssh_runtime' 'inspect'/)
-  assert.match(script, /Hermes''s/)
+  assert.match(script, /-m' 'max_cli\.windows_ssh_runtime' 'inspect'/)
+  assert.match(script, /Max''s/)
   assert.match(script, /C:\\x y\\hermes\.exe/)
 })
 
@@ -278,7 +278,7 @@ test('Windows SSH reuse requires the requested remote profile to match the lock'
   }
 
   const state = { alive: true, owned: true }
-  const runtime = { hermesPath: lock.hermesPath, hermesHome: lock.hermesHome }
+  const runtime = { hermesPath: lock.maxPath, hermesHome: lock.maxHome }
 
   assert.equal(reusableWindowsLock(lock, state, 'default', token, runtime), true)
   assert.equal(reusableWindowsLock(lock, state, 'desktop-work', token, runtime), false)

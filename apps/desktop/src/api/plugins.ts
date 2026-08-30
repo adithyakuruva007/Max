@@ -1,4 +1,4 @@
-import type { HermesConnection } from '@/global'
+import type { MaxConnection } from '@/global'
 import { reconnectBackoffDelayMs } from '@/lib/reconnect-backoff'
 import { RECONNECT_ATTEMPT_TIMEOUT_MS, withTimeout } from '@/lib/with-timeout'
 
@@ -18,8 +18,8 @@ import { getApiRequestConnection, getApiRequestProfile, hermesApi, profileScoped
  *  openSecondary bounds the same *For/plain pair.
  *
  *  Exported for tests. */
-export async function activeConnection(): Promise<HermesConnection> {
-  const getConnectionFor = window.hermesDesktop.getConnectionFor
+export async function activeConnection(): Promise<MaxConnection> {
+  const getConnectionFor = window.maxDesktop.getConnectionFor
   const connectionId = getApiRequestConnection()
   const profile = getApiRequestProfile()
 
@@ -32,7 +32,7 @@ export async function activeConnection(): Promise<HermesConnection> {
   }
 
   return withTimeout(
-    window.hermesDesktop.getConnection(profile),
+    window.maxDesktop.getConnection(profile),
     RECONNECT_ATTEMPT_TIMEOUT_MS,
     `Timed out connecting to profile "${profile}"`
   )
@@ -43,7 +43,7 @@ export async function activeConnection(): Promise<HermesConnection> {
 export interface PluginRestOptions {
   method?: string
   body?: unknown
-  /** Single-file multipart upload (see HermesApiRequest.upload). */
+  /** Single-file multipart upload (see MaxApiRequest.upload). */
   upload?: { filename: string; contentType?: string; bytes: ArrayBuffer }
   timeoutMs?: number
 }
@@ -69,8 +69,8 @@ function pluginPathSuffix(caller: string, path: string): string {
  *  REST call. Broader reach (core endpoints, another namespace) is the future
  *  declared-capability seam; today the namespace IS the boundary. */
 export async function pluginRest<T>(pluginId: string, path: string, opts: PluginRestOptions = {}): Promise<T> {
-  if (!window.hermesDesktop?.api) {
-    throw new Error('Hermes desktop bridge unavailable')
+  if (!window.maxDesktop?.api) {
+    throw new Error('Max desktop bridge unavailable')
   }
 
   const suffix = pluginPathSuffix('pluginRest', path)

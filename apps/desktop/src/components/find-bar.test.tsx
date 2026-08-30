@@ -55,7 +55,7 @@ function installBridge() {
     return () => subscribers.delete(callback)
   })
 
-  ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = {
+  ;(window as unknown as { hermesDesktop: unknown }).maxDesktop = {
     findInPage,
     stopFindInPage,
     onFoundInPage
@@ -115,7 +115,7 @@ afterEach(() => {
   resetStore()
   drainListeners()
   vi.restoreAllMocks()
-  delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
+  delete (window as unknown as { hermesDesktop?: unknown }).maxDesktop
 })
 
 // ── Pure: match-count formatting ────────────────────────────────────────────

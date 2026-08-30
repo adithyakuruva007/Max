@@ -1,4 +1,4 @@
-"""Regression tests for migration from the removed Hermes Relay plugin."""
+"""Regression tests for migration from the removed Max Relay plugin."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from hermes_cli.config import migrate_config
-from hermes_cli.doctor import collect_relay_plugin_cutover_findings
-from hermes_cli.relay_plugin_cutover import RELAY_PLUGINS_CONFIG_ENV
+from max_cli.config import migrate_config
+from max_cli.doctor import collect_relay_plugin_cutover_findings
+from max_cli.relay_plugin_cutover import RELAY_PLUGINS_CONFIG_ENV
 
 
 def test_v38_migration_removes_only_legacy_relay_plugin_keys(tmp_path):
@@ -32,7 +32,7 @@ def test_v38_migration_removes_only_legacy_relay_plugin_keys(tmp_path):
         encoding="utf-8",
     )
 
-    with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+    with patch.dict(os.environ, {"MAX_HOME": str(tmp_path)}):
         results = migrate_config(interactive=False, quiet=True)
 
     raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -67,28 +67,28 @@ def test_doctor_reports_legacy_exporter_env_without_new_config(monkeypatch):
         collect_relay_plugin_cutover_findings(
             {},
             {
-                "HERMES_NEMO_RELAY_ATIF_ENABLED": "true",
-                "HERMES_NEMO_RELAY_ATIF_EXPORT_TIMEOUT_S": "30",
+                "MAX_NEMO_RELAY_ATIF_ENABLED": "true",
+                "MAX_NEMO_RELAY_ATIF_EXPORT_TIMEOUT_S": "30",
             },
         )
     )
 
-    assert "now ignored" in findings["HERMES_NEMO_RELAY_ATIF_ENABLED"]
-    assert RELAY_PLUGINS_CONFIG_ENV in findings["HERMES_NEMO_RELAY_ATIF_ENABLED"]
-    assert "now ignored" in findings["HERMES_NEMO_RELAY_ATIF_EXPORT_TIMEOUT_S"]
+    assert "now ignored" in findings["MAX_NEMO_RELAY_ATIF_ENABLED"]
+    assert RELAY_PLUGINS_CONFIG_ENV in findings["MAX_NEMO_RELAY_ATIF_ENABLED"]
+    assert "now ignored" in findings["MAX_NEMO_RELAY_ATIF_EXPORT_TIMEOUT_S"]
     assert (
         RELAY_PLUGINS_CONFIG_ENV
-        in findings["HERMES_NEMO_RELAY_ATIF_EXPORT_TIMEOUT_S"]
+        in findings["MAX_NEMO_RELAY_ATIF_EXPORT_TIMEOUT_S"]
     )
 
 
 @pytest.mark.parametrize("name", ["nemo_relay", "observability/nemo_relay"])
 def test_enable_rejects_removed_relay_plugin_without_discovery(name, capsys):
     with (
-        patch("hermes_cli.plugins_cmd._resolve_plugin_key_and_source") as resolve,
-        patch("hermes_cli.plugins_cmd._save_enabled_set") as save_enabled,
+        patch("max_cli.plugins_cmd._resolve_plugin_key_and_source") as resolve,
+        patch("max_cli.plugins_cmd._save_enabled_set") as save_enabled,
     ):
-        from hermes_cli.plugins_cmd import cmd_enable
+        from max_cli.plugins_cmd import cmd_enable
 
         with pytest.raises(SystemExit) as exc_info:
             cmd_enable(name, allow_tool_override=False)
@@ -104,12 +104,12 @@ def test_enable_rejects_removed_relay_plugin_without_discovery(name, capsys):
 def test_enable_rejects_alias_resolving_to_removed_relay_plugin(capsys):
     with (
         patch(
-            "hermes_cli.plugins_cmd._resolve_plugin_key_and_source",
+            "max_cli.plugins_cmd._resolve_plugin_key_and_source",
             return_value=("observability/nemo_relay", "user"),
         ),
-        patch("hermes_cli.plugins_cmd._save_enabled_set") as save_enabled,
+        patch("max_cli.plugins_cmd._save_enabled_set") as save_enabled,
     ):
-        from hermes_cli.plugins_cmd import cmd_enable
+        from max_cli.plugins_cmd import cmd_enable
 
         with pytest.raises(SystemExit) as exc_info:
             cmd_enable("relay-copy", allow_tool_override=False)
@@ -129,7 +129,7 @@ def test_doctor_does_not_warn_for_legacy_env_after_new_config_is_selected(
         {},
         {
             RELAY_PLUGINS_CONFIG_ENV: "/tmp/plugins.toml",
-            "HERMES_NEMO_RELAY_ATIF_ENABLED": "true",
+            "MAX_NEMO_RELAY_ATIF_ENABLED": "true",
         },
     )
 

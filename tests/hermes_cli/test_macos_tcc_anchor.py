@@ -22,9 +22,9 @@ from pathlib import Path
 
 import pytest
 
-import hermes_cli.doctor as doctor
-import hermes_cli.macos_tcc_anchor as tcc
-from hermes_constants import venv_python_path
+import max_cli.doctor as doctor
+import max_cli.macos_tcc_anchor as tcc
+from max_constants import venv_python_path
 
 
 def _darwin(monkeypatch):
@@ -104,7 +104,7 @@ class TestUvStoreDetection:
 
     def test_matches_hermes_runtime_repair_generation(self):
         path = (
-            "/Users/u/hermes-agent/.hermes-runtime/python/"
+            "/Users/u/max-agent/.max-runtime/python/"
             "generation-a1b2c3/cpython-3.11.15-macos-aarch64-none/bin/python3.11"
         )
         assert tcc._is_uv_macos_store(path)
@@ -139,7 +139,7 @@ class TestEnsureTccAnchor:
     def test_install_signs_the_anchor_copy(self, tmp_path, monkeypatch):
         _darwin(monkeypatch)
         signed = []
-        import hermes_cli.managed_uv as managed_uv
+        import max_cli.managed_uv as managed_uv
 
         monkeypatch.setattr(
             managed_uv, "_macos_sign_managed_python", lambda p: signed.append(Path(p)) or True
@@ -158,7 +158,7 @@ class TestEnsureTccAnchor:
         store = (
             tmp_path
             / "checkout"
-            / ".hermes-runtime"
+            / ".max-runtime"
             / "python"
             / "generation-a1b2c3"
             / "cpython-3.11.15-macos-aarch64-none"
@@ -362,7 +362,7 @@ class TestEnsureTccAnchor:
     def test_store_root_marker_tracks_managed_uv_constant(self):
         # The repair-generation store marker must stay derived from
         # managed_uv's directory constant, not drift as a hardcoded string.
-        from hermes_cli.managed_uv import _RUNTIME_DIR_NAME
+        from max_cli.managed_uv import _RUNTIME_DIR_NAME
 
         assert f"/{_RUNTIME_DIR_NAME}/python/" in tcc._STORE_ROOT_MARKERS
 

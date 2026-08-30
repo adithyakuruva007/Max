@@ -34,10 +34,10 @@ def _write_skill(skills_dir, name):
 @pytest.fixture
 def isolated_profiles(tmp_path, monkeypatch, _isolate_hermes_home):
     """Isolated default home + one named profile, each with its own skills."""
-    from hermes_constants import get_hermes_home
-    from hermes_cli import profiles
+    from max_constants import get_max_home
+    from max_cli import profiles
 
-    default_home = get_hermes_home()
+    default_home = get_max_home()
     profiles_root = default_home / "profiles"
     worker_home = profiles_root / "worker_alpha"
     for home in (default_home, worker_home):
@@ -59,11 +59,11 @@ def client(monkeypatch, isolated_profiles):
     except ImportError:
         pytest.skip("fastapi/starlette not installed")
 
-    import hermes_state
-    from hermes_constants import get_hermes_home
-    from hermes_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
+    import max_state
+    from max_constants import get_max_home
+    from max_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
 
-    monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", get_hermes_home() / "state.db")
+    monkeypatch.setattr(max_state, "DEFAULT_DB_PATH", get_max_home() / "state.db")
     c = TestClient(app)
     c.headers[_SESSION_HEADER_NAME] = _SESSION_TOKEN
     return c
@@ -156,7 +156,7 @@ class TestEditorEndpointsAuth:
     def test_endpoints_401_without_token(
         self, client, isolated_profiles, method, path, kwargs
     ):
-        from hermes_cli.web_server import _SESSION_HEADER_NAME
+        from max_cli.web_server import _SESSION_HEADER_NAME
 
         client.headers.pop(_SESSION_HEADER_NAME, None)
         resp = getattr(client, method)(path, **kwargs)

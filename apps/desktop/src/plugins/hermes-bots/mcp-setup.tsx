@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 
 // -- inline MCP setup (per-profile), driven by the mcp.servers.* gateway RPCs --
 // Feature-detected: if the gateway predates those RPCs the setup button hides
-// and the row falls back to the "run hermes mcp / Settings" hint. profile is
+// and the row falls back to the "run max mcp / Settings" hint. profile is
 // the target bot's profile name (its config is what we write).
 
 /** Body of an `mcp.servers.*` reply. Some gateway builds wrap it in a second
@@ -289,8 +289,8 @@ export function McpSetupButton({ profile, entry, onDone, ensureProfile }: McpSet
     // to the legacy gateway-listener flow when the bridge or the gateway-side
     // callback RPC is unavailable (older builds).
     const mcpOauthBridge =
-      typeof window !== 'undefined' && window.hermesDesktop && window.hermesDesktop.mcpOauth
-        ? window.hermesDesktop.mcpOauth
+      typeof window !== 'undefined' && window.maxDesktop && window.maxDesktop.mcpOauth
+        ? window.maxDesktop.mcpOauth
         : null
 
     let listener: { id: string; redirectUri: string } | null = null
@@ -385,8 +385,8 @@ export function McpSetupButton({ profile, entry, onDone, ensureProfile }: McpSet
       if (host.openExternal) {
         // @ts-expect-error TODO(bot-mode-types): not on the SDK host, branch is dead
         host.openExternal(authUrl)
-      } else if (typeof window !== 'undefined' && window.hermesDesktop && window.hermesDesktop.openExternal) {
-        window.hermesDesktop.openExternal(authUrl)
+      } else if (typeof window !== 'undefined' && window.maxDesktop && window.maxDesktop.openExternal) {
+        window.maxDesktop.openExternal(authUrl)
       } else {
         window.open(authUrl, '_blank')
       }

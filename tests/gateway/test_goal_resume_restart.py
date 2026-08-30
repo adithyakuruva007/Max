@@ -25,30 +25,30 @@ from gateway.config import GatewayConfig, Platform, PlatformConfig
 from gateway.platforms.base import MessageEvent, MessageType
 from gateway.run import GatewayRunner
 from gateway.session import SessionSource
-from hermes_cli import goals
+from max_cli import goals
 
 
 @pytest.fixture
 def hermes_home(tmp_path, monkeypatch):
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    # get_hermes_home() prefers the context-local override over the env
-    # var, so a set_hermes_home_override() leaked by ANY earlier test in
+    monkeypatch.setenv("MAX_HOME", str(home))
+    # get_max_home() prefers the context-local override over the env
+    # var, so a set_max_home_override() leaked by ANY earlier test in
     # this xdist worker would silently point the goals DB at a dead tmp
     # dir and make resume enqueue nothing (CI-only flake). Pin the
     # override to THIS home so the fixture is immune to leaks.
-    from hermes_constants import (
-        reset_hermes_home_override,
-        set_hermes_home_override,
+    from max_constants import (
+        reset_max_home_override,
+        set_max_home_override,
     )
 
-    token = set_hermes_home_override(str(home))
+    token = set_max_home_override(str(home))
     goals._DB_CACHE.clear()
     yield home
     try:
-        reset_hermes_home_override(token)
+        reset_max_home_override(token)
     except Exception:
         pass
     goals._DB_CACHE.clear()
@@ -59,7 +59,7 @@ def _exhaust_budget(session_id: str, goal_text: str = "ship the benchmark"):
     mgr = goals.GoalManager(session_id)
     mgr.set(goal_text, max_turns=1)
     with patch(
-        "hermes_cli.goals.judge_goal",
+        "max_cli.goals.judge_goal",
         return_value=("continue", "needs more steps", False, None, False),
     ):
         decision = mgr.evaluate_after_turn("worked a bit")
@@ -75,9 +75,9 @@ def _exhaust_budget(session_id: str, goal_text: str = "ship the benchmark"):
 
 
 def _make_cli(session_id: str):
-    from cli import HermesCLI
+    from cli import MaxCLI
 
-    cli = HermesCLI.__new__(HermesCLI)
+    cli = MaxCLI.__new__(MaxCLI)
     cli._pending_input = queue.Queue()
     cli.session_id = session_id
     cli.agent = MagicMock()

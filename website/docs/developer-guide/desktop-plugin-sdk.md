@@ -1,33 +1,33 @@
 ---
 sidebar_label: "Desktop Plugin SDK"
 title: "Desktop Plugin SDK (@hermes/plugin-sdk)"
-description: "Extend the native Hermes Desktop app — panes, pages, sidebar nav, status bar, palette commands, keybinds, themes, and a scoped backend namespace, with one import and no build step."
+description: "Extend the native Max Desktop app — panes, pages, sidebar nav, status bar, palette commands, keybinds, themes, and a scoped backend namespace, with one import and no build step."
 ---
 
 # Desktop Plugin SDK
 
-The native [Hermes Desktop](/user-guide/desktop) app is contribution-driven: every
+The native [Max Desktop](/user-guide/desktop) app is contribution-driven: every
 surface in the window — panes, routes, sidebar nav, status-bar items, palette
 entries, keybinds, themes — registers into one central registry. Core registers
 its surfaces exactly the way a plugin does, so the plugin story is the real one,
 not a bolted-on afterthought.
 
-A **desktop plugin** is a single ESM file that default-exports a `HermesPlugin`.
+A **desktop plugin** is a single ESM file that default-exports a `MaxPlugin`.
 It imports one module — `@hermes/plugin-sdk` — and gets everything: the app's
 live state, the gateway JSON-RPC door, a scoped REST/socket backend namespace,
 React Query, and the app's own UI kit so plugin UI looks native by default. No
 repo clone, no `npm run build`, no patching app source. Drop the file in
-`$HERMES_HOME/desktop-plugins/<id>/plugin.js` and the app loads it within seconds
+`$MAX_HOME/desktop-plugins/<id>/plugin.js` and the app loads it within seconds
 and hot-reloads every save.
 
 :::warning This is not the web-dashboard plugin SDK
-"Plugin" means several unrelated things across Hermes. This page is the **native
-desktop app** (`hermes desktop`) SDK — the `@hermes/plugin-sdk` module and
-`$HERMES_HOME/desktop-plugins/`. The **web dashboard** (`hermes dashboard`) has
-its own, unrelated plugin system on `window.__HERMES_PLUGIN_SDK__` with a
+"Plugin" means several unrelated things across Max. This page is the **native
+desktop app** (`max desktop`) SDK — the `@hermes/plugin-sdk` module and
+`$MAX_HOME/desktop-plugins/`. The **web dashboard** (`max dashboard`) has
+its own, unrelated plugin system on `window.__MAX_PLUGIN_SDK__` with a
 `manifest.json` — documented at
 [Extending the Dashboard](/user-guide/features/extending-the-dashboard). Python
-CLI/gateway plugins are documented at [Build a Hermes Plugin](/developer-guide/plugins).
+CLI/gateway plugins are documented at [Build a Max Plugin](/developer-guide/plugins).
 The three do not share code, APIs, or delivery. Only the backend `plugin_api.py`
 namespace (`/api/plugins/<id>`) is shared between the desktop and dashboard SDKs.
 :::
@@ -54,11 +54,11 @@ plugin, and fail to resolve in a disk plugin). Capability comes in tiers:
 
 | Mode | Where | Who | Build step |
 |------|-------|-----|------------|
-| **Disk** (recommended) | `$HERMES_HOME/desktop-plugins/<id>/plugin.js` | users, agents | none — plain ESM, loaded uncompiled |
-| **Unified package** | `$HERMES_HOME/plugins/<id>/desktop/plugin.js` | plugins that also ship agent-side code | none — same disk pipeline |
+| **Disk** (recommended) | `$MAX_HOME/desktop-plugins/<id>/plugin.js` | users, agents | none — plain ESM, loaded uncompiled |
+| **Unified package** | `$MAX_HOME/plugins/<id>/desktop/plugin.js` | plugins that also ship agent-side code | none — same disk pipeline |
 | **Bundled** | `apps/desktop/src/plugins/<id>/plugin.tsx` | in-tree, shipped with the app | the app's own Vite build |
 
-All three take the same `HermesPlugin` contract, appear in **Settings → Plugins**,
+All three take the same `MaxPlugin` contract, appear in **Settings → Plugins**,
 and enable/disable live. A unified package is just the disk door scanning inside
 your agent plugin's folder — see
 [One package, both SDKs](#one-package-both-sdks). Everything on this page is
@@ -71,12 +71,12 @@ repo.
 
 ## Quick start — your first plugin
 
-Create `$HERMES_HOME/desktop-plugins/hello/plugin.js` (that's `~/.hermes/...`
-by default, or `~/.hermes/profiles/<name>/...` under a named profile). The folder
+Create `$MAX_HOME/desktop-plugins/hello/plugin.js` (that's `~/.max/...`
+by default, or `~/.max/profiles/<name>/...` under a named profile). The folder
 name must equal the plugin `id`.
 
 ```javascript
-// ~/.hermes/desktop-plugins/hello/plugin.js
+// ~/.max/desktop-plugins/hello/plugin.js
 import { host, haptic, useValue } from '@hermes/plugin-sdk'
 import { jsx, jsxs } from 'react/jsx-runtime'
 
@@ -86,7 +86,7 @@ function HelloPane() {
   return jsxs('div', {
     className: 'flex h-full flex-col gap-2 p-3 text-sm',
     children: [
-      jsx('div', { className: 'font-medium', children: 'Hello, Hermes' }),
+      jsx('div', { className: 'font-medium', children: 'Hello, Max' }),
       jsx('div', {
         className: 'text-(--ui-text-tertiary)',
         children: `gateway: ${gateway}`
@@ -139,10 +139,10 @@ The only importable specifiers are `@hermes/plugin-sdk`, `react`, and
 
 ## The plugin contract
 
-A plugin default-exports a `HermesPlugin`:
+A plugin default-exports a `MaxPlugin`:
 
 ```ts
-interface HermesPlugin {
+interface MaxPlugin {
   /** Stable slug — becomes the `plugin:<id>` source and the id namespace. */
   id: string
   /** Human name for Settings / about UI. Defaults to `id`. */
@@ -434,7 +434,7 @@ classic preview card. Tell the agent about your directive in a skill (that's
 how it learns to emit it).
 
 Previewed widgets can also **talk back**. Inside the frame,
-`window.hermes.send('get-price eth')` (or a declarative
+`window.max.send('get-price eth')` (or a declarative
 `<button data-hermes-send="get-price eth">` — no script needed) hands that
 prompt to the agent as a user turn, off-screen: no bubble takes up the
 transcript, the widget updating is the visible response. The turn is still
@@ -556,7 +556,7 @@ is the registry routing identity;
 pair it with `profile` for keys and persistence. Endpoint, token, SSH host/key, and
 other raw connection fields never cross the plugin IPC boundary. `profile` is the
 source-local route used
-for requests; `targetProfile` is the backend Hermes profile served by that route.
+for requests; `targetProfile` is the backend Max profile served by that route.
 They differ when a route explicitly maps to another backend profile (for example an
 SSH `remoteProfile` override or a legacy per-profile URL alias). This distinction
 preserves backend identity without exposing connection secrets.
@@ -594,7 +594,7 @@ rejection your `.catch()` sees, never an error-boundary crash.
 `ctx.os` is the curated OS door — every way a plugin reaches outside the app
 window, in one namespace attributed to your plugin. `ctx.os.notify` posts a
 **native OS notification** — the same Electron pipeline the app's own
-approval/turn alerts use. It fires only while the user is away from Hermes
+approval/turn alerts use. It fires only while the user is away from Max
 (backgrounded / unfocused); use `host.notify` for the in-app toast when
 they're looking at the app. Users can silence it per device under Settings ▸
 Notifications ▸ "Plugin notifications", and repeats from the same plugin are
@@ -607,7 +607,7 @@ ctx.os.notify({
   title: 'New match found',
   body: 'Someone matched your signal',
   icon: '/abs/path/to/icon.png', // Electron Notification icon
-  // Body click → focus Hermes + navigate. Same vocabulary as OS deep links:
+  // Body click → focus Max + navigate. Same vocabulary as OS deep links:
   activate: 'hermes://index-network/intent/1',
   // or: activate: '/index-network/intent/1'
   // or: activate: { path: '/index-network/intent/1' }
@@ -694,12 +694,12 @@ construction**.
 
 A feature that needs a desktop UI **and** agent-side code (a Python plugin, its
 backend routes, skills) doesn't have to ship as two co-dependent installs. The
-desktop app also scans `$HERMES_HOME/plugins/<id>/` — the regular agent-plugin
+desktop app also scans `$MAX_HOME/plugins/<id>/` — the regular agent-plugin
 root — for a `desktop/plugin.js`, and loads it through the exact same pipeline
 as the standalone disk door (hot reload included):
 
 ```
-~/.hermes/plugins/<id>/           # ONE installable folder
+~/.max/plugins/<id>/           # ONE installable folder
 ├── plugin.yaml                   # the agent half: tools, hooks, commands
 ├── skills/…
 ├── dashboard/
@@ -717,13 +717,13 @@ Two enable switches still apply, on purpose, and both default to **off**: the
 desktop half ships opt-in — it inventories in **Settings → Plugins** but stays
 disabled until the user toggles it — matching the Python half's
 `plugins.enabled` gate in `config.yaml` (the security boundary below). Dropping
-a package into `~/.hermes/plugins` is inert on every surface until the user
+a package into `~/.max/plugins` is inert on every surface until the user
 says otherwise. The desktop half degrades gracefully when the backend half is
 off — `ctx.rest` returns errors, not crashes.
 
 :::note
 The scan is local to the machine the desktop app runs on. Against a remote
-backend, the remote box's `~/.hermes/plugins` is not reachable as a filesystem —
+backend, the remote box's `~/.max/plugins` is not reachable as a filesystem —
 only locally installed packages contribute a desktop half (same rule as the
 standalone door).
 :::
@@ -734,7 +734,7 @@ Ship your plugin repo (agent half, desktop half, or both) and link to it with
 the `hermes://` scheme — a plain anchor on your website or README:
 
 ```html
-<a href="hermes://plugin/install?repo=owner/repo&enable=1">Install in Hermes</a>
+<a href="hermes://plugin/install?repo=owner/repo&enable=1">Install in Max</a>
 ```
 
 The user gets a confirmation dialog (repo id, source links, a probe of what
@@ -746,11 +746,11 @@ never auto-install. `force=1` replaces an existing install; dev builds use
 ### The Python side
 
 Desktop plugins reuse the dashboard plugin backend mount. Put the backend in a
-`dashboard/` subfolder of a regular Hermes plugin and declare it in a
+`dashboard/` subfolder of a regular Max plugin and declare it in a
 `manifest.json`:
 
 ```
-~/.hermes/plugins/<id>/
+~/.max/plugins/<id>/
 └── dashboard/
     ├── manifest.json      # { "name": "<id>", "api": "plugin_api.py" }
     └── plugin_api.py      # exports `router = APIRouter()`
@@ -773,7 +773,7 @@ async def action(body: dict):
 
 Routes mount under `/api/plugins/<id>/` (`GET /api/plugins/<id>/board`, …).
 Backend code runs inside the gateway process, so it can import from the
-hermes-agent codebase directly (`hermes_state`, `hermes_cli.config`, …). See
+max-agent codebase directly (`max_state`, `max_cli.config`, …). See
 [Extending the Dashboard → Backend API routes](/user-guide/features/extending-the-dashboard#backend-api-routes)
 for the full backend reference — the mount is identical.
 
@@ -781,7 +781,7 @@ for the full backend reference — the mount is identical.
 Enabling a plugin in the desktop **Settings → Plugins** panel is a renderer-side
 choice; it does **not** import Python. A user plugin's `plugin_api.py` is
 imported only when the plugin is in the `plugins.enabled` allow-list in
-`config.yaml` (and not in `plugins.disabled`). Project plugins (`./.hermes/`)
+`config.yaml` (and not in `plugins.disabled`). Project plugins (`./.max/`)
 never auto-import Python. This is a security boundary, not an oversight
 (GHSA-mcfc-hp25-cjv7).
 :::
@@ -837,7 +837,7 @@ ctx.storage.remove('lastTab')
 ## Bundled plugins
 
 A plugin can ship in-tree at `apps/desktop/src/plugins/<id>/plugin.tsx` (default
-export a `HermesPlugin`). It's discovered by `discoverBundledPlugins()` at boot —
+export a `MaxPlugin`). It's discovered by `discoverBundledPlugins()` at boot —
 no import, no registry edit — and shares the exact inventory + live
 enable/disable contract as a disk plugin. The two differences:
 
@@ -894,7 +894,7 @@ not treat this pipeline as a trust boundary.
 | Category | Exports |
 |----------|---------|
 | Host | `host` (`.state.*`, `.notify`, `.notifyError`, `.navigate`, `.onEvent`, `.logs`, `.status`, `.restartGateway`, `.request`) |
-| Plugin contract | `HermesPlugin`, `PluginContext`, `PluginContribution`, `PluginStorage`, `PluginOs`, `PluginRestOptions`, `PluginNativeNotificationInput`, `PluginNotificationAction`, `HermesOpenTarget`, `Contribution` |
+| Plugin contract | `MaxPlugin`, `PluginContext`, `PluginContribution`, `PluginStorage`, `PluginOs`, `PluginRestOptions`, `PluginNativeNotificationInput`, `PluginNotificationAction`, `MaxOpenTarget`, `Contribution` |
 | Area constants | `PANES_AREA`, `ROUTES_AREA`, `SIDEBAR_NAV_AREA`, `STATUSBAR_AREAS`, `TITLEBAR_AREAS`, `PALETTE_AREA`, `KEYBINDS_AREA`, `THEMES_AREA`, `COMPOSER_AREAS` |
 | Area payloads | `RouteContribution`, `SidebarNavContribution`, `StatusbarItem`, `TitlebarTool`, `PaletteContribution`, `KeybindContribution`, `ComposerMiddleware`, `ComposerAttachmentProvider` |
 | React / state | `useValue`, `atom`, `computed`, `useQuery`, `useMutation`, `useQueryClient`, `queryClient`, `Contribute` |
@@ -914,9 +914,9 @@ human/developer reference; the skill is the working checklist.
 ## Troubleshooting
 
 **My plugin doesn't appear.** Confirm the file is at
-`$HERMES_HOME/desktop-plugins/<id>/plugin.js` and the folder name matches the
+`$MAX_HOME/desktop-plugins/<id>/plugin.js` and the folder name matches the
 export `id`. Run ⌘K → **Reload desktop plugins**. Check the app for an error
-toast naming the failure, and tail `hermes logs gui -f`.
+toast naming the failure, and tail `max logs gui -f`.
 
 **"unsupported import" on load.** A disk plugin may only import
 `@hermes/plugin-sdk`, `react`, and `react/jsx-runtime`. Remove any other import.
@@ -925,9 +925,9 @@ toast naming the failure, and tail `hermes logs gui -f`.
 in a `jsx()` call isn't imported. Add it to the import line.
 
 **`ctx.rest` returns 404.** The backend isn't mounted: confirm
-`~/.hermes/plugins/<id>/dashboard/manifest.json` has `"api": "plugin_api.py"`,
+`~/.max/plugins/<id>/dashboard/manifest.json` has `"api": "plugin_api.py"`,
 that the plugin is in `plugins.enabled` in `config.yaml`, and restart the gateway
-(backend routes mount at startup). Tail `~/.hermes/logs/errors.log` for
+(backend routes mount at startup). Tail `~/.max/logs/errors.log` for
 `Failed to load plugin <id> API routes`.
 
 **`ctx.socket` never fires.** On an OAuth remote it's a no-op by design — use your

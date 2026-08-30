@@ -17,10 +17,10 @@ import pytest
 @pytest.fixture
 def profiles_on_disk(tmp_path, monkeypatch, _isolate_hermes_home):
     """An isolated default home plus one named profile, each with a state.db."""
-    from hermes_cli import profiles
-    from hermes_constants import get_hermes_home
+    from max_cli import profiles
+    from max_constants import get_max_home
 
-    default_home = get_hermes_home()
+    default_home = get_max_home()
     profiles_root = default_home / "profiles"
     worker_home = profiles_root / "worker"
 
@@ -41,11 +41,11 @@ def client(monkeypatch, profiles_on_disk):
     except ImportError:
         pytest.skip("fastapi/starlette not installed")
 
-    import hermes_state
-    from hermes_cli.web_server import _SESSION_HEADER_NAME, _SESSION_TOKEN, app
-    from hermes_constants import get_hermes_home
+    import max_state
+    from max_cli.web_server import _SESSION_HEADER_NAME, _SESSION_TOKEN, app
+    from max_constants import get_max_home
 
-    monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", get_hermes_home() / "state.db")
+    monkeypatch.setattr(max_state, "DEFAULT_DB_PATH", get_max_home() / "state.db")
     c = TestClient(app)
     c.headers[_SESSION_HEADER_NAME] = _SESSION_TOKEN
 
@@ -61,7 +61,7 @@ def _seed_session(home, session_id, *, source, cwd=None, tokens=None, cost=None)
     """
     import sqlite3
 
-    from hermes_state import SessionDB
+    from max_state import SessionDB
 
     db = SessionDB(db_path=home / "state.db")
     try:
@@ -85,7 +85,7 @@ def _seed_session(home, session_id, *, source, cwd=None, tokens=None, cost=None)
 
 
 def _seed_project(home, name, folder):
-    from hermes_cli import projects_db
+    from max_cli import projects_db
 
     with projects_db.connect_closing(db_path=home / "projects.db") as conn:
         return projects_db.create_project(conn, name=name, folders=[str(folder)])
@@ -202,7 +202,7 @@ class TestCrossProfileProjectTree:
         """Proves the per-profile scoping, not just that two trees got merged.
 
         The builder reads projects.db, the repo-scan policy and the junk
-        filters through ``get_hermes_home()``. If the fan-out failed to rebind
+        filters through ``get_max_home()``. If the fan-out failed to rebind
         it per profile, every tree would come back describing whichever home
         the process happens to be running as.
         """
@@ -231,9 +231,9 @@ class TestCrossProfileProjectTree:
         real_build = gateway_server._build_project_tree
 
         def explode_for_worker(db, **kwargs):
-            from hermes_constants import get_hermes_home
+            from max_constants import get_max_home
 
-            if get_hermes_home().name == "worker":
+            if get_max_home().name == "worker":
                 raise RuntimeError("worker store is unreadable")
 
             return real_build(db, **kwargs)

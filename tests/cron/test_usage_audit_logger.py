@@ -6,7 +6,7 @@ Covers:
 - writer exception is swallowed (json.dumps raises) — call must return cleanly
 - file path is created if parent dir is missing
 - timestamp format is RFC3339 UTC with millisecond precision and 'Z' suffix
-- path resolves through _get_hermes_home() (profile-safe)
+- path resolves through _get_max_home() (profile-safe)
 """
 
 from __future__ import annotations
@@ -23,10 +23,10 @@ from cron import scheduler
 
 @pytest.fixture
 def tmp_hermes_home(tmp_path, monkeypatch):
-    """Redirect _get_hermes_home() so the audit logger writes under tmp_path."""
-    fake_home = tmp_path / "home" / ".hermes"
+    """Redirect _get_max_home() so the audit logger writes under tmp_path."""
+    fake_home = tmp_path / "home" / ".max"
     fake_home.mkdir(parents=True)
-    monkeypatch.setattr(scheduler, "_get_hermes_home", lambda: fake_home)
+    monkeypatch.setattr(scheduler, "_get_max_home", lambda: fake_home)
     return fake_home
 
 
@@ -35,7 +35,7 @@ def _read_jsonl(path: Path) -> list[dict]:
 
 
 class TestUsageAuditPath:
-    def test_resolves_through_get_hermes_home(self, tmp_hermes_home):
+    def test_resolves_through_get_max_home(self, tmp_hermes_home):
         p = scheduler._usage_audit_path()
         assert p == tmp_hermes_home / "cron" / "usage_audit.jsonl"
 

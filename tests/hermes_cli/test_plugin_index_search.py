@@ -1,7 +1,7 @@
 """Tests for the community plugin index (#64181).
 
 Covers: index parsing, fuzzy search, cache TTL + fallback chain
-(remote → cache → seed), `hermes plugins search --json`, and install-time
+(remote → cache → seed), `max plugins search --json`, and install-time
 name resolution (unique / ambiguous / passthrough of owner/repo).
 No live network — every remote fetch is mocked.
 """
@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import plugin_index
-from hermes_cli.plugin_index import (
+from max_cli import plugin_index
+from max_cli.plugin_index import (
     PluginIndexEntry,
     _parse_entries,
     load_index,
@@ -67,8 +67,8 @@ SAMPLE = _index_doc(
 
 @pytest.fixture()
 def hermes_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    monkeypatch.setattr(plugin_index, "get_hermes_home", lambda: tmp_path)
+    monkeypatch.setenv("MAX_HOME", str(tmp_path))
+    monkeypatch.setattr(plugin_index, "get_max_home", lambda: tmp_path)
     return tmp_path
 
 
@@ -265,7 +265,7 @@ class TestLoadIndex:
             "get_index_url",
             plugin_index.get_index_url,  # keep real fn, patch config below
         )
-        from hermes_cli import config as config_mod
+        from max_cli import config as config_mod
 
         monkeypatch.setattr(
             config_mod,
@@ -288,7 +288,7 @@ class TestResolveName:
         assert entry is not None and entry.repo == "NousResearch/hermes-media-studio"
 
     def test_case_insensitive(self):
-        entry, _ = resolve_name(self.entries, "Hermes-Media-Studio")
+        entry, _ = resolve_name(self.entries, "Max-Media-Studio")
         assert entry is not None
 
     def test_unique_partial(self):
@@ -312,7 +312,7 @@ class TestResolveName:
 
 class TestInstallResolution:
     def test_bare_name_detection(self):
-        from hermes_cli.plugins_cmd import _looks_like_bare_index_name
+        from max_cli.plugins_cmd import _looks_like_bare_index_name
 
         assert _looks_like_bare_index_name("hermes-media-studio")
         assert not _looks_like_bare_index_name("owner/repo")
@@ -322,7 +322,7 @@ class TestInstallResolution:
         assert not _looks_like_bare_index_name("file:///tmp/x")
 
     def test_install_resolves_name_and_pins_ref(self, hermes_home, monkeypatch):
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         monkeypatch.setattr(
             plugin_index, "load_index", lambda **kw: (_parse_entries(SAMPLE), "seed")
@@ -341,7 +341,7 @@ class TestInstallResolution:
         assert captured["ref"] == "e" * 40
 
     def test_install_explicit_ref_beats_index_pin(self, hermes_home, monkeypatch):
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         monkeypatch.setattr(
             plugin_index, "load_index", lambda **kw: (_parse_entries(SAMPLE), "seed")
@@ -360,7 +360,7 @@ class TestInstallResolution:
     def test_install_ambiguous_name_lists_candidates_and_exits(
         self, hermes_home, monkeypatch, capsys
     ):
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         monkeypatch.setattr(
             plugin_index, "load_index", lambda **kw: (_parse_entries(SAMPLE), "seed")
@@ -381,7 +381,7 @@ class TestInstallResolution:
         assert "hermes-telegram-business" in out
 
     def test_install_unknown_name_exits(self, hermes_home, monkeypatch, capsys):
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         monkeypatch.setattr(
             plugin_index, "load_index", lambda **kw: (_parse_entries(SAMPLE), "seed")
@@ -393,7 +393,7 @@ class TestInstallResolution:
 
     def test_owner_repo_passthrough_skips_index(self, hermes_home, monkeypatch):
         """Explicit owner/repo installs never consult the index."""
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         def boom(**kw):  # pragma: no cover
             raise AssertionError("index consulted for owner/repo identifier")
@@ -420,7 +420,7 @@ class TestInstallResolution:
 
 class TestCmdSearch:
     def test_json_output(self, hermes_home, monkeypatch, capsys):
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         monkeypatch.setattr(
             plugin_index, "load_index", lambda **kw: (_parse_entries(SAMPLE), "seed")
@@ -437,7 +437,7 @@ class TestCmdSearch:
     def test_table_output_includes_security_footer(
         self, hermes_home, monkeypatch, capsys
     ):
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         monkeypatch.setattr(
             plugin_index, "load_index", lambda **kw: (_parse_entries(SAMPLE), "seed")
@@ -448,7 +448,7 @@ class TestCmdSearch:
         assert "audited" in out
 
     def test_no_results_message(self, hermes_home, monkeypatch, capsys):
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         monkeypatch.setattr(
             plugin_index, "load_index", lambda **kw: (_parse_entries(SAMPLE), "seed")
@@ -459,7 +459,7 @@ class TestCmdSearch:
     def test_parser_accepts_search(self):
         import argparse
 
-        from hermes_cli.subcommands.plugins import build_plugins_parser
+        from max_cli.subcommands.plugins import build_plugins_parser
 
         parser = argparse.ArgumentParser()
         sub = parser.add_subparsers(dest="command")
@@ -474,7 +474,7 @@ class TestCmdSearch:
         assert args.refresh is True
 
     def test_dispatch_routes_search(self, hermes_home, monkeypatch):
-        from hermes_cli import plugins_cmd
+        from max_cli import plugins_cmd
 
         captured = {}
 

@@ -1,6 +1,6 @@
 """Regression coverage for Windows updater self-locking native dependencies.
 
-External secret backends are useful during normal Hermes startup, but the
+External secret backends are useful during normal Max startup, but the
 updater must not load them before replacing packages in its own environment.
 On Windows, importing Bitwarden's ``cryptography`` dependency maps
 ``_rust.pyd`` into the updater process and prevents ``uv`` from replacing it.
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import env_loader
+from max_cli import env_loader
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -46,7 +46,7 @@ secrets:
     probe = (
         "import json, sys\n"
         f"sys.argv = {argv!r}\n"
-        "import hermes_cli.main as hermes_main\n"
+        "import max_cli.main as hermes_main\n"
         f"{dispatch}"
         "print('LOADED_MODULES=' + json.dumps(sorted(sys.modules)))\n"
     )
@@ -56,7 +56,7 @@ secrets:
         text=True,
         timeout=120,
         cwd=REPO_ROOT,
-        env={**os.environ, "HERMES_HOME": str(home), "BWS_ACCESS_TOKEN": ""},
+        env={**os.environ, "MAX_HOME": str(home), "BWS_ACCESS_TOKEN": ""},
     )
     assert result.returncode == 0, result.stderr
     line = next(

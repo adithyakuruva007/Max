@@ -141,14 +141,14 @@ pub type CancelRx = mpsc::Receiver<()>;
 /// It exists because pipe EOF is not the child's to give. The write end of a
 /// redirected pipe is handed to the child as an inheritable handle, so every
 /// descendant spawned without its own redirection holds a duplicate, and the
-/// read side does not see EOF until the last of them closes it. `hermes update`
+/// read side does not see EOF until the last of them closes it. `max update`
 /// deliberately runs its build steps with stdout inherited, so the tree under a
 /// child is arbitrarily deep and not something the caller can enumerate. When
 /// one of those descendants is a resident gateway, the pipe stays open for the
 /// life of the gateway — and every obligation downstream of the read is
 /// stranded with it.
 ///
-/// Same bound `Invoke-HermesStep` grew in `scripts/desktop-update/windows.ps1`
+/// Same bound `Invoke-MaxStep` grew in `scripts/desktop-update/windows.ps1`
 /// (#90455), and the same shape as Go's `exec.Cmd.WaitDelay`.
 pub(crate) const DRAIN_GRACE: Duration = Duration::from_secs(20);
 
@@ -280,7 +280,7 @@ where
 
 /// Spawns install.ps1 / install.sh with the given args and streams output.
 ///
-/// `hermes_home_override` propagates to the child as $HERMES_HOME so the
+/// `hermes_home_override` propagates to the child as $MAX_HOME so the
 /// install script writes to the same directory the installer is reading from.
 pub async fn run_script(
     script_path: &Path,
@@ -300,7 +300,7 @@ pub async fn run_script(
     }
 
     if let Some(home) = hermes_home_override {
-        cmd.env("HERMES_HOME", home);
+        cmd.env("MAX_HOME", home);
     }
 
     cmd.stdin(Stdio::null())
@@ -744,7 +744,7 @@ info line
     /// A chatty child must stream at pipe speed, not at one buffer per tick.
     /// The PowerShell port of this pump regressed exactly here: idling after
     /// every chunk it *did* read metered the drain and backpressured the running
-    /// child. `hermes update` is this shape -- the Electron build alone is
+    /// child. `max update` is this shape -- the Electron build alone is
     /// megabytes.
     #[cfg(unix)]
     #[tokio::test]

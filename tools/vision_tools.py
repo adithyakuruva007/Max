@@ -42,7 +42,7 @@ from typing import Any, Awaitable, Dict, Optional
 from urllib.parse import urlparse
 import httpx
 
-# ``agent.auxiliary_client`` pulls credential_pool → hermes_cli.auth → httpx
+# ``agent.auxiliary_client`` pulls credential_pool → max_cli.auth → httpx
 # → rich (~50 ms cold); only vision handlers need it. Loaded lazily; both
 # names stay module attributes so tests can keep patching
 # ``tools.vision_tools.async_call_llm``. Truthy-skip: injected mocks win.
@@ -63,7 +63,7 @@ def _load_auxiliary_client() -> None:
             extract_content_or_reasoning = _ecr
 
 
-from hermes_constants import get_hermes_dir
+from max_constants import get_hermes_dir
 from tools.debug_helpers import DebugSession
 from tools.website_policy import check_website_access
 import sys
@@ -76,14 +76,14 @@ _debug = DebugSession("vision_tools", env_var="VISION_TOOLS_DEBUG")
 # Separate from auxiliary.vision.timeout which governs the LLM API call.
 # Resolution: config.yaml auxiliary.vision.download_timeout → env var → 30s default.
 def _resolve_download_timeout() -> float:
-    env_val = os.getenv("HERMES_VISION_DOWNLOAD_TIMEOUT", "").strip()
+    env_val = os.getenv("MAX_VISION_DOWNLOAD_TIMEOUT", "").strip()
     if env_val:
         try:
             return float(env_val)
         except ValueError:
             pass
     try:
-        from hermes_cli.config import cfg_get, load_config
+        from max_cli.config import cfg_get, load_config
         cfg = load_config()
         val = cfg_get(cfg, "auxiliary", "vision", "download_timeout")
         if val is not None:
@@ -153,12 +153,12 @@ def _resolve_vision_cpu_workers() -> int:
     multi-image fan-out keeps full request concurrency; only the simultaneous
     CPU bursts are bounded so the event loop always keeps a core.
 
-    Resolution order: HERMES_VISION_MAX_CONCURRENCY env →
+    Resolution order: MAX_VISION_MAX_CONCURRENCY env →
     config.yaml auxiliary.vision.max_concurrency → host core count. Any value
     that parses to < 1 is ignored in favor of the next source so the cap can
     never be disabled into an unbounded encode storm.
     """
-    env_val = os.getenv("HERMES_VISION_MAX_CONCURRENCY", "").strip()
+    env_val = os.getenv("MAX_VISION_MAX_CONCURRENCY", "").strip()
     if env_val:
         try:
             parsed = int(env_val)
@@ -167,7 +167,7 @@ def _resolve_vision_cpu_workers() -> int:
         except ValueError:
             pass
     try:
-        from hermes_cli.config import cfg_get, load_config
+        from max_cli.config import cfg_get, load_config
         cfg = load_config()
         val = cfg_get(cfg, "auxiliary", "vision", "max_concurrency")
         if val is not None:
@@ -1139,7 +1139,7 @@ def _should_use_native_vision_fast_path() -> bool:
     try:
         from agent.auxiliary_client import _read_main_provider, _read_main_model
         from agent.image_routing import decide_image_input_mode, _lookup_supports_vision
-        from hermes_cli.config import load_config
+        from max_cli.config import load_config
 
         provider = _read_main_provider()
         model = _read_main_model()
@@ -1426,7 +1426,7 @@ async def vision_analyze_tool(
         Exception: If download fails, analysis fails, or API key is not set
         
     Note:
-        - For URLs, temporary images are stored under $HERMES_HOME/cache/vision/ and cleaned up
+        - For URLs, temporary images are stored under $MAX_HOME/cache/vision/ and cleaned up
         - For local file paths, the file is used directly and NOT deleted
         - Supports common image formats (JPEG, PNG, GIF, WebP, etc.)
     """
@@ -1581,7 +1581,7 @@ async def vision_analyze_tool(
         vision_timeout = 120.0
         vision_temperature = 0.1
         try:
-            from hermes_cli.config import cfg_get, load_config
+            from max_cli.config import cfg_get, load_config
             _cfg = load_config()
             _vision_cfg = cfg_get(_cfg, "auxiliary", "vision", default={})
             _vt = _vision_cfg.get("timeout")
@@ -1877,7 +1877,7 @@ async def _handle_vision_analyze(args: Dict[str, Any], **kw: Any) -> str:
     # Prefer config.yaml auxiliary.vision.model; env var is a legacy override.
     model = None
     try:
-        from hermes_cli.config import cfg_get, load_config
+        from max_cli.config import cfg_get, load_config
         _cfg = load_config()
         _vmodel = cfg_get(_cfg, "auxiliary", "vision", "model")
         if _vmodel:
@@ -2151,7 +2151,7 @@ async def video_analyze_tool(
         vision_timeout = 180.0
         vision_temperature = 0.1
         try:
-            from hermes_cli.config import cfg_get, load_config
+            from max_cli.config import cfg_get, load_config
             _cfg = load_config()
             _vision_cfg = cfg_get(_cfg, "auxiliary", "vision", default={})
             _vt = _vision_cfg.get("timeout")
@@ -2294,7 +2294,7 @@ def _handle_video_analyze(args: Dict[str, Any], **kw: Any) -> Awaitable[str]:
     # env vars are a legacy override.
     model = None
     try:
-        from hermes_cli.config import cfg_get, load_config
+        from max_cli.config import cfg_get, load_config
         _cfg = load_config()
         _vmodel = cfg_get(_cfg, "auxiliary", "video", "model") or cfg_get(_cfg, "auxiliary", "vision", "model")
         if _vmodel:

@@ -244,7 +244,7 @@ def _logs_endpoint(endpoint: str) -> str:
 
 def _version() -> str:
     try:
-        from hermes_cli import __version__
+        from max_cli import __version__
         return str(__version__)
     except Exception:
         return "unknown"
@@ -252,7 +252,7 @@ def _version() -> str:
 
 def _profile() -> str:
     try:
-        from hermes_cli.profiles import get_active_profile_name
+        from max_cli.profiles import get_active_profile_name
         return str(get_active_profile_name() or "default")
     except Exception:
         return "default"
@@ -598,7 +598,7 @@ def start_gateway_health_export(config: Dict[str, Any]) -> GatewayHealthExportRu
         except Exception:
             logger.warning(
                 "monitoring.gateway_health_export.enabled but OTLP SDK is unavailable; "
-                "install 'hermes-agent[otlp]'",
+                "install 'max-agent[otlp]'",
                 exc_info=True,
             )
             return GatewayHealthExportRuntime(enabled=False, reason="otlp_unavailable")

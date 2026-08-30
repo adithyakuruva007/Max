@@ -325,7 +325,7 @@ class TestRunBrowserCommandPathConstruction:
              patch("tools.browser_tool._get_session_info", return_value=fake_session), \
              patch("tools.browser_tool._socket_safe_tmpdir", return_value=str(tmp_path)), \
              patch("tools.browser_tool._discover_homebrew_node_dirs", return_value=[]), \
-             patch("hermes_constants.Path.home", return_value=tmp_path), \
+             patch("max_constants.Path.home", return_value=tmp_path), \
              patch("subprocess.Popen", side_effect=capture_popen), \
              patch("os.open", return_value=99), \
              patch("os.close"), \
@@ -335,7 +335,7 @@ class TestRunBrowserCommandPathConstruction:
                  {
                      "PATH": "/usr/bin:/bin",
                      "HOME": "/home/test",
-                     "HERMES_HOME": hermes_home,
+                     "MAX_HOME": hermes_home,
                  },
                  clear=True,
              ):
@@ -355,7 +355,7 @@ class TestRunBrowserCommandPathConstruction:
     def test_npx_sentinel_resolves_via_resolve_npx_bin_with_pinned_spec(self, tmp_path):
         """When _find_agent_browser resolves the npx sentinel, the cmd prefix
         must come from _resolve_npx_bin() (not a bare shutil.which("npx"), which
-        could let a broken system npx shadow a healthy Hermes-managed one) and
+        could let a broken system npx shadow a healthy Max-managed one) and
         use the pinned agent-browser npx spec, not a bare "agent-browser"."""
         captured_cmd = None
 
@@ -377,12 +377,12 @@ class TestRunBrowserCommandPathConstruction:
         hermes_home = str(tmp_path / "hermes-home")
 
         with patch("tools.browser_tool._find_agent_browser", return_value="npx agent-browser"), \
-             patch("tools.browser_tool._resolve_npx_bin", return_value="/opt/hermes/node/bin/npx"), \
+             patch("tools.browser_tool._resolve_npx_bin", return_value="/opt/max/node/bin/npx"), \
              patch("tools.browser_tool._chromium_installed", return_value=True), \
              patch("tools.browser_tool._get_session_info", return_value=fake_session), \
              patch("tools.browser_tool._socket_safe_tmpdir", return_value=str(tmp_path)), \
              patch("tools.browser_tool._discover_homebrew_node_dirs", return_value=[]), \
-             patch("hermes_constants.Path.home", return_value=tmp_path), \
+             patch("max_constants.Path.home", return_value=tmp_path), \
              patch("subprocess.Popen", side_effect=capture_popen), \
              patch("os.open", return_value=99), \
              patch("os.close"), \
@@ -392,7 +392,7 @@ class TestRunBrowserCommandPathConstruction:
                  {
                      "PATH": "/usr/bin:/bin",
                      "HOME": "/home/test",
-                     "HERMES_HOME": hermes_home,
+                     "MAX_HOME": hermes_home,
                  },
                  clear=True,
              ):
@@ -401,7 +401,7 @@ class TestRunBrowserCommandPathConstruction:
 
         assert captured_cmd is not None
         assert captured_cmd[:5] == [
-            "/opt/hermes/node/bin/npx", "--ignore-scripts", "--prefer-offline", "-y",
+            "/opt/max/node/bin/npx", "--ignore-scripts", "--prefer-offline", "-y",
             AGENT_BROWSER_NPX_SPEC,
         ]
         assert captured_cmd[5:9] == ["--session", "test-session", "--json", "navigate"]
@@ -477,7 +477,7 @@ class TestRunChromeFallbackCommandNpxResolution:
 
         with patch("tools.browser_tool._run_browser_command", return_value=url_result), \
              patch("tools.browser_tool._find_agent_browser", return_value="npx agent-browser"), \
-             patch("tools.browser_tool._resolve_npx_bin", return_value="/opt/hermes/node/bin/npx"), \
+             patch("tools.browser_tool._resolve_npx_bin", return_value="/opt/max/node/bin/npx"), \
              patch("tools.browser_tool._chromium_installed", return_value=True), \
              patch("tools.browser_tool._running_in_docker", return_value=False), \
              patch("tools.browser_tool._socket_safe_tmpdir", return_value=str(tmp_path)), \
@@ -487,7 +487,7 @@ class TestRunChromeFallbackCommandNpxResolution:
         assert captured_cmds, "expected at least one Popen call for the chrome-fallback session"
         first_cmd = captured_cmds[0]
         assert first_cmd[:5] == [
-            "/opt/hermes/node/bin/npx", "--ignore-scripts", "--prefer-offline", "-y",
+            "/opt/max/node/bin/npx", "--ignore-scripts", "--prefer-offline", "-y",
             AGENT_BROWSER_NPX_SPEC,
         ]
         assert first_cmd[5] == "--engine" and first_cmd[6] == "chrome"
@@ -498,7 +498,7 @@ class TestRunChromeFallbackCommandNpxResolution:
 class TestResolveNpxBinPriority:
     """The extended/managed search must be checked before a bare ambient
     PATH lookup, so a broken/unexpected system npx can't shadow a healthy
-    Hermes-managed one — and each candidate must be validated (actually
+    Max-managed one — and each candidate must be validated (actually
     runs) before being trusted, mirroring _find_agent_browser's own
     validation discipline for agent-browser itself."""
 

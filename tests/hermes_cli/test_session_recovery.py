@@ -11,10 +11,10 @@ from types import SimpleNamespace
 
 import pytest
 
-import hermes_state
-from hermes_state import FTS_STORAGE_VERSION, SCHEMA_VERSION, SessionDB
-from hermes_cli import session_recovery
-from hermes_cli.session_recovery import (
+import max_state
+from max_state import FTS_STORAGE_VERSION, SCHEMA_VERSION, SessionDB
+from max_cli import session_recovery
+from max_cli.session_recovery import (
     SessionRecoverySafetyError,
     SessionRecoverySourceError,
     inspect_session_database,
@@ -317,8 +317,8 @@ def test_snapshot_blocks_connections_opened_during_the_copy(
     """
     import threading
 
-    from hermes_cli import session_recovery as recovery_module
-    from hermes_cli.sqlite_safe_read import connect_tracked
+    from max_cli import session_recovery as recovery_module
+    from max_cli.sqlite_safe_read import connect_tracked
 
     source = tmp_path / "racy-state.db"
     snapshot_dir = tmp_path / "snapshot"
@@ -519,12 +519,12 @@ def test_cli_allow_partial_salvages_rows_across_a_corrupt_leaf(
     assert not rejected_output.exists()
 
     env = os.environ.copy()
-    env["HERMES_HOME"] = str(tmp_path / "isolated-hermes-home")
+    env["MAX_HOME"] = str(tmp_path / "isolated-hermes-home")
     result = subprocess.run(
         [
             sys.executable,
             "-m",
-            "hermes_cli.main",
+            "max_cli.main",
             "sessions",
             "recover",
             "--source",

@@ -7,13 +7,13 @@ import type { SessionInfo } from '@/types/hermes'
 import { $hudActive, $hudSession, openHud, resetHudLayout } from './hud'
 
 const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
-const initialHermesDesktop = desktopWindow.hermesDesktop
+const initialMaxDesktop = desktopWindow.maxDesktop
 
 const open = vi.fn().mockResolvedValue({ ok: true })
 const resetLayout = vi.fn().mockResolvedValue({ ok: true })
 
 function installBridge() {
-  desktopWindow.hermesDesktop = {
+  desktopWindow.maxDesktop = {
     hud: { open, resetLayout }
   } as unknown as Window['hermesDesktop']
 }
@@ -33,10 +33,10 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (initialHermesDesktop) {
-    desktopWindow.hermesDesktop = initialHermesDesktop
+  if (initialMaxDesktop) {
+    desktopWindow.maxDesktop = initialMaxDesktop
   } else {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
   }
 })
 

@@ -7,13 +7,13 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.dashboard_auth import clear_providers, get_provider
-from hermes_cli.dashboard_auth.base import (
+from max_cli.dashboard_auth import clear_providers, get_provider
+from max_cli.dashboard_auth.base import (
     DashboardAuthProvider, LoginStart, Session,
 )
-from hermes_cli.plugins import PluginContext, PluginManager, PluginManifest
-from hermes_cli.dashboard_auth import registry as _auth_registry
-from hermes_constants import hermes_home_key
+from max_cli.plugins import PluginContext, PluginManager, PluginManifest
+from max_cli.dashboard_auth import registry as _auth_registry
+from max_constants import hermes_home_key
 
 
 class _Stub(DashboardAuthProvider):
@@ -153,7 +153,7 @@ def test_auth_provider_kept_out_of_manager_teardown_order():
     manager, ctx = _real_ctx()
     ctx.register_dashboard_auth_provider(_Basic())
     assert manager._registration_order == []
-    # Still attributed to the plugin for `hermes plugins list`.
+    # Still attributed to the plugin for `max plugins list`.
     assert "basic" in manager._ownership_ledger
 
 
@@ -185,7 +185,7 @@ def test_targeted_unload_disposes_persistent_auth_provider():
     ctx.register_dashboard_auth_provider(_Basic())
     assert get_provider("basic") is not None
 
-    # `hermes plugins disable basic` drives a targeted unload of that plugin.
+    # `max plugins disable basic` drives a targeted unload of that plugin.
     assert manager.unload("basic") is True
 
     assert get_provider("basic") is None, (

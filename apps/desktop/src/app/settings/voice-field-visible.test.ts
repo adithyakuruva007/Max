@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import type { HermesConfigRecord } from '@/types/hermes'
+import type { MaxConfigRecord } from '@/types/hermes'
 
 import { voiceFieldVisible } from './helpers'
 
-const cfg = (over: Record<string, unknown> = {}): HermesConfigRecord =>
+const cfg = (over: Record<string, unknown> = {}): MaxConfigRecord =>
   ({
     tts: { provider: 'edge', edge: {}, openai: {} },
     stt: { enabled: true, provider: 'local', local: {}, groq: {} },
     ...over
-  }) as unknown as HermesConfigRecord
+  }) as unknown as MaxConfigRecord
 
 describe('voiceFieldVisible', () => {
   it('always shows top-level + non-provider keys', () => {

@@ -130,8 +130,8 @@ function validateKeyPath(keyPath) {
 // Token / secret redaction
 
 const _REDACTIONS: Array<[RegExp, string]> = [
-  [/(HERMES_DASHBOARD_SESSION_TOKEN=)(\S+)/g, '$1<redacted>'],
-  [/(X-Hermes-Session-Token["']?\s*[:=]\s*["']?)([^\s"'&]+)/gi, '$1<redacted>'],
+  [/(MAX_DASHBOARD_SESSION_TOKEN=)(\S+)/g, '$1<redacted>'],
+  [/(X-Max-Session-Token["']?\s*[:=]\s*["']?)([^\s"'&]+)/gi, '$1<redacted>'],
   [/(Authorization["']?\s*:\s*Bearer\s+)(\S+)/gi, '$1<redacted>'],
   [/([?&](?:token|ticket)=)([^\s&"']+)/gi, '$1<redacted>'],
   // SSH target with a non-numeric segment where a port belongs
@@ -160,7 +160,7 @@ function redactSecrets(text) {
 // per-user `/var/folders/xx/yyyy…/T/` (~49 bytes), and OpenSSH binds a
 // TEMPORARY listener at `<ControlPath>.<16 random chars>` while establishing
 // the master — so a path that itself fits 104 still overflows at bind time. We
-// root under a short per-user base (`~/.hermes/desktop-ssh`) so even worst case
+// root under a short per-user base (`~/.max/desktop-ssh`) so even worst case
 // (~72 bytes on macOS) stays clear. Windows has no AF_UNIX sun_path limit.
 function controlSocketPath(user, host, port, baseDir?, identity: any = {}) {
   const dir = baseDir || defaultControlDir()
@@ -188,7 +188,7 @@ function defaultControlDir() {
     return path.join(os.tmpdir(), 'hermes-desktop-ssh')
   }
 
-  return path.join(os.homedir(), '.hermes', 'desktop-ssh')
+  return path.join(os.homedir(), '.max', 'desktop-ssh')
 }
 
 // Command construction (pure — the unit tests exercise these directly)

@@ -117,7 +117,7 @@ function useSyncHarness({
     refreshActiveTranscript,
     refreshCronJobs: vi.fn(),
     refreshCurrentModel: vi.fn(),
-    refreshHermesConfig: vi.fn(),
+    refreshMaxConfig: vi.fn(),
     refreshMessagingSessions: vi.fn(),
     refreshSessions: vi.fn(),
     updateSessionState,
@@ -651,7 +651,7 @@ describe('typing-aware sessions.changed deferral', () => {
       refreshActiveTranscript: async () => undefined,
       refreshCronJobs: vi.fn(),
       refreshCurrentModel: vi.fn(),
-      refreshHermesConfig: vi.fn(),
+      refreshMaxConfig: vi.fn(),
       refreshMessagingSessions: vi.fn(),
       requestGateway: vi.fn(async () => ({ sessions: [] })) as never,
       // Required by the hook's params. This harness never drives the

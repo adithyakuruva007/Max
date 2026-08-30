@@ -64,7 +64,7 @@ test.describe('chat interaction with mock backend', () => {
     // Wait for the mock response to appear. The canned reply is:
     // "Hello from the mock inference server! The full boot chain is working."
     // Give it a generous timeout — the inference request goes through the
-    // gateway → hermes serve → mock server → streaming SSE back.
+    // gateway → max serve → mock server → streaming SSE back.
     await page.waitForFunction(
       () => {
         const body = document.body

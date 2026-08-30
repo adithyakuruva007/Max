@@ -1,7 +1,7 @@
 """LIVE Windows E2E for the fleet-wide config migration (wine2e lane).
 
 Real profile homes on the Windows filesystem, real migration pipeline,
-fresh-process semantics via HERMES_HOME env — mirrors the Linux live E2E.
+fresh-process semantics via MAX_HOME env — mirrors the Linux live E2E.
 """
 import sys
 from pathlib import Path
@@ -29,10 +29,10 @@ def test_fleet_config_migration_live_windows(tmp_path, monkeypatch):
     (active / "config.yaml").write_text(
         yaml.safe_dump({"_config_version": 12}), encoding="utf-8"
     )
-    monkeypatch.setenv("HERMES_HOME", str(active))
+    monkeypatch.setenv("MAX_HOME", str(active))
 
-    import hermes_cli.update_cmd as update_cmd
-    from hermes_cli.config import DEFAULT_CONFIG
+    import max_cli.update_cmd as update_cmd
+    from max_cli.config import DEFAULT_CONFIG
 
     latest = int(DEFAULT_CONFIG["_config_version"])
     migrated = update_cmd._migrate_sibling_profile_configs()

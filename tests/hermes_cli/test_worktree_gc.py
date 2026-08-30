@@ -1,4 +1,4 @@
-"""Behavior contracts for hermes_cli.worktree_gc (attended reclaim).
+"""Behavior contracts for max_cli.worktree_gc (attended reclaim).
 
 Each guard gets its own contract against a REAL git repo fixture (no mocks —
 the entire value of these tests is exercising actual git verdicts):
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import worktree_gc
+from max_cli import worktree_gc
 
 
 def _git(args, cwd, env=None):
@@ -126,7 +126,7 @@ class TestAuditVerdicts:
     def test_live_locked_tree_keeps(self, repo):
         tree, _ = _add_worktree(repo, "hermes-live")
         _git(["worktree", "lock", str(tree),
-              "--reason", f"hermes pid={os.getpid()}"], repo)
+              "--reason", f"max pid={os.getpid()}"], repo)
         records = worktree_gc.audit_worktrees(str(repo), with_sizes=False)
         record = _verdict(records, "hermes-live")
         assert record.verdict == "keep"
@@ -159,7 +159,7 @@ class TestReclaim:
         records = worktree_gc.audit_worktrees(str(repo), with_sizes=False)
         worktree_gc.reclaim_worktrees(str(repo), records=records)
         assert not tree.exists()
-        archive_root = Path.home() / ".hermes" / "archive" / "worktree-prune"
+        archive_root = Path.home() / ".max" / "archive" / "worktree-prune"
         archived = list(archive_root.rglob("NOTES.md"))
         assert archived, "untracked file must be archived, not destroyed"
         assert archived[0].read_text() == "important scribbles\n"
@@ -185,7 +185,7 @@ class TestReclaim:
     def test_dead_locked_tree_is_unlocked_and_reaped(self, repo):
         tree, _ = _add_worktree(repo, "hermes-zombie")
         _git(["worktree", "lock", str(tree),
-              "--reason", "hermes pid=999999999"], repo)
+              "--reason", "max pid=999999999"], repo)
         records = worktree_gc.audit_worktrees(str(repo), with_sizes=False)
         assert _verdict(records, "hermes-zombie").verdict == "reap"
         worktree_gc.reclaim_worktrees(str(repo), records=records)

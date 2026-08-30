@@ -337,7 +337,7 @@ class TestPluginMemoryDiscovery:
 
 
 class TestUserInstalledProviderDiscovery:
-    """Memory providers installed to $HERMES_HOME/plugins/ should be found.
+    """Memory providers installed to $MAX_HOME/plugins/ should be found.
 
     Regression test for issues #4956 and #9099: load_memory_provider() and
     discover_memory_providers() only scanned the bundled plugins/memory/
@@ -366,7 +366,7 @@ class TestUserInstalledProviderDiscovery:
 
 
     def test_load_user_plugin(self, tmp_path, monkeypatch):
-        """load_memory_provider() can load from $HERMES_HOME/plugins/."""
+        """load_memory_provider() can load from $MAX_HOME/plugins/."""
         from plugins.memory import load_memory_provider
         self._make_user_memory_plugin(tmp_path, "myexternal")
         monkeypatch.setattr(
@@ -622,7 +622,7 @@ class TestEntryPointMemoryProviderDiscovery:
     def test_inactive_entry_point_load_does_not_register_skill(
         self, tmp_path, monkeypatch
     ):
-        from hermes_cli.plugins import get_plugin_manager
+        from max_cli.plugins import get_plugin_manager
         from plugins.memory import load_memory_provider
         import plugins.memory as memory_plugins
 
@@ -654,7 +654,7 @@ class TestEntryPointMemoryProviderDiscovery:
     def test_switching_provider_prunes_registered_entry_point_skill(
         self, tmp_path, monkeypatch
     ):
-        from hermes_cli.plugins import get_plugin_manager
+        from max_cli.plugins import get_plugin_manager
         from tools.skills_tool import skill_view
         import plugins.memory as memory_plugins
 
@@ -750,7 +750,7 @@ class TestSequentialDispatchRouting:
 
 class TestSetupFieldFiltering:
     """Test the 'when' clause and 'default_from' logic used by the
-    memory setup wizard in hermes_cli/memory_setup.py.
+    memory setup wizard in max_cli/memory_setup.py.
 
     These features are generic — any memory plugin can use them in
     get_config_schema(). Currently used by the hindsight plugin.
@@ -1143,11 +1143,11 @@ class TestMemoryToolToolsetGate:
     def test_composite_toolset_with_memory_injects(self):
         """Composite toolsets that include memory should inject provider tools."""
         mgr = self._mgr_with_tools("hindsight_recall")
-        tools, names = self._run_memory_injection(["hermes-acp"], mgr)
+        tools, names = self._run_memory_injection(["max-acp"], mgr)
         assert "hindsight_recall" in names
         assert any(t["function"]["name"] == "hindsight_recall" for t in tools)
 
-    @pytest.mark.parametrize("enabled_toolsets", [None, ["memory"], ["all"], ["hermes-acp"]])
+    @pytest.mark.parametrize("enabled_toolsets", [None, ["memory"], ["all"], ["max-acp"]])
     def test_disabled_memory_toolset_blocks_injection(self, enabled_toolsets):
         """An explicit memory disable wins over default or composite enablement."""
         mgr = self._mgr_with_tools("hindsight_recall")

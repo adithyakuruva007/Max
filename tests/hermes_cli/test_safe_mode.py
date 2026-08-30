@@ -1,4 +1,4 @@
-"""Tests for `hermes chat --safe-mode` isolation."""
+"""Tests for `max chat --safe-mode` isolation."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import types
 import pytest
 
 
-_VARS = ("HERMES_SAFE_MODE", "HERMES_IGNORE_USER_CONFIG", "HERMES_IGNORE_RULES")
+_VARS = ("MAX_SAFE_MODE", "MAX_IGNORE_USER_CONFIG", "MAX_IGNORE_RULES")
 
 
 @pytest.fixture(autouse=True)
@@ -22,8 +22,8 @@ def _clean_env(monkeypatch):
 
 
 def test_cmd_chat_safe_mode_sets_env_before_startup(monkeypatch):
-    import hermes_cli.main as main_mod
-    from hermes_cli._parser import build_top_level_parser
+    import max_cli.main as main_mod
+    from max_cli._parser import build_top_level_parser
 
     parser, _subparsers, chat_parser = build_top_level_parser()
     chat_parser.set_defaults(func=main_mod.cmd_chat)
@@ -32,9 +32,9 @@ def test_cmd_chat_safe_mode_sets_env_before_startup(monkeypatch):
     fake_cli = types.ModuleType("cli")
 
     def fake_has_provider() -> bool:
-        assert os.environ["HERMES_SAFE_MODE"] == "1"
-        assert os.environ["HERMES_IGNORE_USER_CONFIG"] == "1"
-        assert os.environ["HERMES_IGNORE_RULES"] == "1"
+        assert os.environ["MAX_SAFE_MODE"] == "1"
+        assert os.environ["MAX_IGNORE_USER_CONFIG"] == "1"
+        assert os.environ["MAX_IGNORE_RULES"] == "1"
         return True
 
     def fake_main(**kwargs):
@@ -56,8 +56,8 @@ def test_cmd_chat_safe_mode_sets_env_before_startup(monkeypatch):
 
 
 def test_plugin_discovery_skipped(monkeypatch):
-    monkeypatch.setenv("HERMES_SAFE_MODE", "1")
-    from hermes_cli.plugins import PluginManager
+    monkeypatch.setenv("MAX_SAFE_MODE", "1")
+    from max_cli.plugins import PluginManager
 
     mgr = PluginManager()
     called = []

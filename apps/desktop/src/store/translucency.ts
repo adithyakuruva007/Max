@@ -69,8 +69,8 @@ export type { Appearance }
  * import.
  */
 export const GLASS_SUPPORTED =
-  typeof window !== 'undefined' && typeof window.hermesDesktop?.glassSupported === 'boolean'
-    ? window.hermesDesktop.glassSupported
+  typeof window !== 'undefined' && typeof window.maxDesktop?.glassSupported === 'boolean'
+    ? window.maxDesktop.glassSupported
     : isMacPlatform() || isWindowsPlatform()
 
 /**
@@ -79,8 +79,8 @@ export const GLASS_SUPPORTED =
  * Settings hides the row rather than offering a lever that does nothing.
  */
 export const TRANSLUCENCY_SUPPORTED =
-  typeof window !== 'undefined' && typeof window.hermesDesktop?.translucencySupported === 'boolean'
-    ? window.hermesDesktop.translucencySupported
+  typeof window !== 'undefined' && typeof window.maxDesktop?.translucencySupported === 'boolean'
+    ? window.maxDesktop.translucencySupported
     : isMacPlatform() || isWindowsPlatform()
 
 /** Windows collapses the frost ladder — see `glassMaterialsFor`. */
@@ -363,7 +363,7 @@ if (typeof window !== 'undefined') {
   // exactly right: the window's tint and native opacity change with it.
   $translucency.subscribe(state => {
     applyGlassSurfaces(state)
-    window.hermesDesktop?.setTranslucency?.(state)
+    window.maxDesktop?.setTranslucency?.(state)
   })
 
   // Persistence follows the BOOK, so an appearance switch (which changes the

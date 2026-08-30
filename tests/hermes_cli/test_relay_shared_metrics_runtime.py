@@ -1,4 +1,4 @@
-"""Tests for the direct Hermes-to-Relay shared-metrics runtime."""
+"""Tests for the direct Max-to-Relay shared-metrics runtime."""
 
 from __future__ import annotations
 
@@ -14,9 +14,9 @@ from typing import Any
 
 import pytest
 
-from hermes_cli import lifecycle, plugins
-from hermes_cli.observability import relay_runtime, relay_shared_metrics
-from hermes_cli.plugins import PluginManager
+from max_cli import lifecycle, plugins
+from max_cli.observability import relay_runtime, relay_shared_metrics
+from max_cli.plugins import PluginManager
 
 
 class _Request:
@@ -210,10 +210,10 @@ class _Relay:
 @pytest.fixture
 def direct_runtime(tmp_path, monkeypatch):
     fake = _Relay()
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes-home"))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path / "hermes-home"))
     monkeypatch.setattr(relay_runtime, "_load_nemo_relay", lambda: fake)
     monkeypatch.setattr(
-        "hermes_cli.config.read_raw_config_readonly",
+        "max_cli.config.read_raw_config_readonly",
         lambda: {"telemetry": {"shared_metrics": {"enabled": True}}},
     )
     relay_shared_metrics._reset_for_tests()
@@ -233,9 +233,9 @@ def real_binding_runtime(tmp_path, monkeypatch):
     relay = pytest.importorskip("nemo_relay")
     if getattr(relay, "_native", None) is None:
         pytest.skip("NeMo Relay native binding is unavailable on this platform")
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes-home"))
+    monkeypatch.setenv("MAX_HOME", str(tmp_path / "hermes-home"))
     monkeypatch.setattr(
-        "hermes_cli.config.read_raw_config_readonly",
+        "max_cli.config.read_raw_config_readonly",
         lambda: {"telemetry": {"shared_metrics": {"enabled": True}}},
     )
     relay_shared_metrics._reset_for_tests()
@@ -610,13 +610,13 @@ def test_real_binding_drives_lifecycle_aggregation_export_and_snapshot(
     )
     lifecycle.finalize_session(session_id=cancelled["session_id"])
 
-    from hermes_cli.observability.shared_metrics import SharedMetricsStore
+    from max_cli.observability.shared_metrics import SharedMetricsStore
 
     root = tmp_path / "hermes-home" / "telemetry" / "shared_metrics"
     store = SharedMetricsStore(root / "metrics.sqlite3", root / "outbox")
     tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
     monkeypatch.setattr(
-        "hermes_cli.observability.shared_metrics._utc_now",
+        "max_cli.observability.shared_metrics._utc_now",
         lambda: tomorrow,
     )
     assert len(store.create_and_export_package_if_due()) == 1
@@ -733,7 +733,7 @@ def test_real_binding_correlates_plugin_approval_denial_to_tool_metric(
     tmp_path,
     monkeypatch,
 ):
-    from hermes_cli.observability.shared_metrics import SharedMetricsStore
+    from max_cli.observability.shared_metrics import SharedMetricsStore
     from tools import approval
 
     assert real_binding_runtime._native is not None
@@ -826,7 +826,7 @@ def test_real_binding_aggregates_tool_and_approval_timeouts(
     real_binding_runtime,
     tmp_path,
 ):
-    from hermes_cli.observability.shared_metrics import SharedMetricsStore
+    from max_cli.observability.shared_metrics import SharedMetricsStore
 
     assert real_binding_runtime._native is not None
     base = {
@@ -968,7 +968,7 @@ def test_core_runtime_is_fail_open_without_a_published_binding(monkeypatch, capl
         args={"command": "true"},
     ) == {"command": "true"}
     assert not relay_runtime.emit_mark("hermes.probe", session_id="s1")
-    assert "Hermes Relay runtime initialization failed" in caplog.text
+    assert "Max Relay runtime initialization failed" in caplog.text
     relay_runtime._reset_for_tests()
 
 
@@ -1129,10 +1129,10 @@ def test_managed_config_cannot_override_shared_metrics_consent(
     profile_enabled,
     managed_enabled,
 ):
-    from hermes_cli import config, managed_scope
-    from hermes_constants import (
-        reset_hermes_home_override,
-        set_hermes_home_override,
+    from max_cli import config, managed_scope
+    from max_constants import (
+        reset_max_home_override,
+        set_max_home_override,
     )
 
     profile = tmp_path / "profile"
@@ -1153,12 +1153,12 @@ def test_managed_config_cannot_override_shared_metrics_consent(
         f"    enabled: {str(managed_enabled).lower()}\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("HERMES_MANAGED_DIR", str(managed))
+    monkeypatch.setenv("MAX_MANAGED_DIR", str(managed))
     config._LOAD_CONFIG_CACHE.clear()
     config._RAW_CONFIG_CACHE.clear()
     managed_scope.invalidate_managed_cache()
 
-    token = set_hermes_home_override(profile)
+    token = set_max_home_override(profile)
     try:
         assert (
             config.load_config_readonly()["telemetry"]["shared_metrics"]["enabled"]
@@ -1166,7 +1166,7 @@ def test_managed_config_cannot_override_shared_metrics_consent(
         )
         assert relay_shared_metrics.enabled() is (profile_enabled is True)
     finally:
-        reset_hermes_home_override(token)
+        reset_max_home_override(token)
         relay_shared_metrics._reset_for_tests()
         relay_runtime._reset_for_tests()
         managed_scope.invalidate_managed_cache()
@@ -1177,15 +1177,15 @@ def test_managed_config_cannot_override_shared_metrics_consent(
 def test_disabling_shared_metrics_stops_collection_and_shutdown_export(
     tmp_path, monkeypatch
 ):
-    from hermes_cli.observability.shared_metrics import SharedMetricsStore
+    from max_cli.observability.shared_metrics import SharedMetricsStore
 
     fake = _Relay()
     profile = tmp_path / "profile"
     policy = {"enabled": True}
-    monkeypatch.setenv("HERMES_HOME", str(profile))
+    monkeypatch.setenv("MAX_HOME", str(profile))
     monkeypatch.setattr(relay_runtime, "_load_nemo_relay", lambda: fake)
     monkeypatch.setattr(
-        "hermes_cli.config.read_raw_config_readonly",
+        "max_cli.config.read_raw_config_readonly",
         lambda: {"telemetry": {"shared_metrics": dict(policy)}},
     )
     relay_shared_metrics._reset_for_tests()
@@ -2379,7 +2379,7 @@ def test_failed_flush_keeps_daily_export_open_for_later_task(
 ):
     current_time = datetime(2026, 7, 28, 9, tzinfo=timezone.utc)
     monkeypatch.setattr(
-        "hermes_cli.observability.shared_metrics._utc_now",
+        "max_cli.observability.shared_metrics._utc_now",
         lambda: current_time,
     )
     original_flush = direct_runtime.subscribers.flush
@@ -2430,7 +2430,7 @@ def test_failed_flush_keeps_daily_export_open_for_later_task(
     assert metrics["hermes.task_run.started"]["value"] == 2
     assert metrics["hermes.task_run.finished"]["value"] == 2
     assert flush_attempts == 2
-    assert "Hermes shared-metrics task flush failed" in caplog.text
+    assert "Max shared-metrics task flush failed" in caplog.text
 
 
 def test_skill_lifecycle_flows_through_relay_to_a_privacy_safe_package(

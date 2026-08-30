@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Point at something in the Hermes desktop GUI and say one line about it.
+"""Point at something in the Max desktop GUI and say one line about it.
 
 The quiet sibling of ``tour``. Same durable ``data-tour`` handles, same
 discovery call (``tour(action="targets")``) — but no scrim, no spotlight, and no
@@ -12,7 +12,7 @@ on a round-trip would stall the reply it belongs to.
 
 Ungated, also like ``tour``. The desktop's Settings → Appearance switch governs
 the app's own idle rotation — the half that talks unprompted — not this, which
-Hermes raises mid-conversation in answer to something the user said.
+Max raises mid-conversation in answer to something the user said.
 
 Lives in the ``desktop_ui`` toolset, which the GUI gateway enables only for
 desktop-sourced sessions.
@@ -54,7 +54,7 @@ def tip_tool(text: str, selector: str, title: str = "", side: str = "") -> str:
     except Exception as exc:
         return tool_error(f"Failed to show the tip: {exc}")
     if not ok:
-        return tool_error("tip is only available in the Hermes desktop app.")
+        return tool_error("tip is only available in the Max desktop app.")
 
     return json.dumps({"success": True, "selector": selector}, ensure_ascii=False)
 

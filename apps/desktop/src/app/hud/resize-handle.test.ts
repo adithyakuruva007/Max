@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HUD_RESIZE_DIRECTIONS, hudResizeBounds, hudResizeDirections, useHudResizeHandle } from './resize-handle'
 
 const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
-const initialHermesDesktop = desktopWindow.hermesDesktop
+const initialMaxDesktop = desktopWindow.maxDesktop
 const setBounds = vi.fn()
 
 function setWindowBounds(x: number, y: number, width: number, height: number): void {
@@ -27,16 +27,16 @@ function resizeTarget(): HTMLElement {
 beforeEach(() => {
   setBounds.mockClear()
   setWindowBounds(100, 200, 620, 320)
-  desktopWindow.hermesDesktop = { hud: { setBounds } } as unknown as Window['hermesDesktop']
+  desktopWindow.maxDesktop = { hud: { setBounds } } as unknown as Window['hermesDesktop']
 })
 
 afterEach(() => {
   document.body.innerHTML = ''
 
-  if (initialHermesDesktop) {
-    desktopWindow.hermesDesktop = initialHermesDesktop
+  if (initialMaxDesktop) {
+    desktopWindow.maxDesktop = initialMaxDesktop
   } else {
-    delete desktopWindow.hermesDesktop
+    delete desktopWindow.maxDesktop
   }
 })
 

@@ -34,10 +34,10 @@ test('windowsQuote doubles embedded quotes', () => {
 test('terminalScriptEnv drops PATH in any casing and keeps the rest', () => {
   const env = terminalScriptEnv(
     { Path: 'C:\\junk', PATH: '/junk', PYTHONPATH: '/repo', PYTHONUTF8: '1' },
-    '/home/b/.hermes'
+    '/home/b/.max'
   )
 
-  assert.deepEqual(env, { PYTHONPATH: '/repo', PYTHONUTF8: '1', HERMES_HOME: '/home/b/.hermes' })
+  assert.deepEqual(env, { PYTHONPATH: '/repo', PYTHONUTF8: '1', MAX_HOME: '/home/b/.max' })
 })
 
 test('terminalScriptEnv skips empty values and an absent home', () => {
@@ -46,10 +46,10 @@ test('terminalScriptEnv skips empty values and an absent home', () => {
 
 test('buildTerminalScript execs the resolved runtime with its env', () => {
   const script = buildTerminalScript({
-    args: ['-m', 'hermes_cli.main', '--tui', '--resume', 'sess'],
-    command: '/home/b/.hermes/hermes-agent/venv/bin/python',
+    args: ['-m', 'max_cli.main', '--tui', '--resume', 'sess'],
+    command: '/home/b/.max/max-agent/venv/bin/python',
     cwd: "/home/b/o'brien",
-    env: { PYTHONPATH: '/home/b/.hermes/hermes-agent' },
+    env: { PYTHONPATH: '/home/b/.max/max-agent' },
     platform: 'darwin'
   })
 
@@ -58,8 +58,8 @@ test('buildTerminalScript execs the resolved runtime with its env', () => {
     [
       '#!/bin/sh',
       `cd '/home/b/o'\\''brien' || exit 1`,
-      `export PYTHONPATH='/home/b/.hermes/hermes-agent'`,
-      `exec '/home/b/.hermes/hermes-agent/venv/bin/python' '-m' 'hermes_cli.main' '--tui' '--resume' 'sess'`,
+      `export PYTHONPATH='/home/b/.max/max-agent'`,
+      `exec '/home/b/.max/max-agent/venv/bin/python' '-m' 'max_cli.main' '--tui' '--resume' 'sess'`,
       ''
     ].join('\n')
   )

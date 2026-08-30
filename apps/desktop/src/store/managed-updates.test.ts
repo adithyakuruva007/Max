@@ -35,14 +35,14 @@ function managedResult(over: Partial<DesktopManagedConnectionUpdateResult> = {})
 beforeEach(() => {
   _resetManagedUpdatesForTests()
   updateManaged.mockReset().mockResolvedValue(managedResult())
-  ;(window as { hermesDesktop?: unknown }).hermesDesktop = {
+  ;(window as { hermesDesktop?: unknown }).maxDesktop = {
     connections: { updateManaged }
   }
 })
 
 describe('managedUpdatesSupported', () => {
   it('is false on an older Electron main without the transactional bridge', () => {
-    ;(window as { hermesDesktop?: unknown }).hermesDesktop = { connections: {} }
+    ;(window as { hermesDesktop?: unknown }).maxDesktop = { connections: {} }
     expect(managedUpdatesSupported()).toBe(false)
   })
 
@@ -189,7 +189,7 @@ describe('runManagedUpdate', () => {
   })
 
   it('fails closed when the bridge is missing instead of pretending to update', async () => {
-    ;(window as { hermesDesktop?: unknown }).hermesDesktop = { connections: {} }
+    ;(window as { hermesDesktop?: unknown }).maxDesktop = { connections: {} }
 
     const state = await runManagedUpdate('linux-ssh')
 

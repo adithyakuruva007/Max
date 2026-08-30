@@ -15,7 +15,7 @@
  * old plugin.js bundle and rendered it against a hand-built jsx stub.
  */
 
-import type * as HermesSdk from '@hermes/plugin-sdk'
+import type * as MaxSdk from '@hermes/plugin-sdk'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -35,7 +35,7 @@ const { ensureAgent, ensureBotMetadata, notifyError, openRosterBot, requestProfi
   }))
 
 vi.mock('@hermes/plugin-sdk', async importOriginal => {
-  const sdk = await importOriginal<typeof HermesSdk>()
+  const sdk = await importOriginal<typeof MaxSdk>()
 
   return {
     ...sdk,

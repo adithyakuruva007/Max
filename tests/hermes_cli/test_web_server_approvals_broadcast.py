@@ -22,7 +22,7 @@ def client(_isolate_hermes_home):
         from starlette.testclient import TestClient
     except ImportError:
         pytest.skip("fastapi/starlette not installed")
-    from hermes_cli import web_server
+    from max_cli import web_server
 
     client = TestClient(web_server.app)
     client.headers[web_server._SESSION_HEADER_NAME] = web_server._SESSION_TOKEN
@@ -108,12 +108,12 @@ class TestApprovalsSaveBroadcast:
         )
         assert resp.status_code == 200
         assert broadcast_calls, (
-            "?profile=default is this process's own HERMES_HOME; skipping "
+            "?profile=default is this process's own MAX_HOME; skipping "
             "the broadcast leaves live sessions painting stale YOLO state"
         )
 
     def test_other_profile_save_does_not_broadcast(self, client, broadcast_calls, monkeypatch, tmp_path):
-        from hermes_cli import web_server
+        from max_cli import web_server
 
         profile_dir = tmp_path / "profiles" / "other"
         profile_dir.mkdir(parents=True)
@@ -125,7 +125,7 @@ class TestApprovalsSaveBroadcast:
         )
         assert resp.status_code == 200
         assert not broadcast_calls, (
-            "a profile-scoped save targets a different HERMES_HOME than this "
+            "a profile-scoped save targets a different MAX_HOME than this "
             "process's gateway sessions; broadcasting our own sessions' "
             "unchanged state is wrong"
         )

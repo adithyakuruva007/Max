@@ -108,7 +108,7 @@ async def test_sethome_updates_running_config_for_same_process_restart(tmp_path,
     def _fake_save_env_value(key, value):
         saved[key] = value
 
-    monkeypatch.setattr("hermes_cli.config.save_env_value", _fake_save_env_value)
+    monkeypatch.setattr("max_cli.config.save_env_value", _fake_save_env_value)
     monkeypatch.setattr("gateway.slash_commands.persist_home_channel", lambda home, **kwargs: None)
 
     runner, _adapter = make_restart_runner()
@@ -141,7 +141,7 @@ async def test_sethome_preserves_thread_target_for_same_process_restart(tmp_path
     def _fake_save_env_value(key, value):
         saved[key] = value
 
-    monkeypatch.setattr("hermes_cli.config.save_env_value", _fake_save_env_value)
+    monkeypatch.setattr("max_cli.config.save_env_value", _fake_save_env_value)
     monkeypatch.setattr("gateway.slash_commands.persist_home_channel", lambda home, **kwargs: None)
 
     runner, _adapter = make_restart_runner()
@@ -198,7 +198,7 @@ async def test_send_home_channel_startup_notification_preserves_thread_metadata(
     assert delivered == {("telegram", "parent-42", "777")}
     adapter.send.assert_called_once_with(
         "parent-42",
-        "♻️ Gateway online — Hermes is back and ready.",
+        "♻️ Gateway online — Max is back and ready.",
         metadata={
             "thread_id": "777",
             "telegram_dm_topic_reply_fallback": True,
@@ -237,7 +237,7 @@ async def test_relay_fronted_logical_home_gets_startup_notification(tmp_path, mo
     assert relay.send_for_platform.await_args.args[:3] == (
         Platform.SLACK,
         "D123",
-        "♻️ Gateway online — Hermes is back and ready.",
+        "♻️ Gateway online — Max is back and ready.",
     )
     assert relay.send_for_platform.await_args.kwargs["metadata"]["user_id"] == "U123"
     assert relay.send_for_platform.await_args.kwargs["metadata"]["scope_id"] == "T123"

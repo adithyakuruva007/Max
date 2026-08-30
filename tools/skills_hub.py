@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Skills Hub — Source adapters and hub state management for the Hermes Skills Hub.
+Skills Hub — Source adapters and hub state management for the Max Skills Hub.
 
 This is a library module (not an agent tool). It provides:
   - GitHubAuth: Shared GitHub API authentication (PAT, gh CLI, GitHub App)
@@ -10,7 +10,7 @@ This is a library module (not an agent tool). It provides:
   - HubLockFile: Track provenance of installed hub skills
   - Hub state directory management (quarantine, audit log, taps, index cache)
 
-Used by hermes_cli/skills_hub.py for CLI commands and the /skills slash command.
+Used by max_cli/skills_hub.py for CLI commands and the /skills slash command.
 """
 
 import hashlib
@@ -25,8 +25,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from hermes_constants import get_hermes_home
-from hermes_cli._subprocess_compat import windows_hide_flags
+from max_constants import get_max_home
+from max_cli._subprocess_compat import windows_hide_flags
 from agent.skill_utils import is_excluded_skill_path
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote, unquote, urljoin, urlparse, urlsplit, urlunparse
@@ -61,7 +61,7 @@ def _override(name: str):
 
 
 def _hermes_home() -> Path:
-    return get_hermes_home()
+    return get_max_home()
 
 
 def _skills_dir() -> Path:
@@ -100,7 +100,7 @@ def _index_cache_dir() -> Path:
 
 
 _DYNAMIC_PATH_RESOLVERS = {
-    "HERMES_HOME": _hermes_home,
+    "MAX_HOME": _hermes_home,
     "SKILLS_DIR": _skills_dir,
     "HUB_DIR": _hub_dir,
     "LOCK_FILE": _lock_file,
@@ -3507,17 +3507,17 @@ class OptionalSkillSource(SkillSource):
     """
     Fetch skills from the optional-skills/ directory shipped with the repo.
 
-    These skills are official (maintained by Nous Research) but not activated
+    These skills are official (maintained by Stardust Research) but not activated
     by default — they don't appear in the system prompt and aren't copied to
-    ~/.hermes/skills/ during setup.  They are discoverable via the Skills Hub
+    ~/.max/skills/ during setup.  They are discoverable via the Skills Hub
     (search / install / inspect) and labelled "official" with "builtin" trust.
     """
 
-    OFFICIAL_REPO = "NousResearch/hermes-agent"
+    OFFICIAL_REPO = "NousResearch/max-agent"
     OPTIONAL_SKILLS_PREFIX = "optional-skills"
 
     def __init__(self, auth: Optional[GitHubAuth] = None):
-        from hermes_constants import get_optional_skills_dir
+        from max_constants import get_optional_skills_dir
 
         self._optional_dir = get_optional_skills_dir(
             Path(__file__).parent.parent / "optional-skills"
@@ -3605,8 +3605,8 @@ class OptionalSkillSource(SkillSource):
 
         # Upstream-maintained entries: the local dir is a catalog stub whose
         # frontmatter points at the real skill in an external repo the
-        # upstream project maintains (e.g. impeccable's Hermes-native bundle
-        # under pbakaus/impeccable:.hermes/skills/impeccable). Install pulls
+        # upstream project maintains (e.g. impeccable's Max-native bundle
+        # under pbakaus/impeccable:.max/skills/impeccable). Install pulls
         # the live content from there instead of vendoring a fork here.
         upstream = self._upstream_pointer(skill_dir)
         if upstream is not None:
@@ -3680,7 +3680,7 @@ class OptionalSkillSource(SkillSource):
 
         Local installs lag `main` — a freshly merged optional skill isn't in
         the user's `optional-skills/` checkout until they run
-        ``hermes update``. Rather than telling them to update first, resolve
+        ``max update``. Rather than telling them to update first, resolve
         the skill against the live default branch.
 
         ``rel`` is the identifier without the ``official/`` prefix — either
@@ -3796,14 +3796,14 @@ class OptionalSkillSource(SkillSource):
     def _upstream_pointer(self, skill_dir: Path) -> Optional[Dict[str, str]]:
         """Return the upstream pointer for a catalog-stub skill dir, if any.
 
-        A stub declares ``metadata.hermes.upstream`` in its SKILL.md
+        A stub declares ``metadata.max.upstream`` in its SKILL.md
         frontmatter:
 
             metadata:
               hermes:
                 upstream:
                   repo: pbakaus/impeccable
-                  path: .hermes/skills/impeccable
+                  path: .max/skills/impeccable
 
         Returns ``{"repo": ..., "path": ...}`` or None for normal
         (fully-vendored) optional skills.
@@ -3816,7 +3816,7 @@ class OptionalSkillSource(SkillSource):
         return self._upstream_pointer_from_content(content)
 
     def _upstream_pointer_from_content(self, content: Union[str, bytes]) -> Optional[Dict[str, str]]:
-        """Parse ``metadata.hermes.upstream`` out of SKILL.md content."""
+        """Parse ``metadata.max.upstream`` out of SKILL.md content."""
         if isinstance(content, bytes):
             try:
                 content = content.decode("utf-8")
@@ -4197,7 +4197,7 @@ def _category_skill_dirs(directory: Path) -> List[str]:
     :func:`is_excluded_skill_path` so a lone ``node_modules`` or
     ``references/pkg/SKILL.md`` hit does not misclassify the directory as
     a category. Shared by the install-time category guard here and
-    ``hermes_cli.skills_hub._existing_categories``.
+    ``max_cli.skills_hub._existing_categories``.
     """
     skill_dirs: List[str] = []
     for entry in directory.iterdir():
@@ -4493,11 +4493,11 @@ def check_for_skill_updates(
 
 
 # ---------------------------------------------------------------------------
-# Hermes centralized index source
+# Max centralized index source
 # ---------------------------------------------------------------------------
 
-HERMES_INDEX_URL = "https://hermes-agent.nousresearch.com/docs/api/skills-index.json"
-HERMES_INDEX_TTL = 6 * 3600  # 6 hours
+MAX_INDEX_URL = "https://max-agent.stardustresearch.com/docs/api/skills-index.json"
+MAX_INDEX_TTL = 6 * 3600  # 6 hours
 
 
 def _hermes_index_cache_file() -> Path:
@@ -4508,7 +4508,7 @@ def _load_hermes_index() -> Optional[dict]:
     """Fetch the centralized skills index, with local cache.
 
     The index is a JSON file hosted on the docs site, rebuilt daily by CI.
-    We cache it locally for HERMES_INDEX_TTL seconds to avoid repeated
+    We cache it locally for MAX_INDEX_TTL seconds to avoid repeated
     downloads within a session.
     """
     # Check local cache
@@ -4516,7 +4516,7 @@ def _load_hermes_index() -> Optional[dict]:
     if hermes_index_cache_file.exists():
         try:
             age = time.time() - hermes_index_cache_file.stat().st_mtime
-            if age < HERMES_INDEX_TTL:
+            if age < MAX_INDEX_TTL:
                 return json.loads(hermes_index_cache_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             pass
@@ -4538,13 +4538,13 @@ def _load_hermes_index() -> Optional[dict]:
     for accept_encoding in ("gzip, deflate", "identity"):
         try:
             resp = httpx.get(
-                HERMES_INDEX_URL,
+                MAX_INDEX_URL,
                 timeout=15,
                 follow_redirects=True,
                 headers={"Accept-Encoding": accept_encoding},
             )
             if resp.status_code != 200:
-                logger.debug("Hermes index fetch returned %d", resp.status_code)
+                logger.debug("Max index fetch returned %d", resp.status_code)
                 return _load_stale_index_cache()
             data = resp.json()
             break
@@ -4552,13 +4552,13 @@ def _load_hermes_index() -> Optional[dict]:
             # Content-Encoding decode failed — retry once uncompressed before
             # giving up on the network path entirely.
             logger.debug(
-                "Hermes index decode failed (Accept-Encoding=%s): %s",
+                "Max index decode failed (Accept-Encoding=%s): %s",
                 accept_encoding,
                 e,
             )
             continue
         except (httpx.HTTPError, json.JSONDecodeError) as e:
-            logger.debug("Hermes index fetch failed: %s", e)
+            logger.debug("Max index fetch failed: %s", e)
             return _load_stale_index_cache()
 
     if data is None:
@@ -4589,8 +4589,8 @@ def _load_stale_index_cache() -> Optional[dict]:
     return None
 
 
-class HermesIndexSource(SkillSource):
-    """Skill source backed by the centralized Hermes Skills Index.
+class MaxIndexSource(SkillSource):
+    """Skill source backed by the centralized Max Skills Index.
 
     The index is a JSON catalog published to the docs site and rebuilt
     daily by CI.  It contains metadata + resolved GitHub paths for every
@@ -4791,7 +4791,7 @@ def create_source_router(auth: Optional[GitHubAuth] = None) -> List[SkillSource]
 
     sources: List[SkillSource] = [
         OptionalSkillSource(auth=auth),  # Official optional skills (highest priority)
-        HermesIndexSource(auth=auth), # Centralized index (search + resolved install paths)
+        MaxIndexSource(auth=auth), # Centralized index (search + resolved install paths)
         SkillsShSource(auth=auth),
         WellKnownSkillSource(),
         UrlSource(),                  # Direct HTTP(S) URL to a SKILL.md file

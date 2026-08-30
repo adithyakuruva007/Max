@@ -29,7 +29,7 @@ def _raise_exit(rc):
 
 @pytest.fixture
 def main_mod(monkeypatch):
-    import hermes_cli.main as mod
+    import max_cli.main as mod
 
     monkeypatch.setattr(mod, "_has_any_provider_configured", lambda: True)
     # Reset the idempotency guard so each test starts fresh.
@@ -55,7 +55,7 @@ def test_termux_skips_bundled_skill_sync_when_stamp_fresh(monkeypatch, tmp_path,
     calls = []
 
     monkeypatch.setenv("TERMUX_VERSION", "1")
-    monkeypatch.setattr(main_mod, "get_hermes_home", lambda: tmp_path)
+    monkeypatch.setattr(main_mod, "get_max_home", lambda: tmp_path)
     monkeypatch.setattr(main_mod, "_termux_bundled_skills_fingerprint", lambda: "fp1")
     main_mod._mark_termux_bundled_skills_synced()
     monkeypatch.setitem(
@@ -109,8 +109,8 @@ def test_exit_after_oneshot_flushes_stdio_and_calls_os_exit(
 def test_oneshot_subprocess_exits_without_teardown_abort():
     program = textwrap.dedent(
         """
-        import hermes_cli.oneshot as oneshot
-        from hermes_cli.main import _exit_after_oneshot
+        import max_cli.oneshot as oneshot
+        from max_cli.main import _exit_after_oneshot
 
         oneshot._run_agent = lambda *args, **kwargs: ("ok", {"final_response": "ok"})
         _exit_after_oneshot(oneshot.run_oneshot("hello"))
@@ -141,7 +141,7 @@ def test_oneshot_subprocess_exits_without_teardown_abort():
 def _stub_plugin_discovery(monkeypatch):
     monkeypatch.setitem(
         sys.modules,
-        "hermes_cli.plugins",
+        "max_cli.plugins",
         types.SimpleNamespace(discover_plugins=lambda: None),
     )
 
@@ -149,8 +149,8 @@ def _stub_plugin_discovery(monkeypatch):
 
 
 def test_oneshot_wires_session_db_for_recall(monkeypatch):
-    """hermes -z bypasses HermesCLI, but recall still needs SessionDB."""
-    from hermes_cli.oneshot import _run_agent
+    """max -z bypasses MaxCLI, but recall still needs SessionDB."""
+    from max_cli.oneshot import _run_agent
 
     captured = {}
     sentinel_db = object()
@@ -177,22 +177,22 @@ def test_oneshot_wires_session_db_for_recall(monkeypatch):
         return module
 
     monkeypatch.setitem(sys.modules, "run_agent", mod("run_agent", AIAgent=FakeAgent))
-    monkeypatch.setitem(sys.modules, "hermes_state", mod("hermes_state", SessionDB=FakeSessionDB))
+    monkeypatch.setitem(sys.modules, "max_state", mod("max_state", SessionDB=FakeSessionDB))
     monkeypatch.setitem(
         sys.modules,
-        "hermes_cli.config",
-        mod("hermes_cli.config", load_config=lambda: {"model": {"default": "m"}}),
+        "max_cli.config",
+        mod("max_cli.config", load_config=lambda: {"model": {"default": "m"}}),
     )
     monkeypatch.setitem(
         sys.modules,
-        "hermes_cli.models",
-        mod("hermes_cli.models", detect_provider_for_model=lambda *_args, **_kwargs: None),
+        "max_cli.models",
+        mod("max_cli.models", detect_provider_for_model=lambda *_args, **_kwargs: None),
     )
     monkeypatch.setitem(
         sys.modules,
-        "hermes_cli.runtime_provider",
+        "max_cli.runtime_provider",
         mod(
-            "hermes_cli.runtime_provider",
+            "max_cli.runtime_provider",
             resolve_runtime_provider=lambda **_kwargs: {
                 "api_key": "k",
                 "base_url": "u",
@@ -204,8 +204,8 @@ def test_oneshot_wires_session_db_for_recall(monkeypatch):
     )
     monkeypatch.setitem(
         sys.modules,
-        "hermes_cli.tools_config",
-        mod("hermes_cli.tools_config", _get_platform_tools=lambda *_args, **_kwargs: {"session_search"}),
+        "max_cli.tools_config",
+        mod("max_cli.tools_config", _get_platform_tools=lambda *_args, **_kwargs: {"session_search"}),
     )
 
     text, result = _run_agent("recall this")
@@ -229,7 +229,7 @@ def test_launch_tui_exports_model_provider_and_toolsets(monkeypatch, main_mod):
     def fake_call(argv, cwd=None, env=None):
         nonlocal active_path_during_call
         captured.update({"argv": argv, "cwd": cwd, "env": env})
-        active_path_during_call = Path(env["HERMES_TUI_ACTIVE_SESSION_FILE"])
+        active_path_during_call = Path(env["MAX_TUI_ACTIVE_SESSION_FILE"])
         assert active_path_during_call.exists()
         return 1
 
@@ -241,13 +241,13 @@ def test_launch_tui_exports_model_provider_and_toolsets(monkeypatch, main_mod):
         )
 
     env = captured["env"]
-    assert env["HERMES_MODEL"] == "nous/hermes-test"
-    assert env["HERMES_INFERENCE_MODEL"] == "nous/hermes-test"
-    assert env["HERMES_TUI_PROVIDER"] == "nous"
-    assert env["HERMES_INFERENCE_PROVIDER"] == "nous"
-    assert env["HERMES_TUI_TOOLSETS"] == "web,terminal"
-    active_path = Path(env["HERMES_TUI_ACTIVE_SESSION_FILE"])
-    assert active_path.name.startswith("hermes-tui-active-session-")
+    assert env["MAX_MODEL"] == "nous/hermes-test"
+    assert env["MAX_INFERENCE_MODEL"] == "nous/hermes-test"
+    assert env["MAX_TUI_PROVIDER"] == "nous"
+    assert env["MAX_INFERENCE_PROVIDER"] == "nous"
+    assert env["MAX_TUI_TOOLSETS"] == "web,terminal"
+    active_path = Path(env["MAX_TUI_ACTIVE_SESSION_FILE"])
+    assert active_path.name.startswith("max-tui-active-session-")
     assert active_path.suffix == ".json"
     assert active_path_during_call == active_path
     assert not active_path.exists()
@@ -266,7 +266,7 @@ def test_make_tui_argv_dev_prebuilds_hermes_ink(monkeypatch, main_mod, tmp_path)
 
     monkeypatch.setattr(main_mod, "_ensure_tui_node", lambda: None)
     monkeypatch.setattr(main_mod, "_tui_need_npm_install", lambda _tui_dir: False)
-    monkeypatch.delenv("HERMES_TUI_DIR", raising=False)
+    monkeypatch.delenv("MAX_TUI_DIR", raising=False)
     monkeypatch.setattr(main_mod.shutil, "which", lambda bin_name: f"/usr/bin/{bin_name}")
 
     calls = []

@@ -3,7 +3,7 @@
 A provider API key can live in .env, auth.json's credential_pool, and
 config.yaml mirrors at once. These tests drive the REAL dashboard endpoint
 handlers (PUT/DELETE /api/env) against real on-disk fixtures in a temp
-HERMES_HOME (tests/conftest.py isolation) and assert every store agrees
+MAX_HOME (tests/conftest.py isolation) and assert every store agrees
 afterwards.
 
 All fake secrets are constructed at runtime so no key-shaped literal ever
@@ -15,10 +15,10 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from hermes_cli.web_server import _SESSION_TOKEN, app
+from max_cli.web_server import _SESSION_TOKEN, app
 
 client = TestClient(app)
-HEADERS = {"X-Hermes-Session-Token": _SESSION_TOKEN}
+HEADERS = {"X-Max-Session-Token": _SESSION_TOKEN}
 
 # Runtime-constructed fake credentials (never literal key-shaped strings).
 FAKE_ZAI_KEY = "zk-" + "a" * 24
@@ -28,11 +28,11 @@ NEW_KEY = "zk-" + "c" * 24
 
 @pytest.fixture
 def hermes_home(monkeypatch, tmp_path):
-    """Fresh HERMES_HOME with .env + auth.json + config.yaml fixtures."""
+    """Fresh MAX_HOME with .env + auth.json + config.yaml fixtures."""
     home = tmp_path / "cred_home"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    from hermes_cli.config import invalidate_env_cache
+    monkeypatch.setenv("MAX_HOME", str(home))
+    from max_cli.config import invalidate_env_cache
 
     invalidate_env_cache()
     return home
@@ -42,7 +42,7 @@ def _write_env(home, **pairs):
     home.joinpath(".env").write_text(
         "".join(f"{k}={v}\n" for k, v in pairs.items()), encoding="utf-8"
     )
-    from hermes_cli.config import invalidate_env_cache
+    from max_cli.config import invalidate_env_cache
 
     invalidate_env_cache()
 
@@ -138,7 +138,7 @@ def test_update_rotates_config_yaml_model_mirror(hermes_home):
     assert old not in cfg_text, "stale old key left in config.yaml (#62269)"
     assert new in cfg_text, "config.yaml mirror not rotated to the new key"
 
-    from hermes_cli.config import load_env
+    from max_cli.config import load_env
 
     assert load_env()["OPENAI_API_KEY"] == new
 

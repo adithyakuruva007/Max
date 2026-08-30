@@ -1639,7 +1639,7 @@ export function discardSessionTile(storedSessionId: string) {
  *
  * A leftover tile RESURRECTS the deleted profile on the next launch: Bot tab
  * restore re-dials the profile's backend, whose ensure_hermes_home() re-creates
- * the profile directory the delete just removed (hermes-agent#94235). Same
+ * the profile directory the delete just removed (max-agent#94235). Same
  * discard (no ⌘⇧T) semantics as discardSessionTile — undoing the delete of the
  * owning profile would resolve to a 404 again.
  */
@@ -1691,7 +1691,7 @@ export function dropTilesForProfile(
     // Desktop-local delete: also require the tile's owner connection to be the
     // LOCAL connection. A same-named bot on another connection is a different
     // agent — the deleted local profile never owned it, and dropping its tile
-    // would orphan a live conversation (hermes-agent#94235). Tiles persisted
+    // would orphan a live conversation (max-agent#94235). Tiles persisted
     // before ownerRoute.connectionId existed carry no id; that empty string IS
     // the local connection (the only source a pre-connectionId tile could have
     // been opened on), so treat it as 'local' — otherwise those legacy tiles
@@ -1884,9 +1884,9 @@ $selectedStoredSessionId.listen(selected => {
   revealTreePane('workspace')
 })
 
-// Dev hook for automation (mirrors __HERMES_LAYOUT_TREE__).
+// Dev hook for automation (mirrors __MAX_LAYOUT_TREE__).
 if ((import.meta.env.DEV || import.meta.env.VITE_PERF_PROBE === '1') && typeof window !== 'undefined') {
-  ;(window as unknown as Record<string, unknown>).__HERMES_SESSION_TILES__ = {
+  ;(window as unknown as Record<string, unknown>).__MAX_SESSION_TILES__ = {
     close: closeSessionTile,
     drop: dropSessionState,
     open: openSessionTile,

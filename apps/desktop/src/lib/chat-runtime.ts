@@ -113,7 +113,7 @@ export function coerceGatewayText(value: unknown): string {
 /**
  * Normalize a reasoning/thinking text payload from the gateway.
  *
- * Only the leading status prefix (e.g. "Hermes is thinking...") and the
+ * Only the leading status prefix (e.g. "Max is thinking...") and the
  * obvious placeholder echoes are stripped. We deliberately do NOT trim
  * the delta — reasoning streams as small chunks (often individual tokens
  * with leading or trailing spaces), and trimming each chunk before
@@ -180,7 +180,7 @@ export const PR_COMMENT_URL_RE =
   /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/\d+(?:\/[^#\s]*)?#(?:discussion_r|issuecomment-)\d+$/
 
 /** The send-time expansion of a `review` attachment. `detail` holds the
- *  resolved comment as JSON (HermesPrComment shape); a malformed payload falls
+ *  resolved comment as JSON (MaxPrComment shape); a malformed payload falls
  *  back to the attachment's URL ref so the send never throws. */
 export function reviewCommentBlock(detail: string): null | string {
   try {

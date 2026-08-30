@@ -5,7 +5,7 @@ On Windows, ``_run_quarantined_install`` / ``_run_install_cmd`` rename live
 installer so uv/pip can write fresh replacements. When the install SUCCEEDS
 but never rewrites entry points (uv audits an already-satisfied editable
 install as a no-op), the old code only restored the shims on FAILURE — the
-quarantined shims stayed renamed aside and ``hermes`` vanished from PATH
+quarantined shims stayed renamed aside and ``max`` vanished from PATH
 after a green install.
 
 These tests exercise both wrapper sites with a fake installer and assert the
@@ -22,14 +22,14 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli import _install_repair as ir
-from hermes_cli import main as cli_main
+from max_cli import _install_repair as ir
+from max_cli import main as cli_main
 
 
 def _make_scripts_dir(tmp_path: Path) -> Path:
     scripts = tmp_path / "venv" / "Scripts"
     scripts.mkdir(parents=True)
-    for name in ("hermes", "hermes-agent", "hermes-acp", "hermes-gateway"):
+    for name in ("hermes", "max-agent", "max-acp", "hermes-gateway"):
         (scripts / f"{name}.exe").write_bytes(b"MZ-old-" + name.encode())
     return scripts
 
@@ -39,7 +39,7 @@ def _shim_names(scripts: Path) -> set[str]:
 
 
 # ---------------------------------------------------------------------------
-# hermes_cli.main._run_quarantined_install
+# max_cli.main._run_quarantined_install
 # ---------------------------------------------------------------------------
 
 
@@ -54,7 +54,7 @@ def test_main_noop_success_restores_shims(tmp_path):
 
     names = _shim_names(scripts)
     assert "hermes.exe" in names, "hermes.exe must be restored after a no-op install"
-    assert "hermes-acp.exe" in names
+    assert "max-acp.exe" in names
     assert "hermes-gateway.exe" in names
     assert (scripts / "hermes.exe").read_bytes() == b"MZ-old-hermes"
 
@@ -64,7 +64,7 @@ def test_main_rewriting_success_keeps_fresh_shims(tmp_path):
     scripts = _make_scripts_dir(tmp_path)
 
     def fake_install(cmd, env=None):
-        for name in ("hermes", "hermes-agent", "hermes-acp", "hermes-gateway"):
+        for name in ("hermes", "max-agent", "max-acp", "hermes-gateway"):
             (scripts / f"{name}.exe").write_bytes(b"MZ-new-" + name.encode())
 
     with patch.object(cli_main, "_is_windows", lambda: True), patch.object(
@@ -91,7 +91,7 @@ def test_main_failure_restores_shims_and_reraises(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# hermes_cli._install_repair._run_install_cmd (the deferred-recovery path)
+# max_cli._install_repair._run_install_cmd (the deferred-recovery path)
 # ---------------------------------------------------------------------------
 
 

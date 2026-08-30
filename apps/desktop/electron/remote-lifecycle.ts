@@ -1,24 +1,24 @@
 /**
  * remote-lifecycle.ts
  *
- * Pure, electron-free remote Hermes dashboard lifecycle over SSH for Desktop
+ * Pure, electron-free remote Max dashboard lifecycle over SSH for Desktop
  * SSH remote mode. Composes an SshConnection (injected) with HTTP probes
  * through the established tunnel (injected fetch) and the served-token adoption
  * step (injected). Knows how to:
  *
- *   - locate the Hermes install on the remote (login-shell probe),
+ *   - locate the Max install on the remote (login-shell probe),
  *   - gate the remote platform to Linux/macOS via `uname`,
  *   - reuse an existing desktop-dedicated dashboard via a lockfile + an
  *     AUTHENTICATED /api/status probe (pid liveness alone is insufficient),
  *   - spawn a fresh detached `--isolated --port 0` dashboard and scrape its
- *     `HERMES_DASHBOARD_READY port=<n>` readiness line,
+ *     `MAX_DASHBOARD_READY port=<n>` readiness line,
  *   - adopt the token the dashboard actually serves (served-token adoption),
  *   - clean up a stale dashboard only when it is provably ours.
  *
  * No `import 'electron'` so it's unit-testable with `node --test`. main.ts wires
- * the real SshConnection, fetch, adoptServedDashboardToken, and waitForHermes in.
+ * the real SshConnection, fetch, adoptServedDashboardToken, and waitForMax in.
  *
- * The minted HERMES_DASHBOARD_SESSION_TOKEN is the SPAWN credential. After
+ * The minted MAX_DASHBOARD_SESSION_TOKEN is the SPAWN credential. After
  * readiness the caller runs served-token adoption against the tunneled baseUrl
  * and the SERVED token's fingerprint is what lands in the lockfile — so the
  * reuse probe checks the credential that actually authenticates /api/ws, not
@@ -35,8 +35,8 @@ const LOCKFILE_SCHEMA_VERSION = 2
 // an old running dashboard unsafe to reattach to (token handling, readiness/spawn
 // args, served-token reconciliation). A mismatch forces a clean respawn.
 const PROTOCOL_VERSION = 1
-const READY_RE = /^HERMES_(?:BACKEND|DASHBOARD)_READY port=(\d+)/m
-const REMOTE_LOCK_DIR = '~/.hermes/desktop-ssh'
+const READY_RE = /^MAX_(?:BACKEND|DASHBOARD)_READY port=(\d+)/m
+const REMOTE_LOCK_DIR = '~/.max/desktop-ssh'
 const SUPPORTED_REMOTE_OS = new Set(['Linux', 'Darwin'])
 const DEFAULT_READY_TIMEOUT_MS = 45_000
 const READY_POLL_INTERVAL_MS = 750
@@ -163,20 +163,20 @@ function expandRemotePath(p) {
   return shq(p)
 }
 
-// Resolve the remote hermes executable. An EXPLICIT path is honored strictly
+// Resolve the remote max executable. An EXPLICIT path is honored strictly
 // (throws a path-naming error if not executable — never silently falls back to a
 // different install). A BLANK path auto-detects: login-shell `command -v` (a
 // non-login `ssh host cmd` PATH misses user installs), then known install paths.
-async function locateHermes(ssh, remoteHermesPath) {
+async function locateMax(ssh, remoteMaxPath) {
   const resolveLauncher = async (candidate: string) => {
-    // Return the candidate path directly. The hermes binary or wrapper script
+    // Return the candidate path directly. The max binary or wrapper script
     // is executable and handles argument forwarding (e.g. `exec <python> <script> "$@"`)
     // correctly on its own. Previously, this function followed `exec` wrappers and
     // returned only the python interpreter, which broke:
     //   - version checking: `<python> --version` printed "Python x.y.z" instead of
-    //     the Hermes version, and
+    //     the Max version, and
     //   - capability probing: `<python> serve --help` failed entirely.
-    // See https://github.com/NousResearch/hermes-agent/issues/74411
+    // See https://github.com/NousResearch/max-agent/issues/74411
     return candidate
   }
 
@@ -191,15 +191,15 @@ async function locateHermes(ssh, remoteHermesPath) {
     }
   }
 
-  if (remoteHermesPath) {
-    if (await isExecutable(remoteHermesPath)) {
-      return resolveLauncher(remoteHermesPath)
+  if (remoteMaxPath) {
+    if (await isExecutable(remoteMaxPath)) {
+      return resolveLauncher(remoteMaxPath)
     }
 
     const err: any = new Error(
-      `The Hermes path you set is not an executable on the remote host: "${remoteHermesPath}". ` +
-        'Check the path (it must be the full path to the `hermes` binary on the remote, e.g. ' +
-        '~/hermes-agent/.venv/bin/hermes), or clear it to auto-detect.'
+      `The Max path you set is not an executable on the remote host: "${remoteMaxPath}". ` +
+        'Check the path (it must be the full path to the `max` binary on the remote, e.g. ' +
+        '~/max-agent/.venv/bin/hermes), or clear it to auto-detect.'
     )
 
     err.kind = 'hermes-not-found'
@@ -222,7 +222,7 @@ async function locateHermes(ssh, remoteHermesPath) {
   // command locations (scripts/install.sh) — per-user, root/FHS, legacy venv.
   candidates.push('~/.local/bin/hermes')
   candidates.push('/usr/local/bin/hermes')
-  candidates.push('~/.hermes/hermes-agent/venv/bin/hermes')
+  candidates.push('~/.max/max-agent/venv/bin/hermes')
 
   for (const candidate of candidates) {
     if (!candidate) {
@@ -235,9 +235,9 @@ async function locateHermes(ssh, remoteHermesPath) {
   }
 
   const err: any = new Error(
-    'Hermes is not installed on the remote host (could not find a `hermes` executable). ' +
-      'Install it on the remote with:  curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh  ' +
-      '— or set the Hermes path explicitly in the SSH connection settings.'
+    'Max is not installed on the remote host (could not find a `max` executable). ' +
+      'Install it on the remote with:  curl -fsSL https://max-agent.stardustresearch.com/install.sh | sh  ' +
+      '— or set the Max path explicitly in the SSH connection settings.'
   )
 
   err.kind = 'hermes-not-found'
@@ -245,9 +245,9 @@ async function locateHermes(ssh, remoteHermesPath) {
 }
 
 // Probe the resolved binary's version string (first line of `<hermes> --version`,
-// e.g. "Hermes Agent v0.18.2 ..."), or '' on failure. Surfaces WHICH hermes a
+// e.g. "Max Agent v0.18.2 ..."), or '' on failure. Surfaces WHICH max a
 // connection uses, so a stale/unexpected install is visible.
-async function probeHermesVersion(ssh, hermesPath) {
+async function probeMaxVersion(ssh, hermesPath) {
   try {
     const out = (await ssh.exec(`${expandRemotePath(hermesPath)} --version 2>&1`)).trim()
 
@@ -264,7 +264,7 @@ async function probeRemotePlatform(ssh) {
 
   if (!SUPPORTED_REMOTE_OS.has(osName)) {
     const err: any = new Error(
-      `Unsupported remote platform "${osName || 'unknown'}". Hermes Desktop SSH mode supports Linux, macOS, and Windows remote hosts.`
+      `Unsupported remote platform "${osName || 'unknown'}". Max Desktop SSH mode supports Linux, macOS, and Windows remote hosts.`
     )
 
     err.kind = 'unsupported-platform'
@@ -274,16 +274,16 @@ async function probeRemotePlatform(ssh) {
   return { os: osName, arch }
 }
 
-// The HERMES_HOME the remote dashboard will use (explicit env wins, else
-// ~/.hermes). Recorded in the lockfile so a future reuse can tell it's the same
+// The MAX_HOME the remote dashboard will use (explicit env wins, else
+// ~/.max). Recorded in the lockfile so a future reuse can tell it's the same
 // state store; best-effort.
-async function probeRemoteHermesHome(ssh) {
+async function probeRemoteMaxHome(ssh) {
   try {
-    const out = (await ssh.exec('echo "${HERMES_HOME:-$HOME/.hermes}"')).trim().split('\n').pop()
+    const out = (await ssh.exec('echo "${MAX_HOME:-$HOME/.max}"')).trim().split('\n').pop()
 
-    return out || '~/.hermes'
+    return out || '~/.max'
   } catch (cause) {
-    const error: any = new Error('Could not resolve the remote Hermes home.')
+    const error: any = new Error('Could not resolve the remote Max home.')
     error.kind = 'transient-transport-error'
     error.cause = cause
     throw error
@@ -296,7 +296,7 @@ from pathlib import Path
 
 home=Path(os.path.expanduser(sys.argv[1]))
 if home.parent.name=='profiles':home=home.parent.parent
-marker=home/'.hermes-update-in-progress'
+marker=home/'.max-update-in-progress'
 try:
     with marker.open('rb') as stream:raw=stream.read(257)
 except FileNotFoundError:
@@ -331,7 +331,7 @@ else:
  * Refuse normal SSH reuse/spawn while the remote install is being mutated.
  *
  * This probe intentionally uses only the host's system Python and raw marker
- * bytes; it never imports or executes code from the changing Hermes checkout.
+ * bytes; it never imports or executes code from the changing Max checkout.
  * Absence or a well-formed, confirmed-dead owner is clear. Every parse, read,
  * probe, or transport uncertainty fails closed so a Desktop relaunch cannot
  * start `serve` beside an updater that survived the old app process.
@@ -347,7 +347,7 @@ async function assertRemoteInstallUpdateClear(ssh, hermesHome) {
         .split(/\r?\n/)
         .pop() || ''
   } catch (cause) {
-    const error: any = new Error('Could not prove that the remote Hermes install is clear for SSH startup.')
+    const error: any = new Error('Could not prove that the remote Max install is clear for SSH startup.')
     error.kind = 'update-in-progress'
     error.cause = cause
     throw error
@@ -361,23 +361,23 @@ async function assertRemoteInstallUpdateClear(ssh, hermesHome) {
 
   const error: any = new Error(
     live
-      ? `Remote Hermes update process ${live[1]} is still running; SSH startup is paused.`
-      : 'The remote Hermes update marker is unreadable or malformed; refusing SSH startup.'
+      ? `Remote Max update process ${live[1]} is still running; SSH startup is paused.`
+      : 'The remote Max update marker is unreadable or malformed; refusing SSH startup.'
   )
 
   error.kind = 'update-in-progress'
   throw error
 }
 
-async function listRemoteHermesProfiles(ssh) {
-  const home = assertSafeRemoteHome(await probeRemoteHermesHome(ssh))
+async function listRemoteMaxProfiles(ssh) {
+  const home = assertSafeRemoteHome(await probeRemoteMaxHome(ssh))
   const dir = expandRemotePath(`${home}/profiles`)
   let listing = ''
 
   try {
     listing = await ssh.exec(`if [ -d ${dir} ]; then ls -1 ${dir}; fi`)
   } catch (cause) {
-    const error: any = new Error('Could not list remote Hermes profiles.')
+    const error: any = new Error('Could not list remote Max profiles.')
     error.kind = 'transient-transport-error'
     error.cause = cause
     throw error
@@ -390,7 +390,7 @@ function assertSafeRemoteHome(home) {
   const value = String(home || '').trim()
 
   if (!/^(\/|~\/)[A-Za-z0-9._/+-]+$/.test(value) || value.includes('..')) {
-    const error: any = new Error('Unsafe remote Hermes home.')
+    const error: any = new Error('Unsafe remote Max home.')
     error.kind = 'unsafe-path'
     throw error
   }
@@ -591,12 +591,12 @@ async function pidIsOurDashboard(
       `expected=os.path.expanduser(${shq(hermesPath)})\n` +
       // The installer-facing launcher is intentionally preserved for invocation
       // (#74411), but it may `exec python <install-dir>/hermes`, leaving neither
-      // launcher nor HERMES_HOME-derived entrypoint in argv. The ownership-scoped
+      // launcher nor MAX_HOME-derived entrypoint in argv. The ownership-scoped
       // token path + random nonce + exact profile below are the alternative proof.
       `hermes_home=os.path.expanduser(${shq(hermesHome)}) if ${shq(hermesHome)} else ""\n` +
       'expected_entries={expected}\n' +
       'if hermes_home:\n' +
-      ' expected_entries.add(os.path.join(hermes_home,"hermes-agent","venv","bin","hermes"))\n' +
+      ' expected_entries.add(os.path.join(hermes_home,"max-agent","venv","bin","hermes"))\n' +
       `expected_token=os.path.expanduser(${shq(ownershipId ? spawnTokenPath(ownershipId, spawnNonce) : '')})\n` +
       `expected_profile=${shq(profile)}\n` +
       `nonce=${shq(spawnNonce)}\n` +
@@ -658,8 +658,8 @@ async function cleanupStale(ssh, ownershipId, lock, pidAlive = true) {
       ssh,
       lock.pid,
       lock.spawnNonce,
-      lock.hermesPath,
-      lock.hermesHome,
+      lock.maxPath,
+      lock.maxHome,
       ownershipId,
       lock.profile
     ))
@@ -738,14 +738,14 @@ function buildOwnedStaleTerminationCommand(lock, ownershipId) {
   // expandRemotePath() output is already a shell-quoted fragment; embed it
   // raw so $HOME expands at assignment. Double-quoting stores the quote
   // characters in the variable and every identity match below REFUSEs.
-  const expectedPath = expandRemotePath(lock.hermesPath)
-  const expectedHome = lock.hermesHome ? expandRemotePath(lock.hermesHome) : "''"
+  const expectedPath = expandRemotePath(lock.maxPath)
+  const expectedHome = lock.maxHome ? expandRemotePath(lock.maxHome) : "''"
   const expectedToken = expandRemotePath(spawnTokenPath(ownershipId, lock.spawnNonce))
   const nonce = shq(lock.spawnNonce)
   const profile = shq(lock.profile || '')
   const command = `$(ps -ww -o command= -p ${pid} 2>/dev/null || true)`
 
-  const executableMatch = lock.hermesHome
+  const executableMatch = lock.maxHome
     ? `case "$cmd" in *"$path"*|*"$home"*) ;; *) printf REFUSED; exit 0;; esac; `
     : `case "$cmd" in *"$path"*) ;; *) printf REFUSED; exit 0;; esac; `
 
@@ -778,8 +778,8 @@ function lockMatchesManagedUpdateScope(lock, expected) {
     lock.startedAt === expected.startedAt &&
     lock.creationTime === expected.creationTime &&
     lock.profile === expected.profile &&
-    lock.hermesPath === expected.hermesPath &&
-    lock.hermesHome === expected.hermesHome
+    lock.maxPath === expected.maxPath &&
+    lock.maxHome === expected.maxHome
   )
 }
 
@@ -792,9 +792,9 @@ function buildOwnedTerminationCommand(lock, ownershipId) {
 import os,select,shlex,signal,subprocess,sys,time
 pid=${pid}
 expected_creation=${py(lock.creationTime)}
-expected_path=os.path.expanduser(${py(lock.hermesPath)})
-hermes_home=os.path.expanduser(${py(lock.hermesHome)})
-expected_entries={expected_path,os.path.join(hermes_home,"hermes-agent","venv","bin","hermes")}
+expected_path=os.path.expanduser(${py(lock.maxPath)})
+hermes_home=os.path.expanduser(${py(lock.maxHome)})
+expected_entries={expected_path,os.path.join(hermes_home,"max-agent","venv","bin","hermes")}
 expected_token=os.path.expanduser(${py(expectedToken)})
 expected_profile=${py(lock.profile)}
 nonce=${py(lock.spawnNonce)}
@@ -895,7 +895,7 @@ finally:
 // the marker check, spawns the backend, and publishes its initial lockfile.
 // Python keeps the descriptor close-on-exec by default and passes it explicitly
 // only to the intended outer shell; each detached child closes it before
-// execing Hermes.
+// execing Max.
 function withRemoteUpdateMutex(command, mutexPath) {
   const script = `
 import fcntl,os,subprocess,sys
@@ -960,8 +960,8 @@ async function terminateOwnedDashboardForUpdate(ssh, expected) {
       ssh,
       lock.pid,
       lock.spawnNonce,
-      lock.hermesPath,
-      lock.hermesHome,
+      lock.maxPath,
+      lock.maxHome,
       ownershipId,
       lock.profile
     ))
@@ -987,8 +987,8 @@ async function terminateOwnedDashboardForUpdate(ssh, expected) {
       ssh,
       lock.pid,
       lock.spawnNonce,
-      lock.hermesPath,
-      lock.hermesHome,
+      lock.maxPath,
+      lock.maxHome,
       ownershipId,
       lock.profile
     ))
@@ -1036,17 +1036,17 @@ async function terminateOwnedDashboardForUpdate(ssh, expected) {
 // starts a new session; macOS has no setsid, so fall back to nohup (HUP-immune;
 // fd-detachment is already handled by </dev/null + redirect + &).
 function buildSpawnCommand(hermesPath, profile, opts: any = {}) {
-  const hermes = expandRemotePath(hermesPath)
+  const max = expandRemotePath(hermesPath)
   const profileArgs = profile ? `--profile ${shq(profile)} ` : ''
   const logPath = expandRemotePath(opts.logPath)
   const tokenFilePath = opts.tokenFilePath
   const tokenArg = tokenFilePath ? ` --ssh-session-token-file ${expandRemotePath(tokenFilePath)}` : ''
   const ownerArg = opts.spawnNonce ? ` --ssh-owner-nonce ${validateSpawnNonce(opts.spawnNonce)}` : ''
   const subCmd = `serve --isolated --host 127.0.0.1 --port 0${tokenArg}${ownerArg}`
-  const marker = expandRemotePath(`${remoteInstallRoot(opts.hermesHome || '~/.hermes')}/.hermes-update-in-progress`)
+  const marker = expandRemotePath(`${remoteInstallRoot(opts.maxHome || '~/.max')}/.max-update-in-progress`)
 
   const updateMutex = expandRemotePath(
-    `${remoteInstallRoot(opts.hermesHome || '~/.hermes')}/.hermes-update-in-progress.mutex`
+    `${remoteInstallRoot(opts.maxHome || '~/.max')}/.max-update-in-progress.mutex`
   )
 
   // The marker probe, ownership reservation, process creation, and initial
@@ -1062,7 +1062,7 @@ function buildSpawnCommand(hermesPath, profile, opts: any = {}) {
 
   const dashCmd =
     `ulimit -n ${REMOTE_NOFILE_SOFT_LIMIT} 2>/dev/null || true; ` +
-    `exec env HERMES_DESKTOP=1 ${hermes} ${profileArgs}${subCmd}`
+    `exec env MAX_DESKTOP=1 ${hermes} ${profileArgs}${subCmd}`
 
   const detachedShell = `eval "exec $1>&-"; ${dashCmd} </dev/null >> ${logPath} 2>&1 & echo $!`
   const detachedSpawn = `child=$("$(command -v setsid || echo nohup)" sh -c ${shq(detachedShell)} hermes-update-child "$1" & echo $!)`
@@ -1118,7 +1118,7 @@ function buildSpawnCommand(hermesPath, profile, opts: any = {}) {
 }
 
 async function remoteSupportsSshOwnership(ssh, hermesPath) {
-  const hermes = expandRemotePath(hermesPath)
+  const max = expandRemotePath(hermesPath)
 
   const out = await ssh.exec(
     `help="$(${hermes} serve --help 2>&1)"; ` +
@@ -1168,12 +1168,12 @@ async function scrapeReadyPort(ssh, logPath, { timeoutMs = DEFAULT_READY_TIMEOUT
 
 async function spawnRemoteDashboard(
   ssh,
-  { hermesPath, profile, token, ownershipId, hermesHome = '~/.hermes', assertInstallClear = async () => {} }
+  { hermesPath, profile, token, ownershipId, hermesHome = '~/.max', assertInstallClear = async () => {} }
 ) {
   if (!(await remoteSupportsSshOwnership(ssh, hermesPath))) {
     const err: any = new Error(
-      'The remote Hermes install does not support --ssh-session-token-file and --ssh-owner-nonce. ' +
-        'Update Hermes on the remote host to continue using Desktop SSH mode.'
+      'The remote Max install does not support --ssh-session-token-file and --ssh-owner-nonce. ' +
+        'Update Max on the remote host to continue using Desktop SSH mode.'
     )
 
     err.kind = 'update-required'
@@ -1333,7 +1333,7 @@ async function openForward(deps, remotePort, attempts = 3) {
 
 /**
  * Establish (or reuse) a remote dashboard and a tunnel to it. `deps` injects the
- * opened SshConnection, forward/pickLocalPort/waitForHermes, a token-gated
+ * opened SshConnection, forward/pickLocalPort/waitForMax, a token-gated
  * probeReuseProof, and adoptServedToken. Returns the connection descriptor
  * { baseUrl, token, tokenFingerprint, remotePort, localPort, pid, reused, platform }.
  */
@@ -1378,11 +1378,11 @@ async function connect(deps) {
   const {
     ssh,
     profile = '',
-    remoteHermesPath = '',
+    remoteMaxPath = '',
     ownershipId,
     forward,
     pickLocalPort,
-    waitForHermes,
+    waitForMax,
     probeReuseProof,
     adoptServedToken,
     rememberLog = () => {},
@@ -1395,14 +1395,14 @@ async function connect(deps) {
   assertBootstrapNotSuperseded(signal)
   const platform = await probeRemotePlatform(ssh)
   log(`remote platform ${platform.os}/${platform.arch}`)
-  const hermesHome = await probeRemoteHermesHome(ssh)
+  const hermesHome = await probeRemoteMaxHome(ssh)
   await assertRemoteInstallUpdateClear(ssh, hermesHome)
-  const hermesPath = await locateHermes(ssh, remoteHermesPath)
-  log(`located hermes at ${hermesPath}`)
-  const hermesVersion = await probeHermesVersion(ssh, hermesPath)
+  const hermesPath = await locateMax(ssh, remoteMaxPath)
+  log(`located max at ${hermesPath}`)
+  const hermesVersion = await probeMaxVersion(ssh, hermesPath)
 
   if (hermesVersion) {
-    log(`remote hermes version: ${hermesVersion}`)
+    log(`remote max version: ${hermesVersion}`)
   }
 
   const reuseToken = deps.reuseToken || ''
@@ -1418,7 +1418,7 @@ async function connect(deps) {
     )
 
     const error: any = new Error(
-      `The remote ownership record ${lpath} does not match this Hermes Desktop build (${lock.reason}). ` +
+      `The remote ownership record ${lpath} does not match this Max Desktop build (${lock.reason}). ` +
         'It was probably written by a different or modified desktop build sharing this remote, or the file is corrupt. ' +
         'Refusing to reap or overwrite it — that could kill a live SSH backend owned by another build. ' +
         'If nothing else uses this remote, delete that file on the remote host and reconnect.'
@@ -1437,8 +1437,8 @@ async function connect(deps) {
         ssh,
         lock.pid,
         lock.spawnNonce,
-        lock.hermesPath,
-        lock.hermesHome,
+        lock.maxPath,
+        lock.maxHome,
         ownershipId,
         lock.profile
       ))
@@ -1450,8 +1450,8 @@ async function connect(deps) {
       lock.profile === profile &&
       Boolean(reuseToken) &&
       lock.tokenFingerprint === fingerprintToken(reuseToken) &&
-      lock.hermesPath === hermesPath &&
-      lock.hermesHome === hermesHome
+      lock.maxPath === hermesPath &&
+      lock.maxHome === hermesHome
 
     if (reusable) {
       const creationTime = lock.creationTime || (await remoteProcessCreationTime(ssh, lock.pid))
@@ -1602,7 +1602,7 @@ async function connect(deps) {
     localPort = await openForward(deps, remotePort)
     assertBootstrapNotSuperseded(signal)
     const baseUrl = `http://127.0.0.1:${localPort}`
-    await waitForHermes(baseUrl, spawnToken)
+    await waitForMax(baseUrl, spawnToken)
     assertBootstrapNotSuperseded(signal)
 
     const token = await adoptOwnedServedToken(adoptServedToken, baseUrl, spawnToken, ssh, pid, 'remote dashboard')
@@ -1660,16 +1660,16 @@ export {
   fingerprintToken,
   isForwardBindCollision,
   isLockfileSkew,
-  listRemoteHermesProfiles,
-  locateHermes,
+  listRemoteMaxProfiles,
+  locateMax,
   LOCKFILE_SCHEMA_VERSION,
   lockfilePath,
   mintToken,
   openForward,
   ownershipDirectory,
   pidIsOurDashboard,
-  probeHermesVersion,
-  probeRemoteHermesHome,
+  probeMaxVersion,
+  probeRemoteMaxHome,
   probeRemotePlatform,
   PROTOCOL_VERSION,
   readLockfile,

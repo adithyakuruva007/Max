@@ -1,4 +1,4 @@
-"""Regression tests for the parked-branch guard in ``hermes update``.
+"""Regression tests for the parked-branch guard in ``max update``.
 
 Live incident (2026-08-17, Teknium's Linux box): the source checkout was
 parked on a stale feature branch (``claude-code-inspired/local-terminal-
@@ -25,8 +25,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from hermes_cli import main as hermes_main
-from hermes_cli import update_cmd
+from max_cli import main as hermes_main
+from max_cli import update_cmd
 
 
 GIT = ["git"]
@@ -80,7 +80,7 @@ def repo_pair(tmp_path):
 @pytest.fixture(autouse=True)
 def _no_config(monkeypatch):
     """Isolate the guard from the machine's real config.yaml."""
-    import hermes_cli.config as hermes_config
+    import max_cli.config as hermes_config
 
     monkeypatch.setattr(hermes_config, "load_config", lambda: {})
 
@@ -150,7 +150,7 @@ def test_equivalent_cherry_picked_commit_is_still_safe(repo_pair):
 def test_config_opt_out_blocks_auto_switch(repo_pair, monkeypatch):
     """updates.auto_switch_parked_branch: false disables auto-switch even
     when the branch is clean and merged."""
-    import hermes_cli.config as hermes_config
+    import max_cli.config as hermes_config
 
     monkeypatch.setattr(
         hermes_config,
@@ -185,7 +185,7 @@ def test_skip_warning_names_branch_behind_count_and_commands(repo_pair, capsys):
     assert "CODE UPDATE SKIPPED" in out
     assert "old-feature" in out
     assert "2 commit(s) BEHIND" in out
-    assert f"git -C {repo_pair} checkout main && hermes update" in out
+    assert f"git -C {repo_pair} checkout main && max update" in out
 
 
 def test_skip_warning_dirty_reason(repo_pair, capsys):
@@ -253,7 +253,7 @@ def _patch_update_flow(monkeypatch, repo, run_real_git=True):
     monkeypatch.setattr(hermes_main, "_is_windows", lambda: False)
     monkeypatch.setattr(
         hermes_main, "_get_origin_url",
-        lambda *a, **k: "https://github.com/NousResearch/hermes-agent.git",
+        lambda *a, **k: "https://github.com/NousResearch/max-agent.git",
     )
     monkeypatch.setattr(hermes_main, "_is_fork", lambda *a, **k: False)
     monkeypatch.setattr(hermes_main, "_discard_lockfile_churn", lambda *a, **k: None)
@@ -353,7 +353,7 @@ def test_update_updates_unmerged_branch_in_place_when_configured(
     origin/<target> instead of switched away from. The running code must
     advance (origin/main's files arrive) AND the local commits must survive,
     with the checkout never moving."""
-    import hermes_cli.config as hermes_config
+    import max_cli.config as hermes_config
 
     monkeypatch.setattr(
         hermes_config,
@@ -406,7 +406,7 @@ def test_switch_branch_flag_overrides_in_place_strategy(
     in its history (#89507 review). The branch tip must be byte-identical
     afterwards, while the checkout ends up on the updated target.
     """
-    import hermes_cli.config as hermes_config
+    import max_cli.config as hermes_config
 
     monkeypatch.setattr(
         hermes_config,
@@ -459,7 +459,7 @@ def test_unmerged_branch_still_updates_in_place_without_the_flag(
 ):
     """--switch-branch is opt-in: with the in-place strategy configured and
     no flag, the update stays in place."""
-    import hermes_cli.config as hermes_config
+    import max_cli.config as hermes_config
 
     monkeypatch.setattr(
         hermes_config,
@@ -562,7 +562,7 @@ def test_update_up_to_date_path_does_not_repark_merged_branch(
     class _StopFlow(Exception):
         pass
 
-    import hermes_cli.managed_uv as managed_uv
+    import max_cli.managed_uv as managed_uv
 
     monkeypatch.setattr(
         managed_uv,

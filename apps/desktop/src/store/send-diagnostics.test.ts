@@ -19,7 +19,7 @@ function stubGateway(
 }
 
 function stubDesktopLogs(lines: null | string[]) {
-  const original = window.hermesDesktop
+  const original = window.maxDesktop
 
   Object.defineProperty(window, 'hermesDesktop', {
     configurable: true,

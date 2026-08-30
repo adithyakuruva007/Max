@@ -3,13 +3,13 @@ import importlib
 import os
 import sys
 
-from hermes_cli.env_loader import load_hermes_dotenv
+from max_cli.env_loader import load_hermes_dotenv
 
 
 def test_recovered_update_retry_skips_external_secret_sources(tmp_path, monkeypatch):
     """The post-recovery updater must not remap native vault dependencies."""
-    import hermes_cli.env_loader as env_loader
-    from hermes_cli import _early_recovery
+    import max_cli.env_loader as env_loader
+    from max_cli import _early_recovery
 
     home = tmp_path / "hermes"
     home.mkdir()
@@ -155,7 +155,7 @@ def test_bomless_latin1_env_still_loads(tmp_path, monkeypatch):
 
 def test_latin1_fallback_stream_honors_override(tmp_path, monkeypatch):
     """Stream-based latin-1 fallback must honor override= identically to dotenv_path."""
-    from hermes_cli.env_loader import _load_dotenv_with_fallback
+    from max_cli.env_loader import _load_dotenv_with_fallback
 
     home = tmp_path / "hermes"
     home.mkdir()
@@ -256,14 +256,14 @@ def test_utf32_le_bom_leaves_file_untouched(tmp_path, caplog):
     """
     import logging
 
-    from hermes_cli.env_loader import _sanitize_env_file_if_needed
+    from max_cli.env_loader import _sanitize_env_file_if_needed
 
     env_file = tmp_path / ".env"
-    content = "HERMES_TEST_KEY=hello_utf32\nSECOND_KEY=world\n"
+    content = "MAX_TEST_KEY=hello_utf32\nSECOND_KEY=world\n"
     raw = codecs.BOM_UTF32_LE + content.encode("utf-32-le")
     env_file.write_bytes(raw)
 
-    with caplog.at_level(logging.WARNING, logger="hermes_cli.env_loader"):
+    with caplog.at_level(logging.WARNING, logger="max_cli.env_loader"):
         _sanitize_env_file_if_needed(env_file)
 
     assert env_file.read_bytes() == raw  # untouched
@@ -280,18 +280,18 @@ def test_utf32_warning_fires_once_per_path(tmp_path, caplog, monkeypatch):
     """
     import logging
 
-    import hermes_cli.env_loader as env_loader
-    from hermes_cli.env_loader import _sanitize_env_file_if_needed
+    import max_cli.env_loader as env_loader
+    from max_cli.env_loader import _sanitize_env_file_if_needed
 
     # Isolate process-level seen-set so other tests' paths don't leak in.
     monkeypatch.setattr(env_loader, "_WARNED_UTF32_PATHS", set())
 
     env_file = tmp_path / ".env"
-    content = "HERMES_TEST_KEY=hello_utf32\nSECOND_KEY=world\n"
+    content = "MAX_TEST_KEY=hello_utf32\nSECOND_KEY=world\n"
     raw = codecs.BOM_UTF32_LE + content.encode("utf-32-le")
     env_file.write_bytes(raw)
 
-    with caplog.at_level(logging.WARNING, logger="hermes_cli.env_loader"):
+    with caplog.at_level(logging.WARNING, logger="max_cli.env_loader"):
         _sanitize_env_file_if_needed(env_file)
         _sanitize_env_file_if_needed(env_file)
         _sanitize_env_file_if_needed(env_file)
@@ -357,7 +357,7 @@ def test_cp1252_env_regression_does_not_crash(tmp_path, monkeypatch):
 
 
 def test_known_keys_absent_from_user_env_are_cleared(tmp_path, monkeypatch):
-    """Known Hermes keys inherited from parent process are removed when absent
+    """Known Max keys inherited from parent process are removed when absent
     from the profile's .env.
 
     This is the startup equivalent of ``reload_env()``'s known-key cleanup and
@@ -372,7 +372,7 @@ def test_known_keys_absent_from_user_env_are_cleared(tmp_path, monkeypatch):
 
     # Inherited known keys from parent process / other profile
     monkeypatch.setenv("OPENAI_BASE_URL", "https://stale.example/v1")
-    monkeypatch.setenv("HERMES_ACP_AUTH_METHOD", "cursor_login")
+    monkeypatch.setenv("MAX_ACP_AUTH_METHOD", "cursor_login")
     monkeypatch.setenv("COPILOT_CLI_PATH", "/usr/bin/claude-code")
     # Unrelated shell var must NOT be touched
     monkeypatch.setenv("MY_SHELL_ONLY_VAR", "keep-me")
@@ -381,8 +381,8 @@ def test_known_keys_absent_from_user_env_are_cleared(tmp_path, monkeypatch):
 
     # OPENAI_BASE_URL is defined in the profile .env → overridden to the new value
     assert os.getenv("OPENAI_BASE_URL") == "https://profile.example/v1"
-    # HERMES_ACP_AUTH_METHOD and COPILOT_CLI_PATH are NOT in the profile .env → cleared
-    assert "HERMES_ACP_AUTH_METHOD" not in os.environ
+    # MAX_ACP_AUTH_METHOD and COPILOT_CLI_PATH are NOT in the profile .env → cleared
+    assert "MAX_ACP_AUTH_METHOD" not in os.environ
     assert "COPILOT_CLI_PATH" not in os.environ
     # Unrelated shell vars must survive
     assert os.getenv("MY_SHELL_ONLY_VAR") == "keep-me"
@@ -392,22 +392,22 @@ def test_empty_assignment_in_user_env_is_preserved(tmp_path, monkeypatch):
     """An explicit ``KEY=`` (empty value) in the profile .env keeps the key
     in ``os.environ`` — distinct from a key absent from .env entirely.
 
-    Empty ``HERMES_ACP_AUTH_METHOD=`` tells the ACP adapter to skip
+    Empty ``MAX_ACP_AUTH_METHOD=`` tells the ACP adapter to skip
     ``authenticate`` (the key exists, its value is just empty).  This is the
     documented workaround for the leak and must still work after the cleanup.
     """
     home = tmp_path / "hermes"
     home.mkdir()
-    (home / ".env").write_text("HERMES_ACP_AUTH_METHOD=\n", encoding="utf-8")
+    (home / ".env").write_text("MAX_ACP_AUTH_METHOD=\n", encoding="utf-8")
 
-    monkeypatch.setenv("HERMES_ACP_AUTH_METHOD", "cursor_login")
+    monkeypatch.setenv("MAX_ACP_AUTH_METHOD", "cursor_login")
     monkeypatch.setenv("COPILOT_CLI_PATH", "/usr/bin/sneaky")  # NOT in .env → cleared
 
     load_hermes_dotenv(hermes_home=home)
 
     # KEY= in .env keeps the key (now empty string)
-    assert "HERMES_ACP_AUTH_METHOD" in os.environ
-    assert os.environ["HERMES_ACP_AUTH_METHOD"] == ""
+    assert "MAX_ACP_AUTH_METHOD" in os.environ
+    assert os.environ["MAX_ACP_AUTH_METHOD"] == ""
     # COPILOT_CLI_PATH is absent from .env → cleared
     assert "COPILOT_CLI_PATH" not in os.environ
 
@@ -421,34 +421,34 @@ def test_no_user_env_does_not_clear_anything(tmp_path, monkeypatch):
     home.mkdir()
     # No .env in home — bare profile
 
-    monkeypatch.setenv("HERMES_ACP_AUTH_METHOD", "cursor_login")
+    monkeypatch.setenv("MAX_ACP_AUTH_METHOD", "cursor_login")
     monkeypatch.setenv("PATH", "/usr/bin:/bin")
 
     load_hermes_dotenv(hermes_home=home)
 
-    assert os.getenv("HERMES_ACP_AUTH_METHOD") == "cursor_login"
+    assert os.getenv("MAX_ACP_AUTH_METHOD") == "cursor_login"
     assert os.getenv("PATH") == "/usr/bin:/bin"
 
 
 def test_known_key_explicitly_set_in_user_env_is_kept(tmp_path, monkeypatch):
-    """A known Hermes key that IS explicitly set in the profile .env survives
+    """A known Max key that IS explicitly set in the profile .env survives
     the cleanup (overrides the inherited value).
     """
     home = tmp_path / "hermes"
     home.mkdir()
     (home / ".env").write_text(
-        "HERMES_ACP_AUTH_METHOD=claude_code_cli\n", encoding="utf-8"
+        "MAX_ACP_AUTH_METHOD=claude_code_cli\n", encoding="utf-8"
     )
 
-    monkeypatch.setenv("HERMES_ACP_AUTH_METHOD", "cursor_login")
+    monkeypatch.setenv("MAX_ACP_AUTH_METHOD", "cursor_login")
 
     load_hermes_dotenv(hermes_home=home)
 
-    assert os.getenv("HERMES_ACP_AUTH_METHOD") == "claude_code_cli"
+    assert os.getenv("MAX_ACP_AUTH_METHOD") == "claude_code_cli"
 
 
 def test_export_prefixed_known_key_in_user_env_is_kept(tmp_path, monkeypatch):
-    """A known Hermes key defined with the bash-compatible ``export KEY=value``
+    """A known Max key defined with the bash-compatible ``export KEY=value``
     form in the profile .env must be recognized as defined and survive the
     cleanup - mirrors the ``export `` stripping in config.py's load_env()
     (#6659).
@@ -456,11 +456,11 @@ def test_export_prefixed_known_key_in_user_env_is_kept(tmp_path, monkeypatch):
     home = tmp_path / "hermes"
     home.mkdir()
     (home / ".env").write_text(
-        "export HERMES_ACP_AUTH_METHOD=claude_code_cli\n", encoding="utf-8"
+        "export MAX_ACP_AUTH_METHOD=claude_code_cli\n", encoding="utf-8"
     )
-    monkeypatch.setenv("HERMES_ACP_AUTH_METHOD", "cursor_login")
+    monkeypatch.setenv("MAX_ACP_AUTH_METHOD", "cursor_login")
     load_hermes_dotenv(hermes_home=home)
-    assert os.getenv("HERMES_ACP_AUTH_METHOD") == "claude_code_cli"
+    assert os.getenv("MAX_ACP_AUTH_METHOD") == "claude_code_cli"
 
 
 def test_shell_exported_credentials_survive_cleanup(tmp_path, monkeypatch):
@@ -482,14 +482,14 @@ def test_shell_exported_credentials_survive_cleanup(tmp_path, monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-from-shell")
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "12345:token-from-shell")
     # A profile-managed routing key inherited alongside them IS cleared.
-    monkeypatch.setenv("HERMES_ACP_AUTH_METHOD", "cursor_login")
+    monkeypatch.setenv("MAX_ACP_AUTH_METHOD", "cursor_login")
 
     load_hermes_dotenv(hermes_home=home)
 
     assert os.getenv("OPENAI_API_KEY") == "sk-from-shell"
     assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-from-shell"
     assert os.getenv("TELEGRAM_BOT_TOKEN") == "12345:token-from-shell"
-    assert "HERMES_ACP_AUTH_METHOD" not in os.environ
+    assert "MAX_ACP_AUTH_METHOD" not in os.environ
 
 
 def test_cleanup_scope_is_the_profile_managed_set():
@@ -498,7 +498,7 @@ def test_cleanup_scope_is_the_profile_managed_set():
     widened _PROFILE_MANAGED_ENV_KEYS toward the full known-key set, which
     re-introduces the shell-export deletion bug.
     """
-    from hermes_cli.env_loader import _PROFILE_MANAGED_ENV_KEYS
+    from max_cli.env_loader import _PROFILE_MANAGED_ENV_KEYS
 
     for key in _PROFILE_MANAGED_ENV_KEYS:
         assert not key.endswith(("_API_KEY", "_TOKEN", "_SECRET")), (
@@ -514,7 +514,7 @@ def test_cleanup_scope_is_the_profile_managed_set():
 # TERMINAL_ENV=docker in .env used to silently beat config.yaml's
 # terminal.backend on every reload (gateway per-turn reload, cron standalone
 # runs). The bridge re-applies config.yaml's EXPLICIT terminal keys last via
-# the shared hermes_cli.config.apply_terminal_config_to_env helper.
+# the shared max_cli.config.apply_terminal_config_to_env helper.
 # ---------------------------------------------------------------------------
 
 
@@ -525,15 +525,15 @@ def _seed_terminal_home(tmp_path, monkeypatch, *, config_yaml=None, env_text=Non
         (home / "config.yaml").write_text(config_yaml, encoding="utf-8")
     if env_text is not None:
         (home / ".env").write_text(env_text, encoding="utf-8")
-    # The bridge is scoped to the process HERMES_HOME (a different profile's
+    # The bridge is scoped to the process MAX_HOME (a different profile's
     # load must not bridge this process's config), so point the process at
     # the seeded home like a real gateway/cron process would be.
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     return home
 
 
 def test_config_yaml_terminal_backend_overrides_stale_env(tmp_path, monkeypatch):
-    """Regression for #29186: a leftover TERMINAL_ENV=docker in ~/.hermes/.env
+    """Regression for #29186: a leftover TERMINAL_ENV=docker in ~/.max/.env
     must not silently override the user's choice in config.yaml. config.yaml
     is the documented source of truth, so its value must win after load."""
     home = _seed_terminal_home(
@@ -608,7 +608,7 @@ def test_other_profile_home_does_not_bridge_process_config(tmp_path, monkeypatch
     (process_home / "config.yaml").write_text(
         "terminal:\n  backend: local\n", encoding="utf-8"
     )
-    monkeypatch.setenv("HERMES_HOME", str(process_home))
+    monkeypatch.setenv("MAX_HOME", str(process_home))
 
     other_home = tmp_path / "other-profile"
     other_home.mkdir()

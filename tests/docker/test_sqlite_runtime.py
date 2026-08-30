@@ -10,7 +10,7 @@ _SQLITE_PROBE = r"""
 import json
 import sqlite3
 
-from hermes_cli.sqlite_runtime import is_sqlite_wal_reset_vulnerable
+from max_cli.sqlite_runtime import is_sqlite_wal_reset_vulnerable
 
 db = sqlite3.connect(":memory:")
 try:
@@ -41,7 +41,7 @@ def test_image_links_fixed_sqlite_with_fts5_trigram(built_image: str) -> None:
             "--user",
             "hermes",
             "--entrypoint",
-            "/opt/hermes/.venv/bin/python",
+            "/opt/max/.venv/bin/python",
             built_image,
             "-c",
             _SQLITE_PROBE,

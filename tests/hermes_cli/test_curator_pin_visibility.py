@@ -49,16 +49,16 @@ class _Args:
 
 @pytest.fixture
 def pin_env(tmp_path, monkeypatch):
-    """Isolated HERMES_HOME with freshly reloaded modules (same pattern as
+    """Isolated MAX_HOME with freshly reloaded modules (same pattern as
     tests/agent/test_curator.py::curator_env but scoped for the CLI layer)."""
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     skills = home / "skills"
     skills.mkdir(parents=True)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
 
-    import hermes_constants
-    importlib.reload(hermes_constants)
+    import max_constants
+    importlib.reload(max_constants)
     from tools import skill_usage
     importlib.reload(skill_usage)
     # curator module reads config through its own loader; keep defaults.
@@ -66,7 +66,7 @@ def pin_env(tmp_path, monkeypatch):
     importlib.reload(curator)
     monkeypatch.setattr(curator, "_load_config", lambda: {})
     monkeypatch.setattr(skill_usage, "_prune_builtins_enabled", lambda: False)
-    from hermes_cli import curator as curator_cli
+    from max_cli import curator as curator_cli
     importlib.reload(curator_cli)
 
     yield {

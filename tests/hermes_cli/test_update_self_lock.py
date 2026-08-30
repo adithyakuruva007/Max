@@ -1,7 +1,7 @@
 """Regression coverage for the updater self-lock deferral (#83569, #86735).
 
 ``_detect_venv_python_processes`` excludes the calling process and its
-ancestors by design — a CLI ``hermes update`` IS the venv python.  Before
+ancestors by design — a CLI ``max update`` IS the venv python.  Before
 this guard, an updater that had already imported a native venv extension
 (e.g. ``cryptography.hazmat.bindings._rust``) died mid-sync with
 ``os error 5`` when ``uv`` tried to replace the mapped ``.pyd``, stranding
@@ -10,7 +10,7 @@ the venv half-updated (#83569).
 The first version of the guard (#86687) fired as a PRE-FETCH preflight and
 keyed on nothing but "is the module in sys.modules" — which was ALWAYS true
 while ``bitwarden.py`` imported cryptography at module level, so every
-Windows ``hermes update`` exited 2 before even fetching and the update
+Windows ``max update`` exited 2 before even fetching and the update
 looped forever (#86735 / #86780 / #86781).  The guard is now honest:
 
 * it only reports a loaded module when the dependency sync would actually
@@ -31,9 +31,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import hermes_cli.main as cli_main
-import hermes_cli.update_cmd as update_cmd
-from hermes_cli import _early_recovery
+import max_cli.main as cli_main
+import max_cli.update_cmd as update_cmd
+from max_cli import _early_recovery
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -290,8 +290,8 @@ class TestUpdateEntrypointImportHygiene:
             textwrap.dedent(
                 """
                 import sys
-                import hermes_cli.main
-                from hermes_cli.update_cmd import _SELF_LOCKING_NATIVE_MODULES
+                import max_cli.main
+                from max_cli.update_cmd import _SELF_LOCKING_NATIVE_MODULES
                 loaded = [
                     p for p in _SELF_LOCKING_NATIVE_MODULES
                     if p in sys.modules and not p.startswith("yaml")
@@ -315,8 +315,8 @@ class TestUpdateEntrypointImportHygiene:
                 import sys
                 from unittest.mock import patch
                 sys.argv = ["hermes", "update", "--check"]
-                import hermes_cli.main as m
-                with patch("hermes_cli.main._cmd_update_check", lambda *a, **k: 0):
+                import max_cli.main as m
+                with patch("max_cli.main._cmd_update_check", lambda *a, **k: 0):
                     try:
                         m.main()
                     except SystemExit:

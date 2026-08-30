@@ -82,8 +82,8 @@ describe('appending the protocol to an existing SOUL', () => {
     const { ensureMessagingProtocol } = await loadSoul()
     const soul = ensureMessagingProtocol('', 'default', roster)
 
-    expect(soul).toMatch(/run `hermes profile list` for the LIVE/)
-    expect(soul).not.toMatch(/hermes profiles list/)
+    expect(soul).toMatch(/run `max profile list` for the LIVE/)
+    expect(soul).not.toMatch(/max profiles list/)
   })
 
   it('seeds an empty SOUL with the section alone', async () => {

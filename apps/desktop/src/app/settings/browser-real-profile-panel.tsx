@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react'
 
-import { type ProfileScope, saveHermesConfigRecord } from '@/hermes'
+import { type ProfileScope, saveMaxConfigRecord } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { notify, notifyError } from '@/store/notifications'
 
-import { hermesConfigCacheWriter, useHermesConfigRecord } from '../hooks/use-config-record'
+import { hermesConfigCacheWriter, useMaxConfigRecord } from '../hooks/use-config-record'
 
 import { ToggleRow } from './primitives'
 
@@ -32,7 +32,7 @@ function readUseRealProfile(record: Record<string, unknown> | undefined): boolea
  * users reasonably never found ("no toggle in the browser section").
  *
  * Semantics mirror the config comment: turning it ON consents to snapshotting
- * the default browser's profile (cookies/logins) into a Hermes-owned copy;
+ * the default browser's profile (cookies/logins) into a Max-owned copy;
  * turning it OFF deletes the snapshot store on next use. The toggle writes
  * config.yaml through the same deep-merging PUT /api/config every other
  * settings surface uses — applies to new sessions.
@@ -40,7 +40,7 @@ function readUseRealProfile(record: Record<string, unknown> | undefined): boolea
 export function BrowserRealProfilePanel({ profile }: BrowserRealProfilePanelProps) {
   const { t } = useI18n()
   const copy = t.settings.toolsets.browserRealProfile
-  const { data: config } = useHermesConfigRecord(profile)
+  const { data: config } = useMaxConfigRecord(profile)
   const setConfig = hermesConfigCacheWriter(profile)
   const [busy, setBusy] = useState(false)
 
@@ -63,7 +63,7 @@ export function BrowserRealProfilePanel({ profile }: BrowserRealProfilePanelProp
       setConfig(next)
 
       try {
-        await saveHermesConfigRecord(next, profile)
+        await saveMaxConfigRecord(next, profile)
         notify({
           kind: 'info',
           title: on ? copy.enabledTitle : copy.disabledTitle,
