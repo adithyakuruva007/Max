@@ -5,7 +5,7 @@ prefix (e.g. ``mission-control.tilos.com/hermes/*`` -> local Caddy ->
 :9119), injecting ``X-Forwarded-Prefix: /hermes`` on every request.
 
 The dashboard already honours this for the SPA bundle (rewriting asset
-URLs and the bootstrap ``__HERMES_BASE_PATH__``). The OAuth gate must
+URLs and the bootstrap ``__MAX_BASE_PATH__``). The OAuth gate must
 honour it too:
 
   1. The gate's ``Location:`` redirect to /login (in
@@ -36,10 +36,10 @@ import pytest
 
 from fastapi.testclient import TestClient
 
-from hermes_cli import web_server
-from hermes_cli.dashboard_auth import clear_providers, register_provider
-from hermes_cli.dashboard_auth import prefix as prefix_mod
-from tests.hermes_cli.conftest_dashboard_auth import StubAuthProvider
+from max_cli import web_server
+from max_cli.dashboard_auth import clear_providers, register_provider
+from max_cli.dashboard_auth import prefix as prefix_mod
+from tests.max_cli.conftest_dashboard_auth import StubAuthProvider
 
 
 HA_INGRESS_DASHBOARD_PREFIX = (
@@ -112,7 +112,7 @@ class TestForwardedPrefixNormalisation:
     ):
         """Home Assistant Supervisor ingress prefixes are 63 chars before
         add-ons append their own mount path. They must survive validation so
-        the SPA receives the correct __HERMES_BASE_PATH__ and asset prefix."""
+        the SPA receives the correct __MAX_BASE_PATH__ and asset prefix."""
         prefix_mod._warned_malformed_prefixes.clear()
         assert len(HA_INGRESS_DASHBOARD_PREFIX) > 64
 
@@ -264,13 +264,13 @@ class TestOAuthRedirectUriRespectsPrefix:
 
 
 # ---------------------------------------------------------------------------
-# HERMES_DASHBOARD_PUBLIC_URL / dashboard.public_url override
+# MAX_DASHBOARD_PUBLIC_URL / dashboard.public_url override
 # ---------------------------------------------------------------------------
 
 
 class TestPublicUrlOverride:
     """``dashboard.public_url`` (env override:
-    ``HERMES_DASHBOARD_PUBLIC_URL``) lets an operator force the absolute
+    ``MAX_DASHBOARD_PUBLIC_URL``) lets an operator force the absolute
     base URL the OAuth ``redirect_uri`` is built from.
 
     When set, it is the *complete authority* — scheme + host + optional
@@ -294,7 +294,7 @@ class TestPublicUrlOverride:
 
     @pytest.fixture
     def patch_config(self, monkeypatch):
-        """Replace ``hermes_cli.config.load_config`` with a stub
+        """Replace ``max_cli.config.load_config`` with a stub
         returning the given ``public_url``. Pass ``None`` to set no
         config-side value."""
 
@@ -303,7 +303,7 @@ class TestPublicUrlOverride:
             if public_url is not None:
                 cfg = {"dashboard": {"public_url": public_url}}
             monkeypatch.setattr(
-                "hermes_cli.config.load_config", lambda: cfg
+                "max_cli.config.load_config", lambda: cfg
             )
 
         return _set
@@ -323,12 +323,12 @@ class TestPublicUrlOverride:
     def test_public_url_env_overrides_request_reconstruction(
         self, gated_app_direct, patch_config, monkeypatch
     ):
-        """``HERMES_DASHBOARD_PUBLIC_URL`` wins over the URL the
+        """``MAX_DASHBOARD_PUBLIC_URL`` wins over the URL the
         request would otherwise reconstruct to. Critical for deploys
         whose proxy headers don't match the public URL."""
         patch_config(None)
         monkeypatch.setenv(
-            "HERMES_DASHBOARD_PUBLIC_URL", "https://custom.example",
+            "MAX_DASHBOARD_PUBLIC_URL", "https://custom.example",
         )
         redirect_uri = self._redirect_uri(gated_app_direct)
         assert redirect_uri == "https://custom.example/auth/callback", (
@@ -339,7 +339,7 @@ class TestPublicUrlOverride:
     def test_public_url_config_yaml_used_when_env_unset(
         self, gated_app_direct, patch_config, monkeypatch
     ):
-        monkeypatch.delenv("HERMES_DASHBOARD_PUBLIC_URL", raising=False)
+        monkeypatch.delenv("MAX_DASHBOARD_PUBLIC_URL", raising=False)
         patch_config("https://from-config.example")
         redirect_uri = self._redirect_uri(gated_app_direct)
         assert redirect_uri == "https://from-config.example/auth/callback"
@@ -350,7 +350,7 @@ class TestPublicUrlOverride:
         """Precedence pin — env wins over config.yaml. Fly.io / CI
         secret injection depends on this ordering."""
         monkeypatch.setenv(
-            "HERMES_DASHBOARD_PUBLIC_URL", "https://from-env.example",
+            "MAX_DASHBOARD_PUBLIC_URL", "https://from-env.example",
         )
         patch_config("https://from-config.example")
         redirect_uri = self._redirect_uri(gated_app_direct)
@@ -368,7 +368,7 @@ class TestPublicUrlOverride:
         whole authority; we trust them."""
         patch_config(None)
         monkeypatch.setenv(
-            "HERMES_DASHBOARD_PUBLIC_URL", "https://example.com/hermes",
+            "MAX_DASHBOARD_PUBLIC_URL", "https://example.com/hermes",
         )
         redirect_uri = self._redirect_uri(gated_app_direct)
         assert redirect_uri == "https://example.com/hermes/auth/callback"
@@ -382,7 +382,7 @@ class TestPublicUrlOverride:
         the operator already baked their prefix into public_url."""
         patch_config(None)
         monkeypatch.setenv(
-            "HERMES_DASHBOARD_PUBLIC_URL", "https://example.com/already-prefixed",
+            "MAX_DASHBOARD_PUBLIC_URL", "https://example.com/already-prefixed",
         )
         redirect_uri = self._redirect_uri(
             gated_app_proxied,
@@ -402,7 +402,7 @@ class TestPublicUrlOverride:
         produce identical results — no ``//auth/callback`` double slash."""
         patch_config(None)
         monkeypatch.setenv(
-            "HERMES_DASHBOARD_PUBLIC_URL", "https://example.com/",
+            "MAX_DASHBOARD_PUBLIC_URL", "https://example.com/",
         )
         redirect_uri = self._redirect_uri(gated_app_direct)
         assert redirect_uri == "https://example.com/auth/callback"
@@ -425,7 +425,7 @@ class TestPublicUrlOverride:
             'https://example.com/"injected',       # quote char
             "https://example.com/\nhttps://evil",  # CRLF injection
         ]:
-            monkeypatch.setenv("HERMES_DASHBOARD_PUBLIC_URL", bad)
+            monkeypatch.setenv("MAX_DASHBOARD_PUBLIC_URL", bad)
             redirect_uri = self._redirect_uri(gated_app_direct)
             # Fell through to request reconstruction — netloc is the
             # bound host, NOT the hostile value.
@@ -442,7 +442,7 @@ class TestPublicUrlOverride:
         """Same defensive behaviour as the other env vars in this
         plugin — an empty env var doesn't shadow a valid config.yaml
         entry."""
-        monkeypatch.setenv("HERMES_DASHBOARD_PUBLIC_URL", "")
+        monkeypatch.setenv("MAX_DASHBOARD_PUBLIC_URL", "")
         patch_config("https://from-config.example")
         redirect_uri = self._redirect_uri(gated_app_direct)
         assert redirect_uri == "https://from-config.example/auth/callback"
@@ -451,18 +451,18 @@ class TestPublicUrlOverride:
         self, patch_config, monkeypatch, caplog
     ):
         """A non-empty env var that's missing its scheme (the #1 cause
-        of "I set HERMES_DASHBOARD_PUBLIC_URL but the callback is still
+        of "I set MAX_DASHBOARD_PUBLIC_URL but the callback is still
         http://") must emit an operator-facing WARNING rather than being
         silently discarded. Regression for #42780."""
         import logging
 
-        from hermes_cli.dashboard_auth import prefix as prefix_mod
+        from max_cli.dashboard_auth import prefix as prefix_mod
 
         # Reset the per-value dedup cache so the warning fires in-test
         # regardless of test ordering.
         prefix_mod._warned_malformed_public_urls.clear()
         patch_config(None)
-        monkeypatch.setenv("HERMES_DASHBOARD_PUBLIC_URL", "hermes.domain.com")
+        monkeypatch.setenv("MAX_DASHBOARD_PUBLIC_URL", "hermes.domain.com")
 
         with caplog.at_level(logging.WARNING, logger=prefix_mod.__name__):
             result = prefix_mod.resolve_public_url()
@@ -474,7 +474,7 @@ class TestPublicUrlOverride:
             if r.levelno == logging.WARNING
         ]
         assert any(
-            "HERMES_DASHBOARD_PUBLIC_URL" in m
+            "MAX_DASHBOARD_PUBLIC_URL" in m
             and "hermes.domain.com" in m
             and "scheme" in m
             for m in warnings
@@ -488,11 +488,11 @@ class TestPublicUrlOverride:
         misconfigured deploy doesn't flood the logs."""
         import logging
 
-        from hermes_cli.dashboard_auth import prefix as prefix_mod
+        from max_cli.dashboard_auth import prefix as prefix_mod
 
         prefix_mod._warned_malformed_public_urls.clear()
         patch_config(None)
-        monkeypatch.setenv("HERMES_DASHBOARD_PUBLIC_URL", "hermes.domain.com")
+        monkeypatch.setenv("MAX_DASHBOARD_PUBLIC_URL", "hermes.domain.com")
 
         with caplog.at_level(logging.WARNING, logger=prefix_mod.__name__):
             for _ in range(5):
@@ -515,12 +515,12 @@ class TestPublicUrlOverride:
         """A correctly-formed value must not produce a spurious warning."""
         import logging
 
-        from hermes_cli.dashboard_auth import prefix as prefix_mod
+        from max_cli.dashboard_auth import prefix as prefix_mod
 
         prefix_mod._warned_malformed_public_urls.clear()
         patch_config(None)
         monkeypatch.setenv(
-            "HERMES_DASHBOARD_PUBLIC_URL", "https://hermes.domain.com"
+            "MAX_DASHBOARD_PUBLIC_URL", "https://hermes.domain.com"
         )
 
         with caplog.at_level(logging.WARNING, logger=prefix_mod.__name__):
@@ -558,7 +558,7 @@ class TestCookiePathRespectsPrefix:
             follow_redirects=False,
         )
         cookies = r.headers.get_list("set-cookie")
-        pkce = next(c for c in cookies if "hermes_session_pkce" in c)
+        pkce = next(c for c in cookies if "max_session_pkce" in c)
         # Browser only sends cookie back if the request path is under
         # the cookie's Path attribute, so we need /hermes here. Bare
         # /-rooted cookies would still be sent but would also be sent
@@ -583,7 +583,7 @@ class TestCookiePathRespectsPrefix:
         # The PKCE cookie name carries the __Secure- prefix.
         pkce_candidates = [
             c for c in cookies
-            if c.startswith("__Secure-hermes_session_pkce=")
+            if c.startswith("__Secure-max_session_pkce=")
         ]
         assert pkce_candidates, (
             f"PKCE cookie missing __Secure- prefix: {cookies!r}"
@@ -602,7 +602,7 @@ class TestCookiePathRespectsPrefix:
         cookies = r.headers.get_list("set-cookie")
         pkce_candidates = [
             c for c in cookies
-            if c.startswith("__Host-hermes_session_pkce=")
+            if c.startswith("__Host-max_session_pkce=")
         ]
         assert pkce_candidates, (
             f"PKCE cookie missing __Host- prefix on direct deploy: "
@@ -620,7 +620,7 @@ class TestCookiePathRespectsPrefix:
         spec-compatible without Secure."""
         from fastapi import FastAPI
         from fastapi.responses import Response
-        from hermes_cli.dashboard_auth.cookies import set_pkce_cookie
+        from max_cli.dashboard_auth.cookies import set_pkce_cookie
 
         app = FastAPI()
 
@@ -634,7 +634,7 @@ class TestCookiePathRespectsPrefix:
         r = client.get("/set")
         cookies = r.headers.get_list("set-cookie")
         # Bare cookie name, no prefix.
-        assert any(c.startswith("hermes_session_pkce=") for c in cookies), (
+        assert any(c.startswith("max_session_pkce=") for c in cookies), (
             f"Loopback cookie should be bare-named: {cookies!r}"
         )
         # And no __Host- / __Secure- variant accidentally emitted.
@@ -672,10 +672,10 @@ class TestCookiePathRespectsPrefix:
         )
         pkce_set = next(
             c for c in r1.headers.get_list("set-cookie")
-            if "hermes_session_pkce" in c
+            if "max_session_pkce" in c
         )
-        # Parse "__Secure-hermes_session_pkce=...; HttpOnly; ...".
-        pkce_kv = pkce_set.split(";", 1)[0]  # "__Secure-hermes_session_pkce=value"
+        # Parse "__Secure-max_session_pkce=...; HttpOnly; ...".
+        pkce_kv = pkce_set.split(";", 1)[0]  # "__Secure-max_session_pkce=value"
         state = r1.headers["location"].split("state=")[1]
 
         # Round-trip the cookie by hand because TestClient's jar won't
@@ -693,7 +693,7 @@ class TestCookiePathRespectsPrefix:
         cookies = r2.headers.get_list("set-cookie")
         at_cookies = [
             c for c in cookies
-            if c.startswith("__Secure-hermes_session_at=")
+            if c.startswith("__Secure-max_session_at=")
         ]
         assert at_cookies, (
             f"session_at missing __Secure- prefix: {cookies!r}"

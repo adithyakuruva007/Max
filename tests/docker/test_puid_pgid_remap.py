@@ -3,7 +3,7 @@
 Build the real image and verify the actual runtime behavior:
 
   1. PUID/PGID env vars remap the hermes user UID/GID at boot
-  2. HERMES_UID/HERMES_GID take precedence over PUID/PGID aliases
+  2. MAX_UID/MAX_GID take precedence over PUID/PGID aliases
   3. NAS-style low UIDs (99:100) are accepted and remapped
   4. Invalid UIDs are rejected
   5. The remapped user can write to the data volume
@@ -13,7 +13,7 @@ from __future__ import annotations
 from tests.docker.conftest import docker_exec_sh, start_container
 
 
-def test_puid_pgid_remaps_hermes_user(
+def test_puid_pgid_remaps_max_user(
     built_image: str, container_name: str,
 ) -> None:
     """PUID=1000 PGID=1000 must remap the hermes user to UID 1000."""
@@ -38,20 +38,20 @@ def test_puid_pgid_remaps_hermes_user(
     )
 
 
-def test_hermes_uid_gid_take_precedence_over_aliases(
+def test_max_uid_gid_take_precedence_over_aliases(
     built_image: str, container_name: str,
 ) -> None:
-    """HERMES_UID/HERMES_GID must win over PUID/PGID when both are set."""
-    start_container(built_image, container_name, "HERMES_UID=2000", "HERMES_GID=2001", "PUID=1000", "PGID=1000")
+    """MAX_UID/MAX_GID must win over PUID/PGID when both are set."""
+    start_container(built_image, container_name, "MAX_UID=2000", "MAX_GID=2001", "PUID=1000", "PGID=1000")
 
     r = docker_exec_sh(container_name, "id -u hermes", timeout=10)
     assert r.stdout.strip() == "2000", (
-        f"expected hermes UID 2000 (HERMES_UID wins), got: {r.stdout.strip()}"
+        f"expected hermes UID 2000 (MAX_UID wins), got: {r.stdout.strip()}"
     )
 
     r = docker_exec_sh(container_name, "id -g hermes", timeout=10)
     assert r.stdout.strip() == "2001", (
-        f"expected hermes GID 2001 (HERMES_GID wins), got: {r.stdout.strip()}"
+        f"expected hermes GID 2001 (MAX_GID wins), got: {r.stdout.strip()}"
     )
 
 
@@ -84,5 +84,5 @@ def test_remap_enables_data_volume_writes(
         timeout=10,
     )
     assert "WRITE_OK" in r.stdout, (
-        f"hermes user cannot write to /opt/data after remap: {r.stdout}"
+        f"max user cannot write to /opt/data after remap: {r.stdout}"
     )

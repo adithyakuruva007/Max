@@ -148,11 +148,11 @@ export interface Translations {
     starting: string;
     startedInBackground: string;
     stopped: string;
-    updateHermes: string;
-    updateHermesConfirmMessage?: string;
-    updateHermesConfirmNow?: string;
-    updateHermesConfirmTitle?: string;
-    updatingHermes: string;
+    updateMax: string;
+    updateMaxConfirmMessage?: string;
+    updateMaxConfirmNow?: string;
+    updateMaxConfirmTitle?: string;
+    updatingMax: string;
     waitingForOutput: string;
   };
 

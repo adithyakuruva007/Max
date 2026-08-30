@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.console_engine import HermesConsoleEngine, run_console_repl
+from max_cli.console_engine import MaxConsoleEngine, run_console_repl
 
 
 EXPECTED_CONSOLE_COMMANDS = {
@@ -214,8 +214,8 @@ MUTATING_CONFIRMATION_SMOKE_COMMANDS = [
     "mcp add demo --url https://example.com/sse",
     "mcp configure github",
     "mcp picker",
-    "backup --quick -o /tmp/hermes-console-test.zip",
-    "import /tmp/hermes-console-test.zip",
+    "backup --quick -o /tmp/max-console-test.zip",
+    "import /tmp/max-console-test.zip",
     "send --to telegram hello",
     "memory reset --target memory",
     "auth remove openrouter 1",
@@ -231,11 +231,11 @@ MUTATING_CONFIRMATION_SMOKE_COMMANDS = [
 ]
 
 
-def test_console_parses_bare_and_hermes_prefixed_commands(_isolate_hermes_home):
-    engine = HermesConsoleEngine()
+def test_console_parses_bare_and_max_prefixed_commands(_isolate_max_home):
+    engine = MaxConsoleEngine()
 
     bare = engine.execute("config path")
-    prefixed = engine.execute("hermes config path")
+    prefixed = engine.execute("max config path")
 
     assert bare.status == "ok"
     assert prefixed.status == "ok"
@@ -245,9 +245,9 @@ def test_console_parses_bare_and_hermes_prefixed_commands(_isolate_hermes_home):
 
 def test_console_status_hides_cli_next_step_footer(
     monkeypatch: pytest.MonkeyPatch,
-    _isolate_hermes_home,
+    _isolate_max_home,
 ):
-    import hermes_cli.status as status_mod
+    import max_cli.status as status_mod
 
     def fake_show_status(_args):
         print("◆ Sessions")
@@ -261,21 +261,21 @@ def test_console_status_hides_cli_next_step_footer(
 
     monkeypatch.setattr(status_mod, "show_status", fake_show_status)
 
-    result = HermesConsoleEngine().execute("status")
+    result = MaxConsoleEngine().execute("status")
 
     assert result.status == "ok"
     assert "Sessions" in result.output
     assert "Active: 3 session(s)" in result.output
-    assert "hermes doctor" not in result.output
-    assert "hermes setup" not in result.output
+    assert "max doctor" not in result.output
+    assert "max setup" not in result.output
     assert "\u2500" not in result.output
 
 
 def test_console_status_hides_osc_linked_cli_next_step_footer(
     monkeypatch: pytest.MonkeyPatch,
-    _isolate_hermes_home,
+    _isolate_max_home,
 ):
-    import hermes_cli.status as status_mod
+    import max_cli.status as status_mod
 
     def osc_link(text: str) -> str:
         return f"\x1b]8;;https://example.test\x1b\\{text}\x1b]8;;\x1b\\"
@@ -291,31 +291,31 @@ def test_console_status_hides_osc_linked_cli_next_step_footer(
 
     monkeypatch.setattr(status_mod, "show_status", fake_show_status)
 
-    result = HermesConsoleEngine().execute("status")
+    result = MaxConsoleEngine().execute("status")
 
     assert result.status == "ok"
     assert "Sessions" in result.output
     assert "Active: 3 session(s)" in result.output
-    assert "hermes doctor" not in result.output
-    assert "hermes setup" not in result.output
+    assert "max doctor" not in result.output
+    assert "max setup" not in result.output
     assert "https://example.test" not in result.output
     assert "\u2500" not in result.output
 
 
 def test_console_help_uses_cli_subcommand_summaries():
-    help_text = HermesConsoleEngine().help_text()
+    help_text = MaxConsoleEngine().help_text()
 
     assert "skills list" in help_text
     assert "List installed skills" in help_text
     assert "Show all tools and their enabled/disabled status" in help_text
     assert "Remove an MCP server" in help_text
     assert "Check pet setup + terminal graphics support" in help_text
-    assert "Run `hermes skills list`" not in help_text
-    assert "Run `hermes tools list`" not in help_text
+    assert "Run `max skills list`" not in help_text
+    assert "Run `max tools list`" not in help_text
 
 
 def test_console_help_table_keeps_long_summaries_compact():
-    help_text = HermesConsoleEngine().help_text()
+    help_text = MaxConsoleEngine().help_text()
 
     slack_line = next(
         line for line in help_text.splitlines() if line.strip().startswith("slack manifest")
@@ -326,13 +326,13 @@ def test_console_help_table_keeps_long_summaries_compact():
 
 
 def test_console_help_for_command_uses_cli_summary():
-    help_text = HermesConsoleEngine().help_text("skills list")
+    help_text = MaxConsoleEngine().help_text("skills list")
 
     assert help_text == "skills list\nList installed skills"
 
 
 def test_console_registry_covers_non_admin_cli_surface():
-    registered = set(HermesConsoleEngine().commands)
+    registered = set(MaxConsoleEngine().commands)
 
     missing = EXPECTED_CONSOLE_COMMANDS - registered
 
@@ -423,7 +423,7 @@ EXPECTED_HOSTED_CONSOLE_COMMANDS = {
 
 
 def test_hosted_console_registry_exposes_only_hosted_safe_surface():
-    engine = HermesConsoleEngine(context="hosted")
+    engine = MaxConsoleEngine(context="hosted")
     hosted = {
         path for path, command in engine.commands.items() if "hosted" in command.contexts
     }
@@ -447,7 +447,7 @@ def test_hosted_console_registry_exposes_only_hosted_safe_surface():
         "curator pause",
         "pets install cat",
         "backup --quick",
-        "import /tmp/hermes-console-test.zip",
+        "import /tmp/max-console-test.zip",
         "mcp serve",
         "model",
         "setup",
@@ -458,7 +458,7 @@ def test_hosted_console_registry_exposes_only_hosted_safe_surface():
     ],
 )
 def test_hosted_console_rejects_local_only_or_dangerous_commands(line):
-    result = HermesConsoleEngine(context="hosted").execute(line)
+    result = MaxConsoleEngine(context="hosted").execute(line)
 
     assert result.status == "error"
     assert result.output
@@ -476,7 +476,7 @@ def test_hosted_console_rejects_local_only_or_dangerous_commands(line):
     ],
 )
 def test_hosted_console_allows_guarded_useful_commands_before_confirmation(line):
-    result = HermesConsoleEngine(context="hosted").execute(line)
+    result = MaxConsoleEngine(context="hosted").execute(line)
 
     assert result.status == "confirm_required"
 
@@ -495,7 +495,7 @@ def test_hosted_console_allows_guarded_useful_commands_before_confirmation(line)
     ],
 )
 def test_hosted_console_blocks_known_footgun_arguments_before_confirmation(line):
-    result = HermesConsoleEngine(context="hosted").execute(line)
+    result = MaxConsoleEngine(context="hosted").execute(line)
 
     assert result.status == "error"
     assert result.output
@@ -539,7 +539,7 @@ def test_hosted_console_blocks_known_footgun_arguments_before_confirmation(line)
     ],
 )
 def test_console_rejects_destructive_and_shell_like_commands(line):
-    result = HermesConsoleEngine().execute(line)
+    result = MaxConsoleEngine().execute(line)
 
     assert result.status == "error"
     assert result.output
@@ -547,14 +547,14 @@ def test_console_rejects_destructive_and_shell_like_commands(line):
 
 @pytest.mark.parametrize("line", MUTATING_CONFIRMATION_SMOKE_COMMANDS)
 def test_mutating_console_commands_require_confirmation(line):
-    result = HermesConsoleEngine().execute(line)
+    result = MaxConsoleEngine().execute(line)
 
     assert result.status == "confirm_required"
     assert result.confirmation_message
 
 
 def test_help_lists_supported_commands_and_not_full_cli():
-    result = HermesConsoleEngine().execute("help")
+    result = MaxConsoleEngine().execute("help")
 
     assert result.status == "ok"
     assert "sessions list" in result.output
@@ -563,13 +563,13 @@ def test_help_lists_supported_commands_and_not_full_cli():
     assert "gateway restart" not in result.output
 
 
-def test_config_set_requires_confirmation_then_writes(_isolate_hermes_home):
-    engine = HermesConsoleEngine()
+def test_config_set_requires_confirmation_then_writes(_isolate_max_home):
+    engine = MaxConsoleEngine()
 
     pending = engine.execute("config set console.test true")
     assert pending.status == "confirm_required"
 
-    from hermes_cli.config import read_raw_config
+    from max_cli.config import read_raw_config
 
     assert read_raw_config() == {}
 
@@ -580,8 +580,8 @@ def test_config_set_requires_confirmation_then_writes(_isolate_hermes_home):
     assert read_raw_config()["console"]["test"] is True
 
 
-def test_sessions_list_and_stats_use_isolated_session_store(_isolate_hermes_home):
-    from hermes_state import SessionDB
+def test_sessions_list_and_stats_use_isolated_session_store(_isolate_max_home):
+    from max_state import SessionDB
 
     db = SessionDB()
     try:
@@ -590,7 +590,7 @@ def test_sessions_list_and_stats_use_isolated_session_store(_isolate_hermes_home
     finally:
         db.close()
 
-    engine = HermesConsoleEngine()
+    engine = MaxConsoleEngine()
     listed = engine.execute("sessions list --limit 10")
     stats = engine.execute("sessions stats")
 
@@ -601,11 +601,11 @@ def test_sessions_list_and_stats_use_isolated_session_store(_isolate_hermes_home
     assert "Listable sessions: 1" in stats.output
 
 
-def test_cron_pause_resume_and_run_require_confirmation(_isolate_hermes_home):
+def test_cron_pause_resume_and_run_require_confirmation(_isolate_max_home):
     from cron.jobs import create_job, get_job
 
     job = create_job(prompt="say hello", schedule="every 1h", name="alpha")
-    engine = HermesConsoleEngine()
+    engine = MaxConsoleEngine()
 
     pending = engine.execute(f"cron pause {job['id']}")
     assert pending.status == "confirm_required"
@@ -630,7 +630,7 @@ def test_cron_pause_resume_and_run_require_confirmation(_isolate_hermes_home):
     assert "Triggered job" in triggered.output
 
 
-def test_repl_runs_non_interactive_lines_without_prompts(_isolate_hermes_home):
+def test_repl_runs_non_interactive_lines_without_prompts(_isolate_max_home):
     stdin = io.StringIO("help\nexit\n")
     stdout = io.StringIO()
     stderr = io.StringIO()
@@ -643,12 +643,12 @@ def test_repl_runs_non_interactive_lines_without_prompts(_isolate_hermes_home):
     )
 
     assert code == 0
-    assert "Hermes Console" in stdout.getvalue()
+    assert "Max Console" in stdout.getvalue()
     assert "hermes>" not in stdout.getvalue()
     assert stderr.getvalue() == ""
 
 
-def test_repl_refuses_non_interactive_confirmation(_isolate_hermes_home):
+def test_repl_refuses_non_interactive_confirmation(_isolate_max_home):
     stdin = io.StringIO("config set console.test true\n")
     stdout = io.StringIO()
     stderr = io.StringIO()
@@ -664,11 +664,11 @@ def test_repl_refuses_non_interactive_confirmation(_isolate_hermes_home):
     assert "Confirmation required" in stderr.getvalue()
 
 
-def test_main_console_subcommand_smoke(_isolate_hermes_home):
+def test_main_console_subcommand_smoke(_isolate_max_home):
     import subprocess
 
     result = subprocess.run(
-        [sys.executable, "-m", "hermes_cli.main", "console"],
+        [sys.executable, "-m", "max_cli.main", "console"],
         cwd=Path(__file__).resolve().parents[2],
         input="help\nexit\n",
         text=True,
@@ -678,4 +678,4 @@ def test_main_console_subcommand_smoke(_isolate_hermes_home):
     )
 
     assert result.returncode == 0
-    assert "Hermes Console" in result.stdout
+    assert "Max Console" in result.stdout

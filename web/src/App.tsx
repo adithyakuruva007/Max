@@ -344,7 +344,8 @@ function buildRoutes(
   return routes;
 }
 
-const SIDEBAR_COLLAPSED_KEY = "hermes-sidebar-collapsed";
+const SIDEBAR_COLLAPSED_KEY = "max-sidebar-collapsed";
+const SIDEBAR_COLLAPSED_KEY_OLD = "hermes-sidebar-collapsed";
 
 export default function App() {
   const { t } = useI18n();
@@ -356,7 +357,7 @@ export default function App() {
 
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+      return (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) ?? localStorage.getItem(SIDEBAR_COLLAPSED_KEY_OLD)) === "true";
     } catch {
       return false;
     }
@@ -576,7 +577,7 @@ export default function App() {
                 <PluginSlot name="header-left" />
 
                 <Typography className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground uppercase">
-                  Hermes
+                  Max
                   <br />
                   Agent
                 </Typography>
@@ -630,7 +631,7 @@ export default function App() {
 
               {sidebarNav.pluginItems.length > 0 && (
                 <div
-                  aria-labelledby="hermes-sidebar-plugin-nav-heading"
+                  aria-labelledby="max-sidebar-plugin-nav-heading"
                   className="flex flex-col border-t border-current/10 pb-2"
                   role="group"
                 >
@@ -640,7 +641,7 @@ export default function App() {
                       "font-sans text-display text-xs tracking-[0.12em] text-text-tertiary",
                       isDesktopCollapsed && "lg:hidden",
                     )}
-                    id="hermes-sidebar-plugin-nav-heading"
+                    id="max-sidebar-plugin-nav-heading"
                   >
                     {t.app.pluginNavSection}
                   </span>
@@ -901,7 +902,7 @@ function SidebarSystemActions({
   const navigate = useNavigate();
   const { activeAction, isBusy, isRunning, pendingAction, runAction } =
     useSystemActions();
-  const canUpdateHermes = status?.can_update_hermes === true;
+  const canUpdateMax = (status?.can_update_max ?? status?.can_update_hermes) === true;
   const [restartConfirmOpen, setRestartConfirmOpen] = useState(false);
   const [updateConfirmOpen, setUpdateConfirmOpen] = useState(false);
   const [updateConfirmInfo, setUpdateConfirmInfo] =
@@ -916,7 +917,7 @@ function SidebarSystemActions({
     let cancelled = false;
     setUpdateConfirmChecking(true);
     api
-      .checkHermesUpdate(false)
+      .checkMaxUpdate(false)
       .then((info) => {
         if (!cancelled) setUpdateConfirmInfo(info);
       })
@@ -939,10 +940,10 @@ function SidebarSystemActions({
     }
     const cmd = updateConfirmInfo?.update_command ?? "hermes update";
     return (
-      t.status.updateHermesConfirmMessage ??
+      t.status.updateMaxConfirmMessage ??
       `This will run 'hermes update' (${cmd}) and restart the gateway when it finishes.`
     );
-  }, [t.status.updateHermesConfirmMessage, updateConfirmInfo]);
+  }, [t.status.updateMaxConfirmMessage, updateConfirmInfo]);
 
   const items: SystemActionItem[] = [
     {
@@ -953,12 +954,12 @@ function SidebarSystemActions({
       spin: true,
     },
   ];
-  if (canUpdateHermes) {
+  if (canUpdateMax) {
     items.push({
       action: "update",
       icon: Download,
-      label: t.status.updateHermes,
-      runningLabel: t.status.updatingHermes,
+      label: t.status.updateMax,
+      runningLabel: t.status.updatingMax,
       spin: false,
     });
   }
@@ -1038,7 +1039,7 @@ function SidebarSystemActions({
       confirmLabel={t.status.restartGateway}
       description={
         t.status.restartGatewayConfirmMessage ??
-        "This restarts the Hermes gateway process. Connected channels and active sessions will reconnect afterward."
+        "This restarts the Max gateway process. Connected channels and active sessions will reconnect afterward."
       }
       loading={pendingAction === "restart"}
       onCancel={() => setRestartConfirmOpen(false)}
@@ -1051,7 +1052,7 @@ function SidebarSystemActions({
 
     <ConfirmDialog
       cancelLabel={t.common.cancel}
-      confirmLabel={t.status.updateHermesConfirmNow ?? "Update now"}
+      confirmLabel={t.status.updateMaxConfirmNow ?? "Update now"}
       description={
         updateConfirmChecking ? t.common.loading : updateConfirmDescription
       }
@@ -1059,7 +1060,7 @@ function SidebarSystemActions({
       onCancel={() => setUpdateConfirmOpen(false)}
       onConfirm={confirmUpdate}
       open={updateConfirmOpen}
-      title={t.status.updateHermesConfirmTitle ?? `${t.status.updateHermes}?`}
+      title={t.status.updateMaxConfirmTitle ?? `${t.status.updateMax}?`}
     />
     </>
   );

@@ -35,13 +35,13 @@ class TestIRCProtocolHelpers:
         assert msg["params"] == ["#channel", "Hello world"]
 
     def test_parse_numeric_reply(self):
-        msg = _parse_irc_message(":server 001 hermes-bot :Welcome to IRC")
+        msg = _parse_irc_message(":server 001 max-bot :Welcome to IRC")
         assert msg["prefix"] == "server"
         assert msg["command"] == "001"
-        assert msg["params"] == ["hermes-bot", "Welcome to IRC"]
+        assert msg["params"] == ["max-bot", "Welcome to IRC"]
 
     def test_parse_nick_collision(self):
-        msg = _parse_irc_message(":server 433 * hermes-bot :Nickname is already in use")
+        msg = _parse_irc_message(":server 433 * max-bot :Nickname is already in use")
         assert msg["command"] == "433"
 
     def test_extract_nick_full_prefix(self):
@@ -84,8 +84,8 @@ class TestIRCAdapterInit:
             extra={
                 "server": "irc.libera.chat",
                 "port": 6697,
-                "nickname": "hermes",
-                "channel": "#hermes-dev",
+                "nickname": "max",
+                "channel": "#max-dev",
                 "use_tls": True,
             },
         )
@@ -93,8 +93,8 @@ class TestIRCAdapterInit:
 
         assert adapter.server == "irc.libera.chat"
         assert adapter.port == 6697
-        assert adapter.nickname == "hermes"
-        assert adapter.channel == "#hermes-dev"
+        assert adapter.nickname == "max"
+        assert adapter.channel == "#max-dev"
         assert adapter.use_tls is True
 
     def test_env_overrides_config(self, monkeypatch):
@@ -177,13 +177,13 @@ class TestIRCAdapterMessageParsing:
             extra={
                 "server": "localhost",
                 "port": 6667,
-                "nickname": "hermes",
+                "nickname": "max",
                 "channel": "#test",
                 "use_tls": False,
             },
         )
         a = IRCAdapter(cfg)
-        a._current_nick = "hermes"
+        a._current_nick = "max"
         a._registered = True
         return a
 
@@ -217,9 +217,9 @@ class TestIRCAdapterMessageParsing:
         adapter._writer = writer
 
         await adapter._handle_line(":server 433 * hermes :Nickname in use")
-        assert adapter._current_nick == "hermes_"
+        assert adapter._current_nick == "max_"
         sent = writer.write.call_args[0][0]
-        assert b"NICK hermes_" in sent
+        assert b"NICK max_" in sent
 
     @pytest.mark.asyncio
     async def test_handle_addressed_channel_message(self, adapter):
@@ -310,14 +310,14 @@ class TestIRCAdapterMessageParsing:
             extra={
                 "server": "localhost",
                 "port": 6667,
-                "nickname": "hermes",
+                "nickname": "max",
                 "channel": "#test",
                 "use_tls": False,
                 "allowed_users": ["Admin", "BOB"],
             },
         )
         adapter = IRCAdapter(cfg)
-        adapter._current_nick = "hermes"
+        adapter._current_nick = "max"
         adapter._registered = True
         dispatched = []
 
@@ -343,14 +343,14 @@ class TestIRCAdapterMessageParsing:
             extra={
                 "server": "localhost",
                 "port": 6667,
-                "nickname": "hermes",
+                "nickname": "max",
                 "channel": "#test",
                 "use_tls": False,
                 "allowed_users": ["Admin", "BOB"],
             },
         )
         adapter = IRCAdapter(cfg)
-        adapter._current_nick = "hermes"
+        adapter._current_nick = "max"
         adapter._registered = True
         dispatched = []
 
@@ -373,11 +373,11 @@ class TestIRCAdapterMessageParsing:
         adapter._writer = writer
 
         await adapter._handle_line(":server 433 * hermes :Nickname in use")
-        assert adapter._current_nick == "hermes_"
-        await adapter._handle_line(":server 433 * hermes_ :Nickname in use")
-        assert adapter._current_nick == "hermes_1"
-        await adapter._handle_line(":server 433 * hermes_1 :Nickname in use")
-        assert adapter._current_nick == "hermes_2"
+        assert adapter._current_nick == "max_"
+        await adapter._handle_line(":server 433 * max_ :Nickname in use")
+        assert adapter._current_nick == "max_1"
+        await adapter._handle_line(":server 433 * max_1 :Nickname in use")
+        assert adapter._current_nick == "max_2"
 
 
 class TestIRCAdapterSplitting:
@@ -578,7 +578,7 @@ class TestIRCStandaloneSend:
         # NICK uses the cron-suffixed identity to avoid colliding with the
         # long-running gateway adapter that may already hold the nickname.
         assert any(line.startswith("NICK hermesbot-cron") for line in sent_lines)
-        assert any(line.startswith("USER hermesbot-cron 0 * :Hermes Agent (cron)")
+        assert any(line.startswith("USER hermesbot-cron 0 * :Max Agent (cron)")
                    for line in sent_lines)
         assert any(line == "PRIVMSG #cron :hello from cron" for line in sent_lines)
         assert any(line.startswith("QUIT ") for line in sent_lines)

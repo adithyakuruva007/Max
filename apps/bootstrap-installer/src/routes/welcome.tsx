@@ -11,12 +11,12 @@ import { startInstall } from '../store'
  *   - fit-text utility so the wordmark sizes itself to the column
  *
  * No install-path footer. The default install location is correct for
- * 99% of users; the rest will use the CLI installer with a -HermesHome
+ * 99% of users; the rest will use the CLI installer with a -MaxHome
  * flag. Showing %LOCALAPPDATA% to grandma is developer-brain.
  */
 export default function Welcome() {
   return (
-    <div className="hermes-fade-in flex h-full flex-col items-center justify-center gap-10 px-12 py-10">
+    <div className="max-fade-in flex h-full flex-col items-center justify-center gap-10 px-12 py-10">
       {/* Hero — same recipe the desktop's chat/intro.tsx uses */}
       <div className="w-full max-w-2xl min-w-0 text-center">
         <p
@@ -30,9 +30,9 @@ export default function Welcome() {
           }
         >
           <span>
-            <span>HERMES AGENT</span>
+            <span>MAX AGENT</span>
           </span>
-          <span aria-hidden="true">HERMES AGENT</span>
+          <span aria-hidden="true">MAX AGENT</span>
         </p>
 
         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">

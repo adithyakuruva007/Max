@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { SearchField } from '@/components/ui/search-field'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ResponsiveTabs } from '@/components/ui/tab-dropdown'
-import { getActionStatus, getLogs, getStatus, getUsageAnalytics, restartGateway, updateHermes } from '@/hermes'
-import type { ActionStatusResponse, AnalyticsResponse, StatusResponse } from '@/hermes'
+import { getActionStatus, getLogs, getStatus, getUsageAnalytics, restartGateway, updateMax } from '@/max'
+import type { ActionStatusResponse, AnalyticsResponse, StatusResponse } from '@/max'
 import { useI18n } from '@/i18n'
 import { sessionTitle } from '@/lib/chat-runtime'
 import { compactNumber } from '@/lib/format'
@@ -240,7 +240,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
 
   const sessionListHasResults = filteredSessions.length > 0
 
-  // Client-side substring filter over the fetched tail (matches `hermes logs --search`).
+  // Client-side substring filter over the fetched tail (matches `max logs --search`).
   const visibleLogs = useMemo(() => {
     const needle = logQuery.trim().toLowerCase()
 
@@ -256,7 +256,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
       setSystemError('')
 
       try {
-        const started = kind === 'restart' ? await restartGateway() : await updateHermes()
+        const started = kind === 'restart' ? await restartGateway() : await updateMax()
         let nextStatus: ActionStatusResponse | null = null
 
         for (let attempt = 0; attempt < 18; attempt += 1) {
@@ -430,7 +430,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
                           {cc.restartGateway}
                         </Button>
                         <Button onClick={() => void runSystemAction('update')} size="xs" variant="textStrong">
-                          {cc.updateHermes}
+                          {cc.updateMax}
                         </Button>
                       </div>
                     </div>

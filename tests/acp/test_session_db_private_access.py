@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from hermes_state import SessionDB
+from max_state import SessionDB
 from acp_adapter.session import SessionManager
 
 
@@ -28,7 +28,7 @@ def _mock_agent():
 
 
 # ---------------------------------------------------------------------------
-# hermes_state.SessionDB.update_session_meta — unit tests
+# max_state.SessionDB.update_session_meta — unit tests
 # ---------------------------------------------------------------------------
 
 class TestUpdateSessionMeta:

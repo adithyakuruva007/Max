@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { canOpenSessionWindow, openNewSessionInNewWindow, openSessionInNewWindow } from './windows'
 
 const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
-const initialHermesDesktop = desktopWindow.hermesDesktop
+const initialMaxDesktop = desktopWindow.hermesDesktop
 
 const notifyError = vi.fn()
 
@@ -26,8 +26,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (initialHermesDesktop) {
-    desktopWindow.hermesDesktop = initialHermesDesktop
+  if (initialMaxDesktop) {
+    desktopWindow.hermesDesktop = initialMaxDesktop
   } else {
     delete desktopWindow.hermesDesktop
   }

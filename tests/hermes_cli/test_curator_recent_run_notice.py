@@ -1,11 +1,11 @@
 """Tests for `_print_curator_recent_run_notice`.
 
-The notice prints the most recent curator run summary on `hermes update`,
+The notice prints the most recent curator run summary on `max update`,
 exactly once per run. Show-once is enforced by stamping
 `last_run_summary_shown_at` in curator state after printing.
 
 Why this matters: the curator runs in the background (gateway tick + CLI
-session start) so users normally never see the rename map. `hermes update`
+session start) so users normally never see the rename map. `max update`
 is the high-attention surface where consolidations should land.
 """
 
@@ -20,23 +20,23 @@ import pytest
 
 @pytest.fixture
 def curator_env(tmp_path, monkeypatch, capsys):
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".max"
     home.mkdir()
     (home / "skills").mkdir()
     (home / "logs").mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-    import hermes_constants
-    importlib.reload(hermes_constants)
+    import max_constants
+    importlib.reload(max_constants)
     from agent import curator
     importlib.reload(curator)
-    from hermes_cli import main as hermes_main
-    importlib.reload(hermes_main)
+    from max_cli import main as max_main
+    importlib.reload(max_main)
 
     yield {
         "curator": curator,
-        "main": hermes_main,
+        "main": max_main,
         "capsys": capsys,
     }
 

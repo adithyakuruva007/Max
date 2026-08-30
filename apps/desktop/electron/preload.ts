@@ -1,62 +1,62 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
-contextBridge.exposeInMainWorld('hermesDesktop', {
-  getConnection: profile => ipcRenderer.invoke('hermes:connection', profile),
-  revalidateConnection: () => ipcRenderer.invoke('hermes:connection:revalidate'),
-  touchBackend: profile => ipcRenderer.invoke('hermes:backend:touch', profile),
-  getGatewayWsUrl: profile => ipcRenderer.invoke('hermes:gateway:ws-url', profile),
-  openSessionWindow: (sessionId, opts) => ipcRenderer.invoke('hermes:window:openSession', sessionId, opts),
-  openNewSessionWindow: () => ipcRenderer.invoke('hermes:window:openNewSession'),
+contextBridge.exposeInMainWorld('maxDesktop', {
+  getConnection: profile => ipcRenderer.invoke('max:connection', profile),
+  revalidateConnection: () => ipcRenderer.invoke('max:connection:revalidate'),
+  touchBackend: profile => ipcRenderer.invoke('max:backend:touch', profile),
+  getGatewayWsUrl: profile => ipcRenderer.invoke('max:gateway:ws-url', profile),
+  openSessionWindow: (sessionId, opts) => ipcRenderer.invoke('max:window:openSession', sessionId, opts),
+  openNewSessionWindow: () => ipcRenderer.invoke('max:window:openNewSession'),
   petOverlay: {
     // Main renderer → main process: window lifecycle + drag. `request` is
     // `{ bounds, screen }`; resolves with the screen bounds it actually used.
-    open: request => ipcRenderer.invoke('hermes:pet-overlay:open', request),
-    close: () => ipcRenderer.invoke('hermes:pet-overlay:close'),
-    setBounds: bounds => ipcRenderer.send('hermes:pet-overlay:set-bounds', bounds),
-    setIgnoreMouse: ignore => ipcRenderer.send('hermes:pet-overlay:ignore-mouse', ignore),
+    open: request => ipcRenderer.invoke('max:pet-overlay:open', request),
+    close: () => ipcRenderer.invoke('max:pet-overlay:close'),
+    setBounds: bounds => ipcRenderer.send('max:pet-overlay:set-bounds', bounds),
+    setIgnoreMouse: ignore => ipcRenderer.send('max:pet-overlay:ignore-mouse', ignore),
     // Flip the overlay focusable (and focus it) while the composer needs keys.
-    setFocusable: focusable => ipcRenderer.send('hermes:pet-overlay:set-focusable', focusable),
+    setFocusable: focusable => ipcRenderer.send('max:pet-overlay:set-focusable', focusable),
     // Main renderer → overlay (forwarded by main): push the latest pet state.
-    pushState: payload => ipcRenderer.send('hermes:pet-overlay:state', payload),
+    pushState: payload => ipcRenderer.send('max:pet-overlay:state', payload),
     // Overlay → main renderer (forwarded by main): pop back in / composer submit.
-    control: payload => ipcRenderer.send('hermes:pet-overlay:control', payload),
+    control: payload => ipcRenderer.send('max:pet-overlay:control', payload),
     // Overlay subscribes to state pushes.
     onState: callback => {
       const listener = (_event, payload) => callback(payload)
-      ipcRenderer.on('hermes:pet-overlay:state', listener)
+      ipcRenderer.on('max:pet-overlay:state', listener)
 
-      return () => ipcRenderer.removeListener('hermes:pet-overlay:state', listener)
+      return () => ipcRenderer.removeListener('max:pet-overlay:state', listener)
     },
     // Main renderer subscribes to overlay control messages.
     onControl: callback => {
       const listener = (_event, payload) => callback(payload)
-      ipcRenderer.on('hermes:pet-overlay:control', listener)
+      ipcRenderer.on('max:pet-overlay:control', listener)
 
-      return () => ipcRenderer.removeListener('hermes:pet-overlay:control', listener)
+      return () => ipcRenderer.removeListener('max:pet-overlay:control', listener)
     }
   },
-  getBootProgress: () => ipcRenderer.invoke('hermes:boot-progress:get'),
-  getConnectionConfig: profile => ipcRenderer.invoke('hermes:connection-config:get', profile),
-  saveConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:save', payload),
-  applyConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:apply', payload),
-  testConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:test', payload),
-  probeConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:probe', remoteUrl),
-  oauthLoginConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:oauth-login', remoteUrl),
-  oauthLogoutConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:oauth-logout', remoteUrl),
+  getBootProgress: () => ipcRenderer.invoke('max:boot-progress:get'),
+  getConnectionConfig: profile => ipcRenderer.invoke('max:connection-config:get', profile),
+  saveConnectionConfig: payload => ipcRenderer.invoke('max:connection-config:save', payload),
+  applyConnectionConfig: payload => ipcRenderer.invoke('max:connection-config:apply', payload),
+  testConnectionConfig: payload => ipcRenderer.invoke('max:connection-config:test', payload),
+  probeConnectionConfig: remoteUrl => ipcRenderer.invoke('max:connection-config:probe', remoteUrl),
+  oauthLoginConnectionConfig: remoteUrl => ipcRenderer.invoke('max:connection-config:oauth-login', remoteUrl),
+  oauthLogoutConnectionConfig: remoteUrl => ipcRenderer.invoke('max:connection-config:oauth-logout', remoteUrl),
   profile: {
-    get: () => ipcRenderer.invoke('hermes:profile:get'),
-    set: name => ipcRenderer.invoke('hermes:profile:set', name)
+    get: () => ipcRenderer.invoke('max:profile:get'),
+    set: name => ipcRenderer.invoke('max:profile:set', name)
   },
-  api: request => ipcRenderer.invoke('hermes:api', request),
-  notify: payload => ipcRenderer.invoke('hermes:notify', payload),
-  requestMicrophoneAccess: () => ipcRenderer.invoke('hermes:requestMicrophoneAccess'),
-  readFileDataUrl: filePath => ipcRenderer.invoke('hermes:readFileDataUrl', filePath),
-  readFileText: filePath => ipcRenderer.invoke('hermes:readFileText', filePath),
-  selectPaths: options => ipcRenderer.invoke('hermes:selectPaths', options),
-  writeClipboard: text => ipcRenderer.invoke('hermes:writeClipboard', text),
-  saveImageFromUrl: url => ipcRenderer.invoke('hermes:saveImageFromUrl', url),
-  saveImageBuffer: (data, ext) => ipcRenderer.invoke('hermes:saveImageBuffer', { data, ext }),
-  saveClipboardImage: () => ipcRenderer.invoke('hermes:saveClipboardImage'),
+  api: request => ipcRenderer.invoke('max:api', request),
+  notify: payload => ipcRenderer.invoke('max:notify', payload),
+  requestMicrophoneAccess: () => ipcRenderer.invoke('max:requestMicrophoneAccess'),
+  readFileDataUrl: filePath => ipcRenderer.invoke('max:readFileDataUrl', filePath),
+  readFileText: filePath => ipcRenderer.invoke('max:readFileText', filePath),
+  selectPaths: options => ipcRenderer.invoke('max:selectPaths', options),
+  writeClipboard: text => ipcRenderer.invoke('max:writeClipboard', text),
+  saveImageFromUrl: url => ipcRenderer.invoke('max:saveImageFromUrl', url),
+  saveImageBuffer: (data, ext) => ipcRenderer.invoke('max:saveImageBuffer', { data, ext }),
+  saveClipboardImage: () => ipcRenderer.invoke('max:saveClipboardImage'),
   getPathForFile: file => {
     try {
       return webUtils.getPathForFile(file) || ''
@@ -64,82 +64,82 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
       return ''
     }
   },
-  normalizePreviewTarget: (target, baseDir) => ipcRenderer.invoke('hermes:normalizePreviewTarget', target, baseDir),
-  watchPreviewFile: url => ipcRenderer.invoke('hermes:watchPreviewFile', url),
-  stopPreviewFileWatch: id => ipcRenderer.invoke('hermes:stopPreviewFileWatch', id),
-  setTitleBarTheme: payload => ipcRenderer.send('hermes:titlebar-theme', payload),
-  setNativeTheme: mode => ipcRenderer.send('hermes:native-theme', mode),
-  setTranslucency: payload => ipcRenderer.send('hermes:translucency', payload),
-  setPreviewShortcutActive: active => ipcRenderer.send('hermes:previewShortcutActive', Boolean(active)),
-  openExternal: url => ipcRenderer.invoke('hermes:openExternal', url),
-  openPreviewInBrowser: url => ipcRenderer.invoke('hermes:openPreviewInBrowser', url),
-  fetchLinkTitle: url => ipcRenderer.invoke('hermes:fetchLinkTitle', url),
-  sanitizeWorkspaceCwd: cwd => ipcRenderer.invoke('hermes:workspace:sanitize', cwd),
+  normalizePreviewTarget: (target, baseDir) => ipcRenderer.invoke('max:normalizePreviewTarget', target, baseDir),
+  watchPreviewFile: url => ipcRenderer.invoke('max:watchPreviewFile', url),
+  stopPreviewFileWatch: id => ipcRenderer.invoke('max:stopPreviewFileWatch', id),
+  setTitleBarTheme: payload => ipcRenderer.send('max:titlebar-theme', payload),
+  setNativeTheme: mode => ipcRenderer.send('max:native-theme', mode),
+  setTranslucency: payload => ipcRenderer.send('max:translucency', payload),
+  setPreviewShortcutActive: active => ipcRenderer.send('max:previewShortcutActive', Boolean(active)),
+  openExternal: url => ipcRenderer.invoke('max:openExternal', url),
+  openPreviewInBrowser: url => ipcRenderer.invoke('max:openPreviewInBrowser', url),
+  fetchLinkTitle: url => ipcRenderer.invoke('max:fetchLinkTitle', url),
+  sanitizeWorkspaceCwd: cwd => ipcRenderer.invoke('max:workspace:sanitize', cwd),
   settings: {
-    getDefaultProjectDir: () => ipcRenderer.invoke('hermes:setting:defaultProjectDir:get'),
-    setDefaultProjectDir: dir => ipcRenderer.invoke('hermes:setting:defaultProjectDir:set', dir),
-    pickDefaultProjectDir: () => ipcRenderer.invoke('hermes:setting:defaultProjectDir:pick')
+    getDefaultProjectDir: () => ipcRenderer.invoke('max:setting:defaultProjectDir:get'),
+    setDefaultProjectDir: dir => ipcRenderer.invoke('max:setting:defaultProjectDir:set', dir),
+    pickDefaultProjectDir: () => ipcRenderer.invoke('max:setting:defaultProjectDir:pick')
   },
   zoom: {
     // Current zoom of this window, as { level, percent }.
-    get: () => ipcRenderer.invoke('hermes:zoom:get'),
-    setPercent: percent => ipcRenderer.send('hermes:zoom:set-percent', percent),
+    get: () => ipcRenderer.invoke('max:zoom:get'),
+    setPercent: percent => ipcRenderer.send('max:zoom:set-percent', percent),
     // Fires on every zoom change, including the Ctrl/Cmd +/-/0 shortcuts,
     // so the settings UI can stay in sync with the keyboard.
     onChanged: callback => {
       const listener = (_event, payload) => callback(payload)
-      ipcRenderer.on('hermes:zoom:changed', listener)
+      ipcRenderer.on('max:zoom:changed', listener)
 
-      return () => ipcRenderer.removeListener('hermes:zoom:changed', listener)
+      return () => ipcRenderer.removeListener('max:zoom:changed', listener)
     }
   },
-  revealLogs: () => ipcRenderer.invoke('hermes:logs:reveal'),
-  getRecentLogs: () => ipcRenderer.invoke('hermes:logs:recent'),
-  readDir: dirPath => ipcRenderer.invoke('hermes:fs:readDir', dirPath),
-  gitRoot: startPath => ipcRenderer.invoke('hermes:fs:gitRoot', startPath),
-  revealPath: targetPath => ipcRenderer.invoke('hermes:fs:reveal', targetPath),
-  renamePath: (targetPath, newName) => ipcRenderer.invoke('hermes:fs:rename', targetPath, newName),
-  writeTextFile: (filePath, content) => ipcRenderer.invoke('hermes:fs:writeText', filePath, content),
-  trashPath: targetPath => ipcRenderer.invoke('hermes:fs:trash', targetPath),
+  revealLogs: () => ipcRenderer.invoke('max:logs:reveal'),
+  getRecentLogs: () => ipcRenderer.invoke('max:logs:recent'),
+  readDir: dirPath => ipcRenderer.invoke('max:fs:readDir', dirPath),
+  gitRoot: startPath => ipcRenderer.invoke('max:fs:gitRoot', startPath),
+  revealPath: targetPath => ipcRenderer.invoke('max:fs:reveal', targetPath),
+  renamePath: (targetPath, newName) => ipcRenderer.invoke('max:fs:rename', targetPath, newName),
+  writeTextFile: (filePath, content) => ipcRenderer.invoke('max:fs:writeText', filePath, content),
+  trashPath: targetPath => ipcRenderer.invoke('max:fs:trash', targetPath),
   git: {
-    worktreeList: repoPath => ipcRenderer.invoke('hermes:git:worktreeList', repoPath),
-    worktreeAdd: (repoPath, options) => ipcRenderer.invoke('hermes:git:worktreeAdd', repoPath, options),
+    worktreeList: repoPath => ipcRenderer.invoke('max:git:worktreeList', repoPath),
+    worktreeAdd: (repoPath, options) => ipcRenderer.invoke('max:git:worktreeAdd', repoPath, options),
     worktreeRemove: (repoPath, worktreePath, options) =>
-      ipcRenderer.invoke('hermes:git:worktreeRemove', repoPath, worktreePath, options),
-    branchSwitch: (repoPath, branch) => ipcRenderer.invoke('hermes:git:branchSwitch', repoPath, branch),
-    branchList: repoPath => ipcRenderer.invoke('hermes:git:branchList', repoPath),
-    repoStatus: repoPath => ipcRenderer.invoke('hermes:git:repoStatus', repoPath),
-    fileDiff: (repoPath, filePath) => ipcRenderer.invoke('hermes:git:fileDiff', repoPath, filePath),
-    scanRepos: (roots, options) => ipcRenderer.invoke('hermes:git:scanRepos', roots, options),
+      ipcRenderer.invoke('max:git:worktreeRemove', repoPath, worktreePath, options),
+    branchSwitch: (repoPath, branch) => ipcRenderer.invoke('max:git:branchSwitch', repoPath, branch),
+    branchList: repoPath => ipcRenderer.invoke('max:git:branchList', repoPath),
+    repoStatus: repoPath => ipcRenderer.invoke('max:git:repoStatus', repoPath),
+    fileDiff: (repoPath, filePath) => ipcRenderer.invoke('max:git:fileDiff', repoPath, filePath),
+    scanRepos: (roots, options) => ipcRenderer.invoke('max:git:scanRepos', roots, options),
     review: {
-      list: (repoPath, scope, baseRef) => ipcRenderer.invoke('hermes:git:review:list', repoPath, scope, baseRef),
+      list: (repoPath, scope, baseRef) => ipcRenderer.invoke('max:git:review:list', repoPath, scope, baseRef),
       diff: (repoPath, filePath, scope, baseRef, staged) =>
-        ipcRenderer.invoke('hermes:git:review:diff', repoPath, filePath, scope, baseRef, staged),
-      stage: (repoPath, filePath) => ipcRenderer.invoke('hermes:git:review:stage', repoPath, filePath),
-      unstage: (repoPath, filePath) => ipcRenderer.invoke('hermes:git:review:unstage', repoPath, filePath),
-      revert: (repoPath, filePath) => ipcRenderer.invoke('hermes:git:review:revert', repoPath, filePath),
-      revParse: (repoPath, ref) => ipcRenderer.invoke('hermes:git:review:revParse', repoPath, ref),
-      commit: (repoPath, message, push) => ipcRenderer.invoke('hermes:git:review:commit', repoPath, message, push),
-      commitContext: repoPath => ipcRenderer.invoke('hermes:git:review:commitContext', repoPath),
-      push: repoPath => ipcRenderer.invoke('hermes:git:review:push', repoPath),
-      shipInfo: repoPath => ipcRenderer.invoke('hermes:git:review:shipInfo', repoPath),
-      createPr: repoPath => ipcRenderer.invoke('hermes:git:review:createPr', repoPath)
+        ipcRenderer.invoke('max:git:review:diff', repoPath, filePath, scope, baseRef, staged),
+      stage: (repoPath, filePath) => ipcRenderer.invoke('max:git:review:stage', repoPath, filePath),
+      unstage: (repoPath, filePath) => ipcRenderer.invoke('max:git:review:unstage', repoPath, filePath),
+      revert: (repoPath, filePath) => ipcRenderer.invoke('max:git:review:revert', repoPath, filePath),
+      revParse: (repoPath, ref) => ipcRenderer.invoke('max:git:review:revParse', repoPath, ref),
+      commit: (repoPath, message, push) => ipcRenderer.invoke('max:git:review:commit', repoPath, message, push),
+      commitContext: repoPath => ipcRenderer.invoke('max:git:review:commitContext', repoPath),
+      push: repoPath => ipcRenderer.invoke('max:git:review:push', repoPath),
+      shipInfo: repoPath => ipcRenderer.invoke('max:git:review:shipInfo', repoPath),
+      createPr: repoPath => ipcRenderer.invoke('max:git:review:createPr', repoPath)
     }
   },
   terminal: {
-    dispose: id => ipcRenderer.invoke('hermes:terminal:dispose', id),
-    resize: (id, size) => ipcRenderer.invoke('hermes:terminal:resize', id, size),
-    start: options => ipcRenderer.invoke('hermes:terminal:start', options),
-    write: (id, data) => ipcRenderer.invoke('hermes:terminal:write', id, data),
+    dispose: id => ipcRenderer.invoke('max:terminal:dispose', id),
+    resize: (id, size) => ipcRenderer.invoke('max:terminal:resize', id, size),
+    start: options => ipcRenderer.invoke('max:terminal:start', options),
+    write: (id, data) => ipcRenderer.invoke('max:terminal:write', id, data),
     onData: (id, callback) => {
-      const channel = `hermes:terminal:${id}:data`
+      const channel = `max:terminal:${id}:data`
       const listener = (_event, payload) => callback(payload)
       ipcRenderer.on(channel, listener)
 
       return () => ipcRenderer.removeListener(channel, listener)
     },
     onExit: (id, callback) => {
-      const channel = `hermes:terminal:${id}:exit`
+      const channel = `max:terminal:${id}:exit`
       const listener = (_event, payload) => callback(payload)
       ipcRenderer.on(channel, listener)
 
@@ -148,100 +148,100 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   },
   onClosePreviewRequested: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:close-preview-requested', listener)
+    ipcRenderer.on('max:close-preview-requested', listener)
 
-    return () => ipcRenderer.removeListener('hermes:close-preview-requested', listener)
+    return () => ipcRenderer.removeListener('max:close-preview-requested', listener)
   },
   onOpenUpdatesRequested: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:open-updates', listener)
+    ipcRenderer.on('max:open-updates', listener)
 
-    return () => ipcRenderer.removeListener('hermes:open-updates', listener)
+    return () => ipcRenderer.removeListener('max:open-updates', listener)
   },
   onDeepLink: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:deep-link', listener)
+    ipcRenderer.on('max:deep-link', listener)
 
-    return () => ipcRenderer.removeListener('hermes:deep-link', listener)
+    return () => ipcRenderer.removeListener('max:deep-link', listener)
   },
-  signalDeepLinkReady: () => ipcRenderer.invoke('hermes:deep-link-ready'),
+  signalDeepLinkReady: () => ipcRenderer.invoke('max:deep-link-ready'),
   onWindowStateChanged: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:window-state-changed', listener)
+    ipcRenderer.on('max:window-state-changed', listener)
 
-    return () => ipcRenderer.removeListener('hermes:window-state-changed', listener)
+    return () => ipcRenderer.removeListener('max:window-state-changed', listener)
   },
   onFocusSession: callback => {
     const listener = (_event, sessionId) => callback(sessionId)
-    ipcRenderer.on('hermes:focus-session', listener)
+    ipcRenderer.on('max:focus-session', listener)
 
-    return () => ipcRenderer.removeListener('hermes:focus-session', listener)
+    return () => ipcRenderer.removeListener('max:focus-session', listener)
   },
   onNotificationAction: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:notification-action', listener)
+    ipcRenderer.on('max:notification-action', listener)
 
-    return () => ipcRenderer.removeListener('hermes:notification-action', listener)
+    return () => ipcRenderer.removeListener('max:notification-action', listener)
   },
   onPreviewFileChanged: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:preview-file-changed', listener)
+    ipcRenderer.on('max:preview-file-changed', listener)
 
-    return () => ipcRenderer.removeListener('hermes:preview-file-changed', listener)
+    return () => ipcRenderer.removeListener('max:preview-file-changed', listener)
   },
   onBackendExit: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:backend-exit', listener)
+    ipcRenderer.on('max:backend-exit', listener)
 
-    return () => ipcRenderer.removeListener('hermes:backend-exit', listener)
+    return () => ipcRenderer.removeListener('max:backend-exit', listener)
   },
   onPowerResume: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:power-resume', listener)
+    ipcRenderer.on('max:power-resume', listener)
 
-    return () => ipcRenderer.removeListener('hermes:power-resume', listener)
+    return () => ipcRenderer.removeListener('max:power-resume', listener)
   },
   onBootProgress: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:boot-progress', listener)
+    ipcRenderer.on('max:boot-progress', listener)
 
-    return () => ipcRenderer.removeListener('hermes:boot-progress', listener)
+    return () => ipcRenderer.removeListener('max:boot-progress', listener)
   },
   // First-launch bootstrap progress -- emitted by the install.ps1 stage
   // runner in main.ts (apps/desktop/electron/bootstrap-runner.ts).
   // Renderer's install overlay subscribes to live events and queries the
   // current snapshot via getBootstrapState() to recover after a devtools
   // reload mid-bootstrap.
-  getBootstrapState: () => ipcRenderer.invoke('hermes:bootstrap:get'),
-  resetBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:reset'),
-  repairBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:repair'),
-  cancelBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:cancel'),
+  getBootstrapState: () => ipcRenderer.invoke('max:bootstrap:get'),
+  resetBootstrap: () => ipcRenderer.invoke('max:bootstrap:reset'),
+  repairBootstrap: () => ipcRenderer.invoke('max:bootstrap:repair'),
+  cancelBootstrap: () => ipcRenderer.invoke('max:bootstrap:cancel'),
   onBootstrapEvent: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:bootstrap:event', listener)
+    ipcRenderer.on('max:bootstrap:event', listener)
 
-    return () => ipcRenderer.removeListener('hermes:bootstrap:event', listener)
+    return () => ipcRenderer.removeListener('max:bootstrap:event', listener)
   },
-  getVersion: () => ipcRenderer.invoke('hermes:version'),
-  getRemoteDisplayReason: () => ipcRenderer.invoke('hermes:get-remote-display-reason'),
+  getVersion: () => ipcRenderer.invoke('max:version'),
+  getRemoteDisplayReason: () => ipcRenderer.invoke('max:get-remote-display-reason'),
   uninstall: {
-    summary: () => ipcRenderer.invoke('hermes:uninstall:summary'),
-    run: mode => ipcRenderer.invoke('hermes:uninstall:run', { mode })
+    summary: () => ipcRenderer.invoke('max:uninstall:summary'),
+    run: mode => ipcRenderer.invoke('max:uninstall:run', { mode })
   },
   updates: {
-    check: () => ipcRenderer.invoke('hermes:updates:check'),
-    apply: opts => ipcRenderer.invoke('hermes:updates:apply', opts),
-    getBranch: () => ipcRenderer.invoke('hermes:updates:branch:get'),
-    setBranch: name => ipcRenderer.invoke('hermes:updates:branch:set', name),
+    check: () => ipcRenderer.invoke('max:updates:check'),
+    apply: opts => ipcRenderer.invoke('max:updates:apply', opts),
+    getBranch: () => ipcRenderer.invoke('max:updates:branch:get'),
+    setBranch: name => ipcRenderer.invoke('max:updates:branch:set', name),
     onProgress: callback => {
       const listener = (_event, payload) => callback(payload)
-      ipcRenderer.on('hermes:updates:progress', listener)
+      ipcRenderer.on('max:updates:progress', listener)
 
-      return () => ipcRenderer.removeListener('hermes:updates:progress', listener)
+      return () => ipcRenderer.removeListener('max:updates:progress', listener)
     }
   },
   themes: {
-    fetchMarketplace: id => ipcRenderer.invoke('hermes:vscode-theme:fetch', id),
-    searchMarketplace: query => ipcRenderer.invoke('hermes:vscode-theme:search', query)
+    fetchMarketplace: id => ipcRenderer.invoke('max:vscode-theme:fetch', id),
+    searchMarketplace: query => ipcRenderer.invoke('max:vscode-theme:search', query)
   }
 })

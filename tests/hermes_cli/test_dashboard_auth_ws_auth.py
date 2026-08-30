@@ -19,15 +19,15 @@ import pytest
 
 from fastapi.testclient import TestClient
 
-from hermes_cli import web_server
-from hermes_cli.dashboard_auth import clear_providers, register_provider
-from hermes_cli.dashboard_auth.ws_tickets import (
+from max_cli import web_server
+from max_cli.dashboard_auth import clear_providers, register_provider
+from max_cli.dashboard_auth.ws_tickets import (
     _reset_for_tests,
     consume_internal_credential,
     internal_ws_credential,
     mint_ticket,
 )
-from tests.hermes_cli.conftest_dashboard_auth import StubAuthProvider
+from tests.max_cli.conftest_dashboard_auth import StubAuthProvider
 
 
 # ---------------------------------------------------------------------------
@@ -254,8 +254,8 @@ class TestWsAuthOkGated:
 
     def test_rejection_audit_logs(self, gated_app, tmp_path, monkeypatch):
         # Point the audit log at a tmp dir so we can read what got written.
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        from hermes_cli.dashboard_auth import audit as audit_mod
+        monkeypatch.setenv("MAX_HOME", str(tmp_path))
+        from max_cli.dashboard_auth import audit as audit_mod
 
         # The log path is resolved lazily on the first audit_log() call;
         # bust any cached handler so it re-resolves.
@@ -495,7 +495,7 @@ class TestWsHostOriginGuardOrigins:
         assert web_server._ws_host_origin_is_allowed(ws) is False
 
     def test_explicit_non_loopback_file_origin_allowed(self, insecure_explicit_host_app):
-        """Packaged Hermes Desktop also uses file:// when connecting to a
+        """Packaged Max Desktop also uses file:// when connecting to a
         Tailscale/LAN dashboard bind.
 
         The WebSocket route calls _ws_auth_ok before this guard, so in

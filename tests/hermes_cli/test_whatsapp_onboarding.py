@@ -24,12 +24,12 @@ class _FakeProc:
 
 
 def test_whatsapp_pairing_watcher_records_qr_and_connected():
-    from hermes_cli import web_server as ws
+    from max_cli import web_server as ws
 
     proc = _FakeProc([
         '{"event":"started","session":"/tmp/session"}\n',
         '{"event":"qr","qr":"qr-payload"}\n',
-        '{"event":"connected","user":{"id":"15551234567:1@s.whatsapp.net","name":"Hermes Bot"}}\n',
+        '{"event":"connected","user":{"id":"15551234567:1@s.whatsapp.net","name":"Max Bot"}}\n',
     ])
     record = ws._WhatsAppOnboardingSession(
         proc=proc,
@@ -47,14 +47,14 @@ def test_whatsapp_pairing_watcher_records_qr_and_connected():
     assert record.status == "connected"
     assert record.qr_payload == "qr-payload"
     assert record.account_id == "15551234567:1@s.whatsapp.net"
-    assert record.account_name == "Hermes Bot"
+    assert record.account_name == "Max Bot"
     assert record.account_phone == "15551234567"
     assert record.error is None
     ws._whatsapp_onboarding_sessions.clear()
 
 
 def test_whatsapp_pairing_payload_includes_linked_account():
-    from hermes_cli import web_server as ws
+    from max_cli import web_server as ws
 
     record = ws._WhatsAppOnboardingSession(
         proc=None,
@@ -65,19 +65,19 @@ def test_whatsapp_pairing_payload_includes_linked_account():
         expires_at_ts=time.time() + 600,
         status="connected",
         account_id="15551234567@s.whatsapp.net",
-        account_name="Hermes Bot",
+        account_name="Max Bot",
         account_phone="15551234567",
     )
 
     payload = ws._whatsapp_onboarding_payload("pairing", record)
 
     assert payload["account_id"] == "15551234567@s.whatsapp.net"
-    assert payload["account_name"] == "Hermes Bot"
+    assert payload["account_name"] == "Max Bot"
     assert payload["account_phone"] == "15551234567"
 
 
 def test_messaging_payload_includes_safe_whatsapp_setup(monkeypatch):
-    from hermes_cli import web_server as ws
+    from max_cli import web_server as ws
 
     entry = {
         "id": "whatsapp",
@@ -126,7 +126,7 @@ def test_messaging_payload_includes_safe_whatsapp_setup(monkeypatch):
 
 
 def test_apply_whatsapp_onboarding_saves_pairing_policy(monkeypatch):
-    from hermes_cli import web_server as ws
+    from max_cli import web_server as ws
 
     saved = {}
     removed = []
@@ -170,7 +170,7 @@ def test_apply_whatsapp_onboarding_saves_pairing_policy(monkeypatch):
 
 
 def test_apply_whatsapp_onboarding_self_chat_defaults_to_linked_account(monkeypatch):
-    from hermes_cli import web_server as ws
+    from max_cli import web_server as ws
 
     saved = {}
     removed = []
@@ -213,12 +213,12 @@ def test_apply_whatsapp_onboarding_self_chat_defaults_to_linked_account(monkeypa
 
 
 def test_start_whatsapp_onboarding_existing_creds_returns_linked_account(monkeypatch, tmp_path):
-    from hermes_cli import web_server as ws
+    from max_cli import web_server as ws
 
     session_dir = tmp_path / "session"
     session_dir.mkdir()
     (session_dir / "creds.json").write_text(
-        '{"me":{"id":"15551234567:1@s.whatsapp.net","name":"Hermes Bot"}}',
+        '{"me":{"id":"15551234567:1@s.whatsapp.net","name":"Max Bot"}}',
         encoding="utf-8",
     )
 
@@ -246,7 +246,7 @@ def test_start_whatsapp_onboarding_existing_creds_returns_linked_account(monkeyp
     assert result["status"] == "connected"
     assert result["qr_payload"] is None
     assert result["account_id"] == "15551234567:1@s.whatsapp.net"
-    assert result["account_name"] == "Hermes Bot"
+    assert result["account_name"] == "Max Bot"
     assert result["account_phone"] == "15551234567"
     assert old_record.status == "cancelled"
     assert old_proc.terminated is True
@@ -255,7 +255,7 @@ def test_start_whatsapp_onboarding_existing_creds_returns_linked_account(monkeyp
 
 
 def test_start_whatsapp_onboarding_returns_before_bridge_spawn(monkeypatch, tmp_path):
-    from hermes_cli import web_server as ws
+    from max_cli import web_server as ws
 
     captured = {}
 
@@ -292,8 +292,8 @@ def test_start_whatsapp_onboarding_returns_before_bridge_spawn(monkeypatch, tmp_
 
 def test_spawn_whatsapp_pairing_process_uses_json_mode(monkeypatch, tmp_path):
     from gateway.platforms import whatsapp_common
-    from hermes_cli import web_server as ws
-    import hermes_constants
+    from max_cli import web_server as ws
+    import max_constants
 
     bridge_dir = tmp_path / "bridge"
     bridge_dir.mkdir()
@@ -302,8 +302,8 @@ def test_spawn_whatsapp_pairing_process_uses_json_mode(monkeypatch, tmp_path):
     captured = {}
 
     monkeypatch.setattr(whatsapp_common, "resolve_whatsapp_bridge_dir", lambda: bridge_dir)
-    monkeypatch.setattr(hermes_constants, "find_node_executable", lambda command: "/usr/bin/node")
-    monkeypatch.setattr(hermes_constants, "with_hermes_node_path", lambda env=None: {})
+    monkeypatch.setattr(max_constants, "find_node_executable", lambda command: "/usr/bin/node")
+    monkeypatch.setattr(max_constants, "with_max_node_path", lambda env=None: {})
     monkeypatch.setattr(ws, "_ensure_whatsapp_bridge_dependencies", lambda bridge_dir: None)
 
     def fake_popen(args, **kwargs):

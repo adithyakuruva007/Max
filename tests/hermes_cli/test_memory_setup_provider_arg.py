@@ -1,16 +1,16 @@
-"""Tests for `hermes memory setup [provider]` routing.
+"""Tests for `max memory setup [provider]` routing.
 
 The `memory setup` subcommand accepts an optional positional ``provider`` so a
 fresh install can configure a specific provider directly (e.g.
-``hermes memory setup honcho``) without the interactive picker — which matters
-because the per-provider ``hermes <provider>`` subcommand is only registered
+``max memory setup honcho``) without the interactive picker — which matters
+because the per-provider ``max <provider>`` subcommand is only registered
 once that provider is active.
 """
 
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from hermes_cli import memory_setup
+from max_cli import memory_setup
 
 
 class TestMemorySetupProviderRouting:
@@ -47,7 +47,7 @@ class TestMemorySetupProviderRouting:
         memory_setup.cmd_setup_provider("notaprovider")
         out = capsys.readouterr().out
         assert "not found" in out
-        assert "hermes memory setup" in out
+        assert "max memory setup" in out
 
 
 class TestInstallDependenciesRunner:
@@ -73,8 +73,8 @@ class TestInstallDependenciesRunner:
             return SimpleNamespace(returncode=0, stdout="", stderr="")
 
         with patch("plugins.memory.find_provider_dir", return_value=tmp_path), \
-             patch("hermes_cli.tools_config.shutil.which", side_effect=which_side_effect), \
-             patch("hermes_cli.tools_config.subprocess.run", fake_run):
+             patch("max_cli.tools_config.shutil.which", side_effect=which_side_effect), \
+             patch("max_cli.tools_config.subprocess.run", fake_run):
             memory_setup._install_dependencies("x")
         return calls, sys.executable
 

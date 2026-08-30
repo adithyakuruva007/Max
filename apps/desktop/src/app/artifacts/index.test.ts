@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { $connection } from '@/store/session'
-import type { SessionInfo, SessionMessage } from '@/types/hermes'
+import type { SessionInfo, SessionMessage } from '@/types/max'
 
 import { artifactImageSrc, collectArtifactsForSession } from './artifact-utils'
 
@@ -79,7 +79,7 @@ describe('collectArtifactsForSession', () => {
     vi.stubGlobal('window', { hermesDesktop: { api } })
     $connection.set({ baseUrl: 'https://gw', mode: 'remote', token: 'secret' } as never)
 
-    const path = '/Users/me/.hermes/skills/work-esab/references/images/manual-step03.jpeg'
+    const path = '/Users/me/.max/skills/work-esab/references/images/manual-step03.jpeg'
     const downloadHref = `https://gw/api/files/download?path=${encodeURIComponent(path)}&token=secret`
 
     await expect(artifactImageSrc(path, downloadHref)).resolves.toBe('data:image/jpeg;base64,cmVtb3Rl')

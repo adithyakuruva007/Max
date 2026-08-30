@@ -28,14 +28,14 @@ const nousTint = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, #FFF
 const nousTintTransparent = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, transparent)`
 
 /**
- * Nous — canonical Hermes desktop identity. The palette keeps the current
+ * Stardust — canonical Max desktop identity. The palette keeps the current
  * glass geometry neutral, then lets the old bb/gui blue and psyche cream
  * return as accent seeds.
  */
 export const nousTheme: DesktopTheme = {
   name: 'nous',
-  label: 'Nous',
-  description: 'Glass neutrals with Nous blue accents',
+  label: 'Stardust',
+  description: 'Glass neutrals with Stardust blue accents',
   colors: {
     background: '#F8FAFF',
     foreground: '#17171A',

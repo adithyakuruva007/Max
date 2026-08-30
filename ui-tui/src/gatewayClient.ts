@@ -9,13 +9,14 @@ import { WebSocket as UndiciWebSocket } from 'undici'
 import type { GatewayEvent } from './gatewayTypes.js'
 import { CircularBuffer } from './lib/circularBuffer.js'
 import { recordParentLifecycle } from './lib/parentLog.js'
+import { dualEnv } from './config/env.js'
 
 const MAX_GATEWAY_LOG_LINES = 200
 const MAX_LOG_LINE_BYTES = 4096
 const MAX_BUFFERED_EVENTS = 2000
 const MAX_LOG_PREVIEW = 240
-const STARTUP_TIMEOUT_MS = Math.max(5000, parseInt(process.env.HERMES_TUI_STARTUP_TIMEOUT_MS ?? '15000', 10) || 15000)
-const REQUEST_TIMEOUT_MS = Math.max(30000, parseInt(process.env.HERMES_TUI_RPC_TIMEOUT_MS ?? '120000', 10) || 120000)
+const STARTUP_TIMEOUT_MS = Math.max(5000, parseInt(dualEnv('TUI_STARTUP_TIMEOUT_MS') ?? '15000', 10) || 15000)
+const REQUEST_TIMEOUT_MS = Math.max(30000, parseInt(dualEnv('TUI_RPC_TIMEOUT_MS') ?? '120000', 10) || 120000)
 const WS_CONNECTING = 0
 const WS_OPEN = 1
 const WS_CLOSING = 2
@@ -36,19 +37,19 @@ const describeChild = (proc: ChildProcess | null) => {
 }
 
 const resolveGatewayAttachUrl = () => {
-  const raw = process.env.HERMES_TUI_GATEWAY_URL?.trim()
+  const raw = dualEnv('TUI_GATEWAY_URL')?.trim()
 
   return raw ? raw : null
 }
 
 const resolveSidecarUrl = () => {
-  const raw = process.env.HERMES_TUI_SIDECAR_URL?.trim()
+  const raw = dualEnv('TUI_SIDECAR_URL')?.trim()
 
   return raw ? raw : null
 }
 
 const resolvePython = (root: string) => {
-  const configured = process.env.HERMES_PYTHON?.trim() || process.env.PYTHON?.trim()
+  const configured = dualEnv('PYTHON')?.trim() || process.env.PYTHON?.trim()
 
   if (configured) {
     return configured
@@ -344,12 +345,12 @@ export class GatewayClient extends EventEmitter {
 
   private startSpawnedGateway(root: string) {
     const python = resolvePython(root)
-    const cwd = process.env.HERMES_CWD || root
+    const cwd = dualEnv('CWD') || root
     const env = { ...process.env }
     const pyPath = env.PYTHONPATH?.trim()
 
     env.PYTHONPATH = pyPath ? `${root}${delimiter}${pyPath}` : root
-    // Tell the gateway child where the Hermes source root is so its import
+    // Tell the gateway child where the Max source root is so its import
     // guard can force it ahead of any same-named package in the launch cwd.
     env.HERMES_PYTHON_SRC_ROOT = root
     this.startReadyTimer(python, cwd)
@@ -521,7 +522,7 @@ export class GatewayClient extends EventEmitter {
   }
 
   start() {
-    const root = process.env.HERMES_PYTHON_SRC_ROOT ?? resolve(import.meta.dirname, '../../')
+    const root = dualEnv('PYTHON_SRC_ROOT') ?? resolve(import.meta.dirname, '../../')
     const attachUrl = resolveGatewayAttachUrl()
     const sidecarUrl = resolveSidecarUrl()
 

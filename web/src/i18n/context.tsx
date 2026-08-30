@@ -65,7 +65,8 @@ export const LOCALE_META: Record<Locale, { name: string }> = {
 };
 
 const SUPPORTED_LOCALES = Object.keys(TRANSLATIONS) as Locale[];
-const STORAGE_KEY = "hermes-locale";
+const STORAGE_KEY = "max-locale";
+const STORAGE_KEY_OLD = "hermes-locale";
 
 function isLocale(value: string): value is Locale {
   return (SUPPORTED_LOCALES as string[]).includes(value);
@@ -73,7 +74,7 @@ function isLocale(value: string): value is Locale {
 
 function getInitialLocale(): Locale {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(STORAGE_KEY_OLD);
     if (stored && isLocale(stored)) return stored;
   } catch {
     // SSR or privacy mode

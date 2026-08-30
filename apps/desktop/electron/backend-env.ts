@@ -1,8 +1,5 @@
 import path from 'node:path'
 
-// Match the POSIX fallback surface used by the Python terminal environment.
-// macOS apps launched from Finder/Dock often inherit only /usr/bin:/bin:/usr/sbin:/sbin,
-// which misses Apple Silicon Homebrew and user-installed CLI tools such as codex.
 const POSIX_SANE_PATH_ENTRIES = Object.freeze([
   '/opt/homebrew/bin',
   '/opt/homebrew/sbin',
@@ -26,13 +23,11 @@ function pathEnvKey(env = process.env, platform = process.platform) {
   if (platform !== 'win32') {
     return 'PATH'
   }
-
   return Object.keys(env || {}).find(key => key.toUpperCase() === 'PATH') || 'PATH'
 }
 
 function currentPathValue(env = process.env, platform = process.platform) {
   const key = pathEnvKey(env, platform)
-
   return env?.[key] || ''
 }
 
@@ -59,25 +54,25 @@ function appendUniquePathEntries(entries, { delimiter = path.delimiter } = {}) {
 }
 
 function buildDesktopBackendPath({
-  hermesHome,
+  maxHome,
   venvRoot,
   currentPath = '',
   platform = process.platform,
   pathModule = pathModuleForPlatform(platform)
 }: any = {}) {
   const delimiter = delimiterForPlatform(platform)
-  const hermesNodeBin = hermesHome ? pathModule.join(hermesHome, 'node', 'bin') : null
+  const maxNodeBin = maxHome ? pathModule.join(maxHome, 'node', 'bin') : null
   const venvBin = venvRoot ? pathModule.join(venvRoot, platform === 'win32' ? 'Scripts' : 'bin') : null
   const saneEntries = platform === 'win32' ? [] : POSIX_SANE_PATH_ENTRIES
 
-  return appendUniquePathEntries([hermesNodeBin, venvBin, currentPath, saneEntries], { delimiter })
+  return appendUniquePathEntries([maxNodeBin, venvBin, currentPath, saneEntries], { delimiter })
 }
 
-function normalizeHermesHomeRoot(hermesHome, { pathModule = pathModuleForPlatform(process.platform) }: any = {}) {
-  if (!hermesHome) {
-    return hermesHome
+function normalizeMaxHomeRoot(maxHome, { pathModule = pathModuleForPlatform(process.platform) }: any = {}) {
+  if (!maxHome) {
+    return maxHome
   }
-  const resolved = pathModule.resolve(String(hermesHome))
+  const resolved = pathModule.resolve(String(maxHome))
   const parent = pathModule.dirname(resolved)
 
   if (pathModule.basename(parent).toLowerCase() === 'profiles') {
@@ -88,7 +83,7 @@ function normalizeHermesHomeRoot(hermesHome, { pathModule = pathModuleForPlatfor
 }
 
 function buildDesktopBackendEnv({
-  hermesHome,
+  maxHome,
   pythonPathEntries = [],
   venvRoot,
   currentEnv = process.env,
@@ -102,7 +97,7 @@ function buildDesktopBackendEnv({
   return {
     PYTHONPATH: appendUniquePathEntries([...pythonPathEntries, currentPythonPath], { delimiter }),
     [key]: buildDesktopBackendPath({
-      hermesHome,
+      maxHome,
       venvRoot,
       currentPath: currentPathValue(currentEnv, platform),
       platform,
@@ -116,7 +111,7 @@ export {
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
   delimiterForPlatform,
-  normalizeHermesHomeRoot,
+  normalizeMaxHomeRoot,
   pathEnvKey,
   POSIX_SANE_PATH_ENTRIES
 }

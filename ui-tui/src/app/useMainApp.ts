@@ -1,4 +1,4 @@
-import { type ScrollBoxHandle, useApp, useHasSelection, useSelection, useStdout, useTerminalTitle } from '@hermes/ink'
+import { type ScrollBoxHandle, useApp, useHasSelection, useSelection, useStdout, useTerminalTitle } from '@max/ink'
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -47,6 +47,7 @@ import { useInputHandlers } from './useInputHandlers.js'
 import { useLongRunToolCharms } from './useLongRunToolCharms.js'
 import { useSessionLifecycle } from './useSessionLifecycle.js'
 import { useSubmission } from './useSubmission.js'
+import { dualEnv } from '../config/env.js'
 
 const GOOD_VIBES_RE = /\b(good bot|thanks|thank you|thx|ty|ily|love you)\b/i
 const BRACKET_PASTE_ON = '\x1b[?2004h'
@@ -582,7 +583,7 @@ export function useMainApp(gw: GatewayClient) {
   const tabCwd = ui.info?.cwd
 
   useTerminalTitle(
-    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'Hermes'
+    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'Max'
   )
 
   useEffect(() => {
@@ -1096,7 +1097,7 @@ export function useMainApp(gw: GatewayClient) {
   // randomly disappear when the live tail scrolls offscreen.
   const appProgress = useMemo(() => ({ showProgressArea }), [showProgressArea])
 
-  const cwd = ui.info?.cwd || process.env.HERMES_CWD || process.cwd()
+  const cwd = ui.info?.cwd || dualEnv('CWD') || process.cwd()
   const gitBranch = useGitBranch(cwd)
 
   const appStatus = useMemo(

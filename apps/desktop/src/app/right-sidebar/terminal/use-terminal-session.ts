@@ -266,7 +266,7 @@ function collectDroppedPaths(t: DataTransfer): string[] {
     // Malformed in-app drag payload — fall through to OS files.
   }
 
-  const getPath = window.hermesDesktop?.getPathForFile
+  const getPath = window.maxDesktop?.getPathForFile
 
   const addFile = (file: File | null) => {
     if (!file || !getPath) {
@@ -408,7 +408,7 @@ export function useTerminalSession({
 
   useEffect(() => {
     const host = hostRef.current
-    const terminalApi = window.hermesDesktop?.terminal
+    const terminalApi = window.maxDesktop?.terminal
 
     if (!host || !terminalApi) {
       setStatus('closed')
@@ -846,7 +846,7 @@ export function useTerminalSession({
         return
       }
 
-      void window.hermesDesktop?.terminal?.write(sessionId, `${command}\r`)
+      void window.maxDesktop?.terminal?.write(sessionId, `${command}\r`)
       $terminalInjection.set(null)
       termRef.current?.focus()
     })

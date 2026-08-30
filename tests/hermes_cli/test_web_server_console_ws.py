@@ -1,4 +1,4 @@
-"""Dashboard Hermes Console websocket tests."""
+"""Dashboard Max Console websocket tests."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ import pytest
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from hermes_cli import web_server
+from max_cli import web_server
 
 
 @pytest.fixture
-def console_client(monkeypatch, _isolate_hermes_home):
+def console_client(monkeypatch, _isolate_max_home):
     previous_auth_required = getattr(web_server.app.state, "auth_required", None)
     previous_bound_host = getattr(web_server.app.state, "bound_host", None)
     web_server.app.state.auth_required = False
@@ -80,13 +80,13 @@ def test_console_ws_runs_read_only_command(console_client):
         conn.send_json({"type": "input", "line": "help"})
 
         output = _recv_until(conn, "output")
-        assert "Hermes Console" in output["data"]
+        assert "Max Console" in output["data"]
         complete = _recv_until(conn, "complete", status="ok")
         assert complete["prompt"] == "hermes> "
 
 
 def test_console_ws_confirmed_command_executes_after_confirmation(console_client):
-    from hermes_cli.config import load_config
+    from max_cli.config import load_config
 
     with console_client.websocket_connect(_url()) as conn:
         assert conn.receive_json()["type"] == "ready"
@@ -103,7 +103,7 @@ def test_console_ws_confirmed_command_executes_after_confirmation(console_client
 
 
 def test_console_ws_uses_hosted_context_for_opt_data_policy(console_client, monkeypatch):
-    monkeypatch.setattr(web_server, "_default_hermes_root_is_opt_data", lambda: True)
+    monkeypatch.setattr(web_server, "_default_max_root_is_opt_data", lambda: True)
 
     with console_client.websocket_connect(_url()) as conn:
         ready = conn.receive_json()
@@ -113,17 +113,17 @@ def test_console_ws_uses_hosted_context_for_opt_data_policy(console_client, monk
         conn.send_json({"type": "input", "line": "profile create nope"})
 
         error = _recv_until(conn, "error")
-        assert "hosted Hermes Console" in error["message"]
+        assert "hosted Max Console" in error["message"]
 
 
 def test_console_ws_cancel_returns_to_prompt(console_client, monkeypatch):
-    from hermes_cli.console_engine import ConsoleResult, HermesConsoleEngine
+    from max_cli.console_engine import ConsoleResult, MaxConsoleEngine
 
     def slow_execute(self, line: str, *, confirmed: bool = False):
         time.sleep(0.5)
         return ConsoleResult("ok", output="late", command=line)
 
-    monkeypatch.setattr(HermesConsoleEngine, "execute", slow_execute)
+    monkeypatch.setattr(MaxConsoleEngine, "execute", slow_execute)
 
     with console_client.websocket_connect(_url()) as conn:
         assert conn.receive_json()["type"] == "ready"

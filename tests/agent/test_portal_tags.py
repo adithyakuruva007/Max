@@ -3,20 +3,20 @@
 from __future__ import annotations
 
 
-def test_hermes_client_tag_includes_current_version():
-    """The client tag must reflect hermes_cli.__version__ verbatim."""
-    from hermes_cli import __version__
-    from agent.portal_tags import hermes_client_tag
+def test_max_client_tag_includes_current_version():
+    """The client tag must reflect max_cli.__version__ verbatim."""
+    from max_cli import __version__
+    from agent.portal_tags import max_client_tag
 
-    assert hermes_client_tag() == f"client=hermes-client-v{__version__}"
+    assert max_client_tag() == f"client=max-client-v{__version__}"
 
 
-def test_hermes_client_tag_format():
+def test_max_client_tag_format():
     """The client tag has the exact shape Nous Portal expects."""
-    from agent.portal_tags import hermes_client_tag
+    from agent.portal_tags import max_client_tag
 
-    tag = hermes_client_tag()
-    assert tag.startswith("client=hermes-client-v")
+    tag = max_client_tag()
+    assert tag.startswith("client=max-client-v")
     # No spaces, no commas — single tag value
     assert " " not in tag
     assert "," not in tag
@@ -24,11 +24,11 @@ def test_hermes_client_tag_format():
 
 def test_nous_portal_tags_contains_product_and_client():
     """Every Nous Portal request gets BOTH the product tag and the version tag."""
-    from agent.portal_tags import hermes_client_tag, nous_portal_tags
+    from agent.portal_tags import max_client_tag, nous_portal_tags
 
     tags = nous_portal_tags()
-    assert "product=hermes-agent" in tags
-    assert hermes_client_tag() in tags
+    assert "product=max-agent" in tags
+    assert max_client_tag() in tags
     assert len(tags) == 2
 
 

@@ -1,5 +1,5 @@
-"""Tests for hermes_cli.session_filters — CLI time/filter parsing for
-`hermes sessions prune` / `hermes sessions archive`."""
+"""Tests for max_cli.session_filters — CLI time/filter parsing for
+`max sessions prune` / `max sessions archive`."""
 
 import time
 from argparse import Namespace
@@ -7,7 +7,7 @@ from datetime import datetime
 
 import pytest
 
-from hermes_cli.session_filters import (
+from max_cli.session_filters import (
     build_prune_filters,
     describe_filters,
     parse_duration_seconds,

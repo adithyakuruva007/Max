@@ -40,18 +40,18 @@ import pytest
 
 @pytest.fixture
 def isolated_home(monkeypatch):
-    """Temp HERMES_HOME with config + clean credential env vars."""
-    test_home = tempfile.mkdtemp(prefix="hermes_test_31179_")
-    hermes_home = os.path.join(test_home, ".hermes")
-    os.makedirs(hermes_home)
-    monkeypatch.setenv("HERMES_HOME", hermes_home)
+    """Temp MAX_HOME with config + clean credential env vars."""
+    test_home = tempfile.mkdtemp(prefix="max_test_31179_")
+    max_home = os.path.join(test_home, ".max")
+    os.makedirs(max_home)
+    monkeypatch.setenv("MAX_HOME", max_home)
 
     # Strip all credential-shaped env vars so each scenario starts hermetic.
     for k in list(os.environ.keys()):
         if k.endswith("_API_KEY") or k.endswith("_TOKEN"):
             monkeypatch.delenv(k, raising=False)
 
-    yield hermes_home
+    yield max_home
     shutil.rmtree(test_home, ignore_errors=True)
 
 
@@ -65,7 +65,7 @@ def _fresh_modules():
     for mod in list(sys.modules.keys()):
         if mod.startswith(("agent.auxiliary_client", "agent.image_routing",
                            "tools.vision_tools", "tools.browser_tool",
-                           "hermes_cli.config")):
+                           "max_cli.config")):
             del sys.modules[mod]
 
 

@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { dualEnv } from '../config/env.js'
 
 // Mirror the Python gateway's panic log (tui_gateway/server.py::_CRASH_LOG) from
 // the Node parent so lifecycle breadcrumbs interleave, by timestamp, with the
@@ -18,7 +19,7 @@ import { join } from 'node:path'
 // is swallowed). Persisting the death-explaining events here is what makes that
 // distinction (and a memory-critical `process.exit(137)`, which closes stdin →
 // clean EOF, not SIGTERM) diagnosable after the fact.
-const logDir = join(process.env.HERMES_HOME?.trim() || join(homedir(), '.hermes'), 'logs')
+const logDir = join(dualEnv('HOME')?.trim() || join(homedir(), '.max'), 'logs')
 const CRASH_LOG = join(logDir, 'tui_gateway_crash.log')
 
 // Skipped under vitest so unit tests exercising start()/kill() can't write into
@@ -53,7 +54,7 @@ export function recordParentLifecycle(line: string): void {
   } catch {
     if (!warned) {
       warned = true
-      process.stderr.write('hermes-tui: parent lifecycle log unavailable\n')
+      process.stderr.write('max-tui: parent lifecycle log unavailable\n')
     }
   }
 }

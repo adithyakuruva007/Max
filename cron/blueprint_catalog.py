@@ -545,7 +545,7 @@ def blueprint_deeplink(blueprint: AutomationBlueprint, values: Optional[Dict[str
         if val not in (None, ""):
             query[s.name] = str(val)
     qs = ("?" + urlencode(query)) if query else ""
-    return f"hermes://blueprint/{quote(blueprint.key)}{qs}"
+    return f"max://blueprint/{quote(blueprint.key)}{qs}"
 
 
 def _humanize_schedule(blueprint: AutomationBlueprint) -> str:

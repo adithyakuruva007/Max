@@ -24,15 +24,20 @@ import { $userThemes, resolveTheme } from './user-themes'
 // Legacy global skin (pre per-profile themes). Still the inheritance fallback
 // for any profile without its own assignment, so single-profile users and old
 // installs are unaffected.
-const SKIN_KEY = 'hermes-desktop-theme-v2'
-const MODE_KEY = 'hermes-desktop-mode-v1'
+const SKIN_KEY = 'max-desktop-theme-v2'
+const SKIN_KEY_OLD = 'hermes-desktop-theme-v2'
+const MODE_KEY = 'max-desktop-mode-v1'
+const MODE_KEY_OLD = 'hermes-desktop-mode-v1'
 // Per-profile skin + light/dark mode assignments: { [profileKey]: value }. A
 // profile inherits the global default until it's given its own appearance.
-const PROFILE_SKINS_KEY = 'hermes-desktop-profile-themes-v1'
-const PROFILE_MODES_KEY = 'hermes-desktop-profile-modes-v1'
+const PROFILE_SKINS_KEY = 'max-desktop-profile-themes-v1'
+const PROFILE_SKINS_KEY_OLD = 'hermes-desktop-profile-themes-v1'
+const PROFILE_MODES_KEY = 'max-desktop-profile-modes-v1'
+const PROFILE_MODES_KEY_OLD = 'hermes-desktop-profile-modes-v1'
 // Last active profile, recorded so the boot-time paint can pick that profile's
 // theme before the gateway reports which profile actually launched.
-const LAST_PROFILE_KEY = 'hermes-desktop-active-profile-v1'
+const LAST_PROFILE_KEY = 'max-desktop-active-profile-v1'
+const LAST_PROFILE_KEY_OLD = 'hermes-desktop-active-profile-v1'
 const RETIRED_SKINS = new Set(['nous-light', 'default', 'gold'])
 
 export type ThemeMode = 'light' | 'dark' | 'system'
@@ -53,8 +58,8 @@ const normalizeMode = (value: string | null): ThemeMode =>
 // it *is* the legacy global slot, so it reads/writes the global directly. Named
 // profiles get their own entry and fall back to that global until assigned, so
 // unassigned profiles and pre-per-profile installs stay on the global value.
-const profilePref = <T extends string>(record: string, legacy: string, normalize: (v: string | null) => T) => ({
-  resolve: (profile: string): T => normalize(storedStringRecord(record)[profile] ?? storedString(legacy)),
+const profilePref = <T extends string>(record: string, legacy: string, legacyOld: string, normalize: (v: string | null) => T) => ({
+  resolve: (profile: string): T => normalize(storedStringRecord(record)[profile] ?? storedString(legacy) ?? storedString(legacyOld)),
   assign: (profile: string, value: T): void => {
     if (profile === 'default') {
       persistString(legacy, value)
@@ -64,12 +69,12 @@ const profilePref = <T extends string>(record: string, legacy: string, normalize
   }
 })
 
-export const skinPref = profilePref(PROFILE_SKINS_KEY, SKIN_KEY, normalizeSkin)
-export const modePref = profilePref(PROFILE_MODES_KEY, MODE_KEY, normalizeMode)
+export const skinPref = profilePref(PROFILE_SKINS_KEY, SKIN_KEY, SKIN_KEY_OLD, normalizeSkin)
+export const modePref = profilePref(PROFILE_MODES_KEY, MODE_KEY, MODE_KEY_OLD, normalizeMode)
 
 // Last active profile — lets the boot paint pick its appearance before the
 // gateway reports which profile actually launched.
-const readBootProfileKey = () => normalizeProfileKey(storedString(LAST_PROFILE_KEY))
+const readBootProfileKey = () => normalizeProfileKey(storedString(LAST_PROFILE_KEY) ?? storedString(LAST_PROFILE_KEY_OLD))
 const rememberActiveProfileKey = (profile: string) => persistString(LAST_PROFILE_KEY, profile)
 
 // ─── Color math (for synthesised light variants of dark-only skins) ────────
@@ -230,7 +235,7 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
 
   const chromeBg = chromeBackground(c.background, isDark)
 
-  window.hermesDesktop?.setTitleBarTheme?.({
+  window.maxDesktop?.setTitleBarTheme?.({
     background: chromeBg,
     foreground: c.foreground
   })
@@ -239,8 +244,8 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
   // they let a brand-new window paint the themed background on its very first
   // frame, before this module has even loaded.
   try {
-    window.localStorage.setItem('hermes-boot-background', chromeBg)
-    window.localStorage.setItem('hermes-boot-color-scheme', rendered)
+    window.localStorage.setItem('max-boot-background', chromeBg)
+    window.localStorage.setItem('max-boot-color-scheme', rendered)
   } catch {
     // Storage may be unavailable (private mode / quota); the inline script
     // falls back to prefers-color-scheme.
@@ -261,7 +266,7 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
 // theme instead of the OS appearance. An explicit light/dark pick is forced;
 // 'system' stays 'system' so prefers-color-scheme keeps tracking the OS.
 const syncNativeTheme = (pref: ThemeMode, rendered: 'light' | 'dark') =>
-  window.hermesDesktop?.setNativeTheme?.(pref === 'system' ? 'system' : rendered)
+  window.maxDesktop?.setNativeTheme?.(pref === 'system' ? 'system' : rendered)
 
 // Boot-time paint to avoid a flash before <ThemeProvider> mounts. Use the last
 // active profile's appearance so a non-default profile relaunch paints its own
@@ -385,7 +390,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export const useTheme = (): ThemeContextValue => useContext(ThemeContext)
 
-/** Sync the desktop skin with the active Hermes backend theme on connect. */
+/** Sync the desktop skin with the active Max backend theme on connect. */
 export function useSyncThemeFromBackend(backendThemeName: string | undefined, setTheme: (name: string) => void) {
   useEffect(() => {
     if (backendThemeName && BUILTIN_THEMES[backendThemeName]) {

@@ -15,7 +15,8 @@ import { atom, computed } from 'nanostores'
 import { BUILTIN_THEMES } from './presets'
 import type { DesktopTheme, DesktopThemeColors } from './types'
 
-const USER_THEMES_KEY = 'hermes-desktop-user-themes-v1'
+const USER_THEMES_KEY = 'max-desktop-user-themes-v1'
+const USER_THEMES_KEY_OLD = 'hermes-desktop-user-themes-v1'
 
 // Marketplace imports stamp their description "VS Code · <publisher.extension>"
 // (see `convertVscodeColorTheme`). This is the one place that convention is read
@@ -45,7 +46,7 @@ function isValidTheme(value: unknown): value is DesktopTheme {
 
 function readStored(): Record<string, DesktopTheme> {
   try {
-    const raw = window.localStorage.getItem(USER_THEMES_KEY)
+    const raw = window.localStorage.getItem(USER_THEMES_KEY) ?? window.localStorage.getItem(USER_THEMES_KEY_OLD)
 
     if (!raw) {
       return {}

@@ -158,8 +158,8 @@ function circularDistance(a: number, b: number): number {
   return Math.min(distance, 1 - distance)
 }
 
-// Mirrors @hermes/ink's colorize.ts. Keep local: app code compiles from
-// ui-tui/src, while @hermes/ink is bundled separately from packages/.
+// Mirrors @max/ink's colorize.ts. Keep local: app code compiles from
+// ui-tui/src, while @max/ink is bundled separately from packages/.
 function richEightBitColorNumber(red: number, green: number, blue: number): number {
   const [, saturation, lightness] = rgbToHsl(red, green, blue)
 
@@ -234,7 +234,7 @@ function normalizeAnsiForeground(color: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'Hermes Agent',
+  name: 'Max Agent',
   icon: '⚕',
   prompt: '❯',
   welcome: 'Type your message or /help for commands.',
@@ -407,7 +407,7 @@ function backgroundLuminance(raw: string): null | number {
 //      allow-list below cannot override an explicit dark profile.
 //   5. `TERM_PROGRAM` light-default allow-list.
 //
-// Anything we can't decide stays dark — the default Hermes palette
+// Anything we can't decide stays dark — the default Max palette
 // is the dark one.
 export function detectLightMode(
   env: NodeJS.ProcessEnv = process.env,
@@ -415,7 +415,7 @@ export function detectLightMode(
   // precedence rule even though the production allow-list is empty.
   lightDefaultTermPrograms: ReadonlySet<string> = LIGHT_DEFAULT_TERM_PROGRAMS
 ): boolean {
-  const lightFlag = (env.HERMES_TUI_LIGHT ?? '').trim().toLowerCase()
+  const lightFlag = (env.MAX_TUI_LIGHT ?? env.HERMES_TUI_LIGHT ?? '').trim().toLowerCase()
 
   if (TRUE_RE.test(lightFlag)) {
     return true
@@ -425,7 +425,7 @@ export function detectLightMode(
     return false
   }
 
-  const themeFlag = (env.HERMES_TUI_THEME ?? '').trim().toLowerCase()
+  const themeFlag = (env.MAX_TUI_THEME ?? env.HERMES_TUI_THEME ?? '').trim().toLowerCase()
 
   if (themeFlag === 'light') {
     return true
@@ -435,7 +435,7 @@ export function detectLightMode(
     return false
   }
 
-  const bgHint = backgroundLuminance(env.HERMES_TUI_BACKGROUND ?? '')
+  const bgHint = backgroundLuminance(env.MAX_TUI_BACKGROUND ?? env.HERMES_TUI_BACKGROUND ?? '')
 
   if (bgHint !== null) {
     return bgHint >= LUMA_LIGHT_THRESHOLD

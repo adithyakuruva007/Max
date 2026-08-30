@@ -1,41 +1,41 @@
-"""Tests for hermes_cli.relaunch — unified self-relaunch utility."""
+"""Tests for max_cli.relaunch — unified self-relaunch utility."""
 
 import sys
 
 import pytest
 
-from hermes_cli import relaunch as relaunch_mod
+from max_cli import relaunch as relaunch_mod
 
 
-class TestResolveHermesBin:
+class TestResolveMaxBin:
     def test_prefers_absolute_argv0_when_executable(self, monkeypatch):
         fake = "/nix/store/abc/bin/hermes"
         monkeypatch.setattr(sys, "argv", [fake])
         monkeypatch.setattr(relaunch_mod.os.path, "isfile", lambda p: p == fake)
         monkeypatch.setattr(relaunch_mod.os, "access", lambda p, mode: p == fake)
-        assert relaunch_mod.resolve_hermes_bin() == fake
+        assert relaunch_mod.resolve_max_bin() == fake
 
     def test_resolves_relative_argv0(self, monkeypatch, tmp_path):
-        fake = tmp_path / "hermes"
+        fake = tmp_path / "max"
         fake.write_text("#!/bin/sh\n")
         fake.chmod(0o755)
         monkeypatch.setattr(sys, "argv", [str(fake.name)])
         monkeypatch.chdir(tmp_path)
-        # Ensure we don't accidentally match a real 'hermes' on PATH
+        # Ensure we don't accidentally match a real 'max' on PATH
         monkeypatch.setattr(relaunch_mod.shutil, "which", lambda _name: None)
-        assert relaunch_mod.resolve_hermes_bin() == str(fake)
+        assert relaunch_mod.resolve_max_bin() == str(fake)
 
     def test_falls_back_to_path_which(self, monkeypatch):
         monkeypatch.setattr(sys, "argv", ["-c"])  # not a real path
         monkeypatch.setattr(
-            relaunch_mod.shutil, "which", lambda name: "/usr/bin/hermes" if name == "hermes" else None
+            relaunch_mod.shutil, "which", lambda name: "/usr/bin/hermes" if name == "max" else None
         )
-        assert relaunch_mod.resolve_hermes_bin() == "/usr/bin/hermes"
+        assert relaunch_mod.resolve_max_bin() == "/usr/bin/hermes"
 
     def test_returns_none_when_unresolvable(self, monkeypatch):
         monkeypatch.setattr(sys, "argv", ["-c"])
         monkeypatch.setattr(relaunch_mod.shutil, "which", lambda _name: None)
-        assert relaunch_mod.resolve_hermes_bin() is None
+        assert relaunch_mod.resolve_max_bin() is None
 
 
 class TestExtractInheritedFlags:
@@ -105,17 +105,17 @@ class TestInheritedFlagTable:
 
 class TestBuildRelaunchArgv:
     def test_uses_bin_when_available(self, monkeypatch):
-        monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: "/usr/bin/hermes")
+        monkeypatch.setattr(relaunch_mod, "resolve_max_bin", lambda: "/usr/bin/hermes")
         argv = relaunch_mod.build_relaunch_argv(["--resume", "abc"])
         assert argv[0] == "/usr/bin/hermes"
 
     def test_falls_back_to_python_module(self, monkeypatch):
-        monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: None)
+        monkeypatch.setattr(relaunch_mod, "resolve_max_bin", lambda: None)
         argv = relaunch_mod.build_relaunch_argv(["--resume", "abc"])
-        assert argv == [sys.executable, "-m", "hermes_cli.main", "--resume", "abc"]
+        assert argv == [sys.executable, "-m", "max_cli.main", "--resume", "abc"]
 
     def test_preserves_inherited_flags(self, monkeypatch):
-        monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: "/usr/bin/hermes")
+        monkeypatch.setattr(relaunch_mod, "resolve_max_bin", lambda: "/usr/bin/hermes")
         original = ["--tui", "--dev", "--profile", "work", "sessions", "browse"]
         argv = relaunch_mod.build_relaunch_argv(["--resume", "abc"], original_argv=original)
         assert "--tui" in argv
@@ -129,7 +129,7 @@ class TestBuildRelaunchArgv:
         assert "browse" not in argv
 
     def test_can_disable_preserve(self, monkeypatch):
-        monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: "/usr/bin/hermes")
+        monkeypatch.setattr(relaunch_mod, "resolve_max_bin", lambda: "/usr/bin/hermes")
         original = ["--tui", "chat"]
         argv = relaunch_mod.build_relaunch_argv(
             ["--resume", "abc"], preserve_inherited=False, original_argv=original
@@ -147,7 +147,7 @@ class TestRelaunch:
             raise SystemExit(0)
 
         monkeypatch.setattr(relaunch_mod.os, "execvp", fake_execvp)
-        monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: "/usr/bin/hermes")
+        monkeypatch.setattr(relaunch_mod, "resolve_max_bin", lambda: "/usr/bin/hermes")
 
         with pytest.raises(SystemExit):
             relaunch_mod.relaunch(["--resume", "abc"])
@@ -160,7 +160,7 @@ class TestRelaunch:
         hermes).  relaunch() must detect win32 and use subprocess.run +
         sys.exit instead."""
         monkeypatch.setattr(relaunch_mod.sys, "platform", "win32")
-        monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: r"C:\Users\test\hermes.exe")
+        monkeypatch.setattr(relaunch_mod, "resolve_max_bin", lambda: r"C:\Users\test\hermes.exe")
 
         import subprocess as _subprocess
 
@@ -193,7 +193,7 @@ class TestRelaunch:
     def test_windows_propagates_child_exit_code(self, monkeypatch):
         """A non-zero exit from the child should flow through to sys.exit."""
         monkeypatch.setattr(relaunch_mod.sys, "platform", "win32")
-        monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: r"C:\hermes.exe")
+        monkeypatch.setattr(relaunch_mod, "resolve_max_bin", lambda: r"C:\hermes.exe")
 
         import subprocess as _subprocess
 
@@ -214,7 +214,7 @@ class TestRelaunch:
         we must NOT let it bubble up as a cryptic traceback — print a
         user-readable hint and sys.exit(1)."""
         monkeypatch.setattr(relaunch_mod.sys, "platform", "win32")
-        monkeypatch.setattr(relaunch_mod, "resolve_hermes_bin", lambda: r"C:\missing.exe")
+        monkeypatch.setattr(relaunch_mod, "resolve_max_bin", lambda: r"C:\missing.exe")
 
         import subprocess as _subprocess
 
@@ -232,8 +232,8 @@ class TestRelaunch:
         assert "open a new terminal" in err.lower() or "path" in err.lower()
 
 
-class TestResolveHermesBinWindowsPyGuard:
-    """On Windows, resolve_hermes_bin MUST NOT return a .py path.
+class TestResolveMaxBinWindowsPyGuard:
+    """On Windows, resolve_max_bin MUST NOT return a .py path.
     os.access(x, os.X_OK) returns True for .py files on Windows because
     PATHEXT includes .py when the Python launcher is installed — but
     subprocess.run can't actually exec a .py directly, so the relaunch
@@ -253,10 +253,10 @@ class TestResolveHermesBinWindowsPyGuard:
         # exercise the None-fallback path (that's a separate test).
         monkeypatch.setattr(
             relaunch_mod.shutil, "which",
-            lambda name: r"C:\venv\Scripts\hermes.exe" if name == "hermes" else None,
+            lambda name: r"C:\venv\Scripts\hermes.exe" if name == "max" else None,
         )
 
-        bin_path = relaunch_mod.resolve_hermes_bin()
+        bin_path = relaunch_mod.resolve_max_bin()
         # Must NOT be the .py — must be the hermes.exe PATH entry.
         assert bin_path == r"C:\venv\Scripts\hermes.exe"
 
@@ -266,16 +266,16 @@ class TestResolveHermesBinWindowsPyGuard:
         because POSIX exec can route through the shebang line."""
         if sys.platform == "win32":
             pytest.skip("POSIX semantics")
-        script = tmp_path / "hermes"
+        script = tmp_path / "max"
         script.write_text("#!/usr/bin/env python3\n")
         script.chmod(0o755)
         monkeypatch.setattr(relaunch_mod.sys, "argv", [str(script), "chat"])
-        assert relaunch_mod.resolve_hermes_bin() == str(script)
+        assert relaunch_mod.resolve_max_bin() == str(script)
 
-    def test_windows_py_argv0_with_no_hermes_on_path_returns_none(self, monkeypatch, tmp_path):
+    def test_windows_py_argv0_with_no_max_on_path_returns_none(self, monkeypatch, tmp_path):
         """Bulletproof fallback: if argv0 is .py on Windows AND hermes.exe
         isn't on PATH, return None so the caller falls back to
-        python -m hermes_cli.main."""
+        python -m max_cli.main."""
         script = tmp_path / "main.py"
         script.write_text("# stub")
 
@@ -283,4 +283,4 @@ class TestResolveHermesBinWindowsPyGuard:
         monkeypatch.setattr(relaunch_mod.sys, "argv", [str(script), "chat"])
         monkeypatch.setattr(relaunch_mod.shutil, "which", lambda name: None)
 
-        assert relaunch_mod.resolve_hermes_bin() is None
+        assert relaunch_mod.resolve_max_bin() is None

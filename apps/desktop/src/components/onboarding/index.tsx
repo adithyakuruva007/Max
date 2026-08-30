@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Input } from '@/components/ui/input'
-import { getGlobalModelOptions } from '@/hermes'
+import { getGlobalModelOptions } from '@/max'
 import { useI18n } from '@/i18n'
 import { Check, ChevronDown, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
@@ -25,7 +25,7 @@ import {
   setOnboardingMode,
   startProviderOAuth
 } from '@/store/onboarding'
-import type { ModelOptionProvider, OAuthProvider } from '@/types/hermes'
+import type { ModelOptionProvider, OAuthProvider } from '@/types/max'
 
 import { DocsLink, FlowPanel, Status } from './flow'
 import { FeaturedProviderRow, KeyProviderRow, ProviderRow, sortProviders } from './providers'
@@ -77,13 +77,13 @@ const API_KEY_OPTIONS: ApiKeyOption[] = [
     id: 'local',
     name: 'Local / custom endpoint',
     envKey: 'OPENAI_BASE_URL',
-    docsUrl: 'https://github.com/NousResearch/hermes-agent#bring-your-own-endpoint',
+    docsUrl: 'https://github.com/StardustResearch/max-agent#bring-your-own-endpoint',
     placeholder: 'http://127.0.0.1:8000/v1'
   }
 ]
 
 // Build the FULL API-key provider catalog from the backend model options so the
-// onboarding / Providers key form lists every `api_key` provider `hermes model`
+// onboarding / Providers key form lists every `api_key` provider `max model`
 // knows about — not just the hand-curated five. Curated entries keep their
 // richer copy + placeholders and float to the top (recommended defaults); every
 // other api_key provider is appended with a generic "paste {KEY}" affordance.
@@ -371,11 +371,12 @@ function Header() {
 }
 
 export const FEATURED_ID = 'nous'
-const SHOW_ALL_KEY = 'hermes-onboarding-show-all-v1'
+const SHOW_ALL_KEY = 'max-onboarding-show-all-v1'
+const SHOW_ALL_KEY_OLD = 'hermes-onboarding-show-all-v1'
 
 const readShowAll = () => {
   try {
-    return window.localStorage.getItem(SHOW_ALL_KEY) === '1'
+    return (window.localStorage.getItem(SHOW_ALL_KEY) ?? window.localStorage.getItem(SHOW_ALL_KEY_OLD)) === '1'
   } catch {
     return false
   }

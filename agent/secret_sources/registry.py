@@ -14,7 +14,7 @@ so no individual source can get it wrong:
 * provenance: which source supplied every applied var
 
 The single entry point for startup is :func:`apply_all`, called from
-``hermes_cli.env_loader._apply_external_secret_sources()``.
+``max_cli.env_loader._apply_external_secret_sources()``.
 
 Plugins register additional sources via
 ``PluginContext.register_secret_source()`` which lands in
@@ -113,7 +113,7 @@ def register_source(source: SecretSource, *, replace: bool = False) -> bool:
     if getattr(source, "api_version", None) != SECRET_SOURCE_API_VERSION:
         logger.warning(
             "Ignoring secret source '%s': built against secret-source API v%s, "
-            "this Hermes speaks v%s",
+            "this Max speaks v%s",
             name, getattr(source, "api_version", "?"), SECRET_SOURCE_API_VERSION,
         )
         return False

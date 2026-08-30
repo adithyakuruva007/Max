@@ -1,10 +1,11 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { dualEnv } from '../config/env.js'
 
 const MAX = 1000
-const dir = process.env.HERMES_HOME ?? join(homedir(), '.hermes')
-const file = join(dir, '.hermes_history')
+const dir = dualEnv('HOME') ?? join(homedir(), '.max')
+const file = join(dir, '.max_history')
 
 let cache: string[] | null = null
 

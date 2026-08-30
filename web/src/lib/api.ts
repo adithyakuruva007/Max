@@ -1,4 +1,4 @@
-import { buildHermesWebSocketUrl } from "@hermes/shared";
+import { buildMaxWebSocketUrl } from "@max/shared";
 
 // The dashboard can be served either at the root of its host (e.g.
 // https://kanban.tilos.com/) or under a URL prefix when reverse-proxied
@@ -9,15 +9,20 @@ import { buildHermesWebSocketUrl } from "@hermes/shared";
 // rebuild. Empty string means "served at root".
 function readBasePath(): string {
   if (typeof window === "undefined") return "";
-  const raw = window.__HERMES_BASE_PATH__ ?? "";
+  const raw = window.__MAX_BASE_PATH__ ?? window.__HERMES_BASE_PATH__ ?? "";
   if (!raw) return "";
   // Normalise: ensure leading slash, strip trailing slash.
   const withLead = raw.startsWith("/") ? raw : `/${raw}`;
   return withLead.replace(/\/+$/, "");
 }
 
-export const HERMES_BASE_PATH = readBasePath();
-const BASE = HERMES_BASE_PATH;
+export const MAX_BASE_PATH = readBasePath();
+export const HERMES_BASE_PATH = MAX_BASE_PATH; // backward compat alias
+const BASE = MAX_BASE_PATH;
+
+export function getSessionToken(): string | undefined {
+  return window.__MAX_SESSION_TOKEN__ ?? getSessionToken();
+}
 
 import type { DashboardTheme } from "@/themes/types";
 
@@ -25,6 +30,8 @@ import type { DashboardTheme } from "@/themes/types";
 // Injected into index.html by the server — never fetched via API.
 declare global {
   interface Window {
+    __MAX_SESSION_TOKEN__?: string;
+    __MAX_BASE_PATH__?: string;
     __HERMES_SESSION_TOKEN__?: string;
     __HERMES_BASE_PATH__?: string;
     /** Server-injected flag: ``true`` when the dashboard's OAuth gate is
@@ -35,7 +42,7 @@ declare global {
   }
 }
 let _sessionToken: string | null = null;
-const SESSION_HEADER = "X-Hermes-Session-Token";
+const SESSION_HEADER = "X-Max-Session-Token";
 
 function setSessionHeader(headers: Headers, token: string): void {
   if (!headers.has(SESSION_HEADER)) {
@@ -100,7 +107,7 @@ export async function fetchJSON<T>(
   url = withManagementProfile(url);
   // Inject the session token into all /api/ requests.
   const headers = new Headers(init?.headers);
-  const token = window.__HERMES_SESSION_TOKEN__;
+  const token = getSessionToken();
   if (token) {
     setSessionHeader(headers, token);
   }
@@ -137,7 +144,7 @@ export async function fetchJSON<T>(
       // fallback the post-login handler can read.
       try {
         sessionStorage.setItem(
-          "hermes.lastLocation",
+          "max.lastLocation",
           window.location.pathname + window.location.search,
         );
       } catch {
@@ -150,7 +157,7 @@ export async function fetchJSON<T>(
     // Loopback mode: ``_SESSION_TOKEN`` rotates on every server restart
     // (``hermes update``, ``hermes gateway restart``, etc.). A tab kept
     // open across the restart holds the OLD token in
-    // ``window.__HERMES_SESSION_TOKEN__`` from the previous HTML render,
+    // ``getSessionToken()`` from the previous HTML render,
     // so every fetch returns 401. The HTML is served ``Cache-Control:
     // no-store`` so a reload picks up the freshly-injected token. Trigger
     // that reload once on the first stale-token 401 — gated mode is
@@ -160,13 +167,14 @@ export async function fetchJSON<T>(
       let alreadyReloaded = false;
       try {
         alreadyReloaded =
+          sessionStorage.getItem("max.tokenReloadAttempted") === "1" ||
           sessionStorage.getItem("hermes.tokenReloadAttempted") === "1";
       } catch {
         /* SSR / privacy mode — fall through to throw */
       }
       if (!alreadyReloaded) {
         try {
-          sessionStorage.setItem("hermes.tokenReloadAttempted", "1");
+          sessionStorage.setItem("max.tokenReloadAttempted", "1");
         } catch {
           /* SSR / privacy mode — best effort */
         }
@@ -177,9 +185,10 @@ export async function fetchJSON<T>(
   }
   if (res.ok) {
     // Clear the stale-token reload guard: a successful 2xx proves the
-    // current ``window.__HERMES_SESSION_TOKEN__`` is valid, so the next
+    // current ``getSessionToken()`` is valid, so the next
     // 401 — if any — should be allowed to trigger its own reload cycle.
     try {
+      sessionStorage.removeItem("max.tokenReloadAttempted");
       sessionStorage.removeItem("hermes.tokenReloadAttempted");
     } catch {
       /* SSR / privacy mode — ignore */
@@ -199,18 +208,18 @@ function pluginPath(name: string): string {
 
 async function getSessionToken(): Promise<string> {
   if (_sessionToken) return _sessionToken;
-  const injected = window.__HERMES_SESSION_TOKEN__;
+  const injected = getSessionToken();
   if (injected) {
     _sessionToken = injected;
     return _sessionToken;
   }
-  throw new Error("Session token not available — page must be served by the Hermes dashboard server");
+  throw new Error("Session token not available — page must be served by the Max dashboard server");
 }
 
 /**
  * Fetch a single-use ticket for a WebSocket upgrade in gated mode.
  *
- * The dashboard's gated-mode WS auth (``hermes_cli.web_server._ws_auth_ok``)
+ * The dashboard's gated-mode WS auth (``max_cli.web_server._ws_auth_ok``)
  * rejects the legacy ``?token=<_SESSION_TOKEN>`` path and only accepts
  * ``?ticket=<minted>`` consumed against the in-memory ticket store. Browsers
  * can't set ``Authorization`` on a WS upgrade, so this round-trip via the
@@ -240,7 +249,7 @@ export async function buildWsAuthParam(): Promise<[string, string]> {
     const { ticket } = await getWsTicket();
     return ["ticket", ticket];
   }
-  const token = window.__HERMES_SESSION_TOKEN__ ?? "";
+  const token = getSessionToken() ?? "";
   return ["token", token];
 }
 
@@ -251,9 +260,9 @@ export async function buildWsAuthParam(): Promise<[string, string]> {
  * the caller can read ``.blob()`` / ``.formData()`` / stream it.
  *
  * Auth, in both modes, exactly as ``fetchJSON`` does it:
- *  - loopback / ``--insecure``: attach the ``X-Hermes-Session-Token`` header.
+ *  - loopback / ``--insecure``: attach the ``X-Max-Session-Token`` header.
  *  - gated OAuth: no token header (it's absent by design); the
- *    ``hermes_session_at`` cookie rides along via ``credentials: 'include'``.
+ *    ``max_session_at`` cookie rides along via ``credentials: 'include'``.
  *
  * Unlike ``fetchJSON`` this does NOT parse the body, does NOT throw on
  * non-2xx (the caller decides — a 404 on a download is meaningful), and
@@ -266,7 +275,7 @@ export async function authedFetch(
   init?: RequestInit,
 ): Promise<Response> {
   const headers = new Headers(init?.headers);
-  const token = window.__HERMES_SESSION_TOKEN__;
+  const token = getSessionToken();
   if (token) {
     setSessionHeader(headers, token);
   }
@@ -282,7 +291,7 @@ export async function authedFetch(
  * with the correct auth query param appended for the active mode (fresh
  * single-use ``ticket`` in gated mode, ``token`` in loopback). Plugins and
  * the SPA should use this instead of hand-assembling a WS URL + reading
- * ``window.__HERMES_SESSION_TOKEN__`` directly, so the gated-mode ticket
+ * ``getSessionToken()`` directly, so the gated-mode ticket
  * path can never be forgotten.
  *
  * ``path`` is the dashboard-relative path (e.g.
@@ -294,7 +303,7 @@ export async function buildWsUrl(
   path: string,
   params?: Record<string, string>,
 ): Promise<string> {
-  return buildHermesWebSocketUrl({
+  return buildMaxWebSocketUrl({
     authParam: await buildWsAuthParam(),
     basePath: BASE,
     params,
@@ -925,11 +934,11 @@ export const api = {
   // Gateway / update actions
   restartGateway: () =>
     fetchJSON<ActionResponse>("/api/gateway/restart", { method: "POST" }),
-  updateHermes: () =>
-    fetchJSON<ActionResponse>("/api/hermes/update", { method: "POST" }),
-  checkHermesUpdate: (force = false) =>
+  updateMax: () =>
+    fetchJSON<ActionResponse>("/api/max/update", { method: "POST" }),
+  checkMaxUpdate: (force = false) =>
     fetchJSON<UpdateCheckResponse>(
-      `/api/hermes/update/check${force ? "?force=true" : ""}`,
+      `/api/max/update/check${force ? "?force=true" : ""}`,
     ),
   getActionStatus: (name: string, lines = 200) =>
     fetchJSON<ActionStatusResponse>(
@@ -1715,7 +1724,7 @@ export interface SystemStats {
   hostname: string;
   python_version: string;
   python_impl: string;
-  hermes_version: string;
+  max_version: string;
   cpu_count: number | null;
   psutil: boolean;
   cpu_percent?: number;
@@ -1798,6 +1807,7 @@ export interface StatusResponse {
   /** False when the dashboard is running in a hosted/managed layout where
    * updates are handled by the outer launcher instead of ``hermes update``. */
   can_update_hermes?: boolean;
+  can_update_max?: boolean;
   config_path: string;
   config_version: number;
   env_path: string;
@@ -1808,7 +1818,7 @@ export interface StatusResponse {
   gateway_running: boolean;
   gateway_state: string | null;
   gateway_updated_at: string | null;
-  hermes_home: string;
+  max_home: string;
   latest_config_version: number;
   release_date: string;
   version: string;
@@ -2130,7 +2140,7 @@ export interface CronJob {
   id: string;
   profile?: string | null;
   profile_name?: string | null;
-  hermes_home?: string | null;
+  max_home?: string | null;
   is_default_profile?: boolean;
   name?: string | null;
   prompt?: string | null;

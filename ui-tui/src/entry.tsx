@@ -3,7 +3,7 @@
 // nudges chalk / supports-color before either package is initialized.
 import './lib/forceTruecolor.js'
 
-import type { FrameEvent } from '@hermes/ink'
+import type { FrameEvent } from '@max/ink'
 
 import { DASHBOARD_TUI_MODE, TERMUX_TUI_MODE } from './config/env.js'
 import { GatewayClient } from './gatewayClient.js'
@@ -13,6 +13,7 @@ import { type MemorySnapshot, startMemoryMonitor } from './lib/memoryMonitor.js'
 import { openExternalUrl } from './lib/openExternalUrl.js'
 import { recordParentLifecycle } from './lib/parentLog.js'
 import { resetTerminalModes } from './lib/terminalModes.js'
+import { dualEnv } from './config/env.js'
 
 if (!process.stdin.isTTY) {
   console.log('hermes-tui: no TTY')
@@ -115,14 +116,14 @@ const stopMemoryMonitor = startMemoryMonitor({
   }
 })
 
-if (process.env.HERMES_HEAPDUMP_ON_START === '1') {
+if (dualEnv('HEAPDUMP_ON_START') === '1') {
   void performHeapDump('manual')
 }
 
 process.on('beforeExit', () => stopMemoryMonitor())
 
 const [ink, { App }, { logFrameEvent }, { trackFrame }] = await Promise.all([
-  import('@hermes/ink'),
+  import('@max/ink'),
   import('./app.js'),
   import('./lib/perfPane.js'),
   import('./lib/fpsStore.js')

@@ -2,13 +2,13 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { $desktopOnboarding, type DesktopOnboardingState, type OnboardingContext } from '@/store/onboarding'
-import type { OAuthProvider } from '@/types/hermes'
+import type { OAuthProvider } from '@/types/max'
 
 import { Picker } from '.'
 
 function provider(id: string, name = id): OAuthProvider {
   return {
-    cli_command: `hermes login ${id}`,
+    cli_command: `max login ${id}`,
     docs_url: `https://example.com/${id}`,
     flow: 'pkce',
     id,

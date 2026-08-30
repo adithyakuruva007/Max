@@ -1,7 +1,7 @@
 """Tests for gateway restart-loop defenses (#30719).
 
 Covers:
-- Defense 1: gateway stop/restart refuse when _HERMES_GATEWAY=1
+- Defense 1: gateway stop/restart refuse when _MAX_GATEWAY=1
 - Defense 2: cron create rejects prompts containing gateway lifecycle commands
 - _contains_gateway_lifecycle_command pattern matching
 """
@@ -12,7 +12,7 @@ from argparse import Namespace
 
 import pytest
 
-from hermes_cli.cron import (
+from max_cli.cron import (
     _contains_gateway_lifecycle_command,
     cron_command,
 )
@@ -26,22 +26,22 @@ class TestGatewayLifecyclePattern:
     """Verify the regex catches gateway lifecycle commands."""
 
     @pytest.mark.parametrize("text", [
-        "hermes gateway restart",
-        "hermes gateway stop",
-        "hermes  gateway  restart",         # double spaces
+        "max gateway restart",
+        "max gateway stop",
+        "max  gateway  restart",         # double spaces
         "Hermez Gateway Restart".lower().replace("z", "s"),  # case handled
         "HERMES GATEWAY RESTART",           # uppercase
     ])
-    def test_hermes_gateway_commands(self, text):
+    def test_max_gateway_commands(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
 
     @pytest.mark.parametrize("text", [
-        "launchctl kickstart gui/501/ai.hermes.gateway",
-        "launchctl unload ~/Library/LaunchAgents/ai.hermes.gateway.plist",
-        "launchctl stop ai.hermes.gateway",
-        "systemctl restart hermes-gateway",
-        "systemctl stop hermes-gateway.service",
-        "systemctl start hermes-gateway",
+        "launchctl kickstart gui/501/ai.max.gateway",
+        "launchctl unload ~/Library/LaunchAgents/ai.max.gateway.plist",
+        "launchctl stop ai.max.gateway",
+        "systemctl restart max-gateway",
+        "systemctl stop max-gateway.service",
+        "systemctl start max-gateway",
     ])
     def test_service_manager_commands(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
@@ -56,25 +56,25 @@ class TestGatewayLifecyclePattern:
 
     @pytest.mark.parametrize("text", [
         "restart the server application",
-        "hermes cron list",
-        "hermes update",
-        "hermes config set model claude",
+        "max cron list",
+        "max update",
+        "max config set model claude",
         "echo 'just a normal cron job'",
         "run the backup script",
         "gateway is running fine",
-        # `hermes gateway start` is benign — starting a gateway from inside a
+        # `max gateway start` is benign — starting a gateway from inside a
         # gateway is a no-op / "already running", and a legit cron job may
         # start a sibling profile's gateway. Only restart/stop/kill are the
         # foot-gun (#30719 lists only those).
-        "hermes gateway start",
-        "hermes gateway start --all",
+        "max gateway start",
+        "max gateway start --all",
         # Tightened launchctl/systemctl branches: ops on NON-gateway hermes
         # services must not be falsely blocked (the old `.*hermes` matched any
         # hermes token).
-        "launchctl unload ai.hermes.update-checker.plist",
-        "launchctl restart ai.hermes.daemon",
-        "systemctl restart hermes-meta.service",
-        "systemctl restart hermes-cron-helper",
+        "launchctl unload ai.max.update-checker.plist",
+        "launchctl restart ai.max.daemon",
+        "systemctl restart max-meta.service",
+        "systemctl restart max-cron-helper",
         # Regression (#30728 follow-up): legit prompts that merely mention an
         # unrelated gateway + a restart must NOT be blocked. The cron prompt is
         # fed to an LLM, not a shell, so substring detection on English text is
@@ -98,7 +98,7 @@ class TestCronCreateLifecycleBlock:
         monkeypatch.setattr("cron.jobs.JOBS_FILE", tmp_path / "cron" / "jobs.json")
         monkeypatch.setattr("cron.jobs.OUTPUT_DIR", tmp_path / "cron" / "output")
 
-    def test_block_hermes_gateway_restart(self, capsys):
+    def test_block_max_gateway_restart(self, capsys):
         args = Namespace(
             cron_command="create",
             schedule="30m",
@@ -123,7 +123,7 @@ class TestCronCreateLifecycleBlock:
         args = Namespace(
             cron_command="create",
             schedule="0 9 * * *",
-            prompt="Run launchctl kickstart -k gui/501/ai.hermes.gateway",
+            prompt="Run launchctl kickstart -k gui/501/ai.max.gateway",
             name=None,
             deliver=None,
             repeat=None,
@@ -141,10 +141,10 @@ class TestCronCreateLifecycleBlock:
 
     def test_block_script_with_lifecycle_command(self, tmp_path, capsys, monkeypatch):
         # A no_agent job whose script IS the job (the issue's real abuse path:
-        # restart_hermes_gateway_once.sh). The script must live under
-        # HERMES_HOME/scripts so the scheduler — and the guard — resolve it.
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
-        scripts_dir = tmp_path / ".hermes" / "scripts"
+        # restart_max_gateway_once.sh). The script must live under
+        # MAX_HOME/scripts so the scheduler — and the guard — resolve it.
+        monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
+        scripts_dir = tmp_path / ".max" / "scripts"
         scripts_dir.mkdir(parents=True)
         (scripts_dir / "restart.sh").write_text("#!/bin/bash\nhermes gateway restart\n")
         args = Namespace(
@@ -217,19 +217,19 @@ class TestCronCreateLifecycleBlock:
 # ---------------------------------------------------------------------------
 
 class TestGatewaySelfTargetingGuard:
-    """Verify hermes gateway stop/restart refuse when _HERMES_GATEWAY=1."""
+    """Verify hermes gateway stop/restart refuse when _MAX_GATEWAY=1."""
 
     def test_stop_refuses_inside_gateway(self, monkeypatch):
-        monkeypatch.setenv("_HERMES_GATEWAY", "1")
-        from hermes_cli.gateway import gateway_command
+        monkeypatch.setenv("_MAX_GATEWAY", "1")
+        from max_cli.gateway import gateway_command
         args = Namespace(gateway_command="stop", all=False, system=False)
         with pytest.raises(SystemExit) as exc_info:
             gateway_command(args)
         assert exc_info.value.code == 1
 
     def test_restart_refuses_inside_gateway(self, monkeypatch):
-        monkeypatch.setenv("_HERMES_GATEWAY", "1")
-        from hermes_cli.gateway import gateway_command
+        monkeypatch.setenv("_MAX_GATEWAY", "1")
+        from max_cli.gateway import gateway_command
         args = Namespace(gateway_command="restart", all=False, system=False)
         with pytest.raises(SystemExit) as exc_info:
             gateway_command(args)
@@ -240,8 +240,8 @@ class TestGatewaySelfTargetingGuard:
         # fire. Prove control reaches the real stop path (rather than driving
         # real signal delivery, which would trip the live-system guard) by
         # short-circuiting the first downstream call with a sentinel.
-        monkeypatch.delenv("_HERMES_GATEWAY", raising=False)
-        import hermes_cli.gateway as gw
+        monkeypatch.delenv("_MAX_GATEWAY", raising=False)
+        import max_cli.gateway as gw
 
         class _Reached(Exception):
             pass
@@ -259,8 +259,8 @@ class TestGatewaySelfTargetingGuard:
         # Same as above for restart: guard must not fire when the marker is
         # unset. The first thing restart does after the guard is the s6
         # dispatch check — sentinel it so we never reach real signal delivery.
-        monkeypatch.delenv("_HERMES_GATEWAY", raising=False)
-        import hermes_cli.gateway as gw
+        monkeypatch.delenv("_MAX_GATEWAY", raising=False)
+        import max_cli.gateway as gw
 
         class _Reached(Exception):
             pass
@@ -280,9 +280,9 @@ class TestGatewaySelfTargetingGuard:
 # ---------------------------------------------------------------------------
 
 class TestTerminalToolGatewayLifecycleGuard:
-    """terminal_tool must refuse gateway lifecycle commands when _HERMES_GATEWAY=1.
+    """terminal_tool must refuse gateway lifecycle commands when _MAX_GATEWAY=1.
 
-    Issue #37453: systemctl --user restart hermes-gateway runs as a child of the
+    Issue #37453: systemctl --user restart max-gateway runs as a child of the
     gateway process.  When systemd delivers SIGTERM the gateway kills its own
     restart command mid-execution — the service may never restart.  The guard
     must fire before execution, unconditionally (force=True cannot bypass it).
@@ -306,16 +306,16 @@ class TestTerminalToolGatewayLifecycleGuard:
         monkeypatch.setattr(tt, "_task_env_overrides", {})
         monkeypatch.setattr(tt, "_get_env_config", self._minimal_config)
         if inside_gateway:
-            monkeypatch.setenv("_HERMES_GATEWAY", "1")
+            monkeypatch.setenv("_MAX_GATEWAY", "1")
         else:
-            monkeypatch.delenv("_HERMES_GATEWAY", raising=False)
+            monkeypatch.delenv("_MAX_GATEWAY", raising=False)
 
     @pytest.mark.parametrize("cmd", [
-        "systemctl restart hermes-gateway",
-        "systemctl --user restart hermes-gateway",
-        "systemctl stop hermes-gateway.service",
-        "hermes gateway restart",
-        "launchctl kickstart gui/501/ai.hermes.gateway",
+        "systemctl restart max-gateway",
+        "systemctl --user restart max-gateway",
+        "systemctl stop max-gateway.service",
+        "max gateway restart",
+        "launchctl kickstart gui/501/ai.max.gateway",
         "pkill -f hermes.*gateway",
     ])
     def test_blocks_lifecycle_commands_inside_gateway(self, monkeypatch, cmd):
@@ -332,7 +332,7 @@ class TestTerminalToolGatewayLifecycleGuard:
         self._patch_env(monkeypatch, self._make_fake_env(), inside_gateway=True)
 
         result = json.loads(tt.terminal_tool(
-            command="systemctl restart hermes-gateway", force=True
+            command="systemctl restart max-gateway", force=True
         ))
 
         assert result["exit_code"] == 1
@@ -359,7 +359,7 @@ class TestTerminalToolGatewayLifecycleGuard:
         assert calls == ["systemctl status nginx"]
 
     def test_guard_inactive_outside_gateway(self, monkeypatch):
-        """Without _HERMES_GATEWAY=1 the lifecycle guard must not fire."""
+        """Without _MAX_GATEWAY=1 the lifecycle guard must not fire."""
         import tools.terminal_tool as tt
 
         calls = []
@@ -373,12 +373,12 @@ class TestTerminalToolGatewayLifecycleGuard:
         self._patch_env(monkeypatch, _FakeEnv(), inside_gateway=False)
         monkeypatch.setattr(tt, "_check_all_guards", lambda cmd, env, **kwargs: {"approved": True})
 
-        result = json.loads(tt.terminal_tool(command="systemctl restart hermes-gateway"))
+        result = json.loads(tt.terminal_tool(command="systemctl restart max-gateway"))
 
         # Outside the gateway the lifecycle guard doesn't block — the normal
         # approval flow handles it (here mocked as approved).
         assert result["exit_code"] == 0
-        assert calls == ["systemctl restart hermes-gateway"]
+        assert calls == ["systemctl restart max-gateway"]
 
 
 # ---------------------------------------------------------------------------
@@ -411,7 +411,7 @@ class TestLifecycleGuardModule:
         script to slip through."""
         from cron.lifecycle_guard import GatewayLifecycleBlocked, check_gateway_lifecycle
         script = tmp_path / "ops.sh"
-        script.write_text("hermes gateway stop\n")
+        script.write_text("max gateway stop\n")
         with pytest.raises(GatewayLifecycleBlocked):
             check_gateway_lifecycle("daily ops job", str(script))
 
@@ -429,15 +429,15 @@ class TestLifecycleGuardModule:
         check_gateway_lifecycle("clean prompt", str(tmp_path / "nonexistent.sh"))
 
     def test_relative_script_resolved_under_scripts_dir(self, tmp_path, monkeypatch):
-        """A bare/relative script name resolves under HERMES_HOME/scripts (the
+        """A bare/relative script name resolves under MAX_HOME/scripts (the
         same place the scheduler runs it from) — otherwise the guard would read
         a nonexistent relative path and scan prompt-only content."""
         from cron.lifecycle_guard import GatewayLifecycleBlocked, check_gateway_lifecycle
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
-        scripts_dir = tmp_path / ".hermes" / "scripts"
+        monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
+        scripts_dir = tmp_path / ".max" / "scripts"
         scripts_dir.mkdir(parents=True)
         (scripts_dir / "restart.sh").write_text(
-            "launchctl kickstart -k gui/501/ai.hermes.gateway\n"
+            "launchctl kickstart -k gui/501/ai.max.gateway\n"
         )
         with pytest.raises(GatewayLifecycleBlocked):
             check_gateway_lifecycle("daily", "restart.sh")
@@ -450,7 +450,7 @@ class TestLifecycleGuardModule:
 class TestCreateJobBlocksLifecycleCommands:
     """The regression the CLI-layer-only guard could not catch: the agent's
     `cronjob` model tool calls cron.jobs.create_job directly, bypassing
-    hermes_cli.cron.cron_create. Enforcing at create_job covers both."""
+    max_cli.cron.cron_create. Enforcing at create_job covers both."""
 
     @pytest.fixture(autouse=True)
     def _setup_cron_dir(self, tmp_path, monkeypatch):
@@ -473,8 +473,8 @@ class TestCreateJobBlocksLifecycleCommands:
     def test_cronjob_tool_surfaces_block_as_error(self, tmp_path, monkeypatch):
         """End-to-end through the model tool: the block comes back as
         result['error'] with the #30719 hint, not an unhandled exception."""
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
-        (tmp_path / ".hermes").mkdir(parents=True)
+        monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
+        (tmp_path / ".max").mkdir(parents=True)
         from tools.cronjob_tools import cronjob
         result = json.loads(cronjob(
             action="create", schedule="0 9 * * *",
@@ -495,8 +495,8 @@ class TestRestartLoopGuard:
 
     @pytest.fixture(autouse=True)
     def _isolate_state(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
-        (tmp_path / ".hermes").mkdir(parents=True)
+        monkeypatch.setenv("MAX_HOME", str(tmp_path / ".max"))
+        (tmp_path / ".max").mkdir(parents=True)
         import gateway.restart_loop_guard as rlg
         rlg.clear()
 

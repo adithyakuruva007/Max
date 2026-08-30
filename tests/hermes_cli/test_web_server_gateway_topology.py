@@ -7,8 +7,8 @@ gateway detection, and per-platform port resolution.
 
 import pytest
 
-from hermes_cli import web_server
-from hermes_cli.web_server import (
+from max_cli import web_server
+from max_cli.web_server import (
     _collect_profile_gateway_topology,
     _profile_platform_ports,
 )
@@ -91,7 +91,7 @@ def _patch_topology(monkeypatch, homes, running, runtimes):
     ``homes``: list of (name, Path); ``running``: set of profile names with a
     live gateway; ``runtimes``: {name: runtime dict}.
     """
-    import hermes_cli.profiles as profiles_mod
+    import max_cli.profiles as profiles_mod
     import gateway.status as status_mod
 
     monkeypatch.setattr(profiles_mod, "profiles_to_serve", lambda multiplex: homes)
@@ -159,7 +159,7 @@ class TestCollectProfileGatewayTopology:
         assert ports == {"default": {"webhook": 8644}, "coder": {"webhook": 9644}}
 
     def test_enumeration_failure_degrades_gracefully(self, monkeypatch):
-        import hermes_cli.profiles as profiles_mod
+        import max_cli.profiles as profiles_mod
 
         def _boom(multiplex):
             raise RuntimeError("no profiles root")
@@ -175,18 +175,18 @@ class TestCollectProfileGatewayTopology:
 
 class TestStatusEndpointTopology:
     @pytest.fixture(autouse=True)
-    def _setup_client(self, monkeypatch, _isolate_hermes_home):
+    def _setup_client(self, monkeypatch, _isolate_max_home):
         try:
             from starlette.testclient import TestClient
         except ImportError:
             pytest.skip("fastapi/starlette not installed")
 
-        import hermes_state
-        from hermes_constants import get_hermes_home
-        from hermes_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
+        import max_state
+        from max_constants import get_max_home
+        from max_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
 
         monkeypatch.setattr(
-            hermes_state, "DEFAULT_DB_PATH", get_hermes_home() / "state.db"
+            max_state, "DEFAULT_DB_PATH", get_max_home() / "state.db"
         )
         self.client = TestClient(app)
         self.client.headers[_SESSION_HEADER_NAME] = _SESSION_TOKEN
@@ -210,7 +210,7 @@ class TestStatusEndpointTopology:
 
     def test_profile_names_and_mode_public_when_auth_gated(self, monkeypatch):
         # Profile NAMES + gateway_mode are low-sensitivity product surface: the
-        # Hermes Cloud Portal reads /api/status over the network (a gated bind)
+        # Max Cloud Portal reads /api/status over the network (a gated bind)
         # to render the profile list, so they must survive the auth gate.
         monkeypatch.setattr(
             web_server, "_collect_profile_gateway_topology",
@@ -228,9 +228,9 @@ class TestStatusEndpointTopology:
             assert data["profiles"] == ["default", "coder"]
             assert data["gateway_mode"] == "multiplex"
             # But the per-gateway detail (host ports = recon) stays gated,
-            # alongside hermes_home / gateway_pid.
+            # alongside max_home / gateway_pid.
             assert "gateways" not in data
-            assert "hermes_home" not in data
+            assert "max_home" not in data
             assert "gateway_pid" not in data
         finally:
             monkeypatch.setattr(

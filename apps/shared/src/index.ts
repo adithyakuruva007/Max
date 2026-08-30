@@ -10,12 +10,12 @@ export {
 } from './json-rpc-gateway'
 export {
   GatewayReauthRequiredError,
-  buildHermesWebSocketUrl,
+  buildMaxWebSocketUrl,
   isGatewayReauthRequired,
   resolveGatewayWsUrl,
   type GatewayAuthMode,
   type GatewayWsConnection,
-  type HermesWebSocketUrlOptions,
+  type MaxWebSocketUrlOptions,
   type ResolveGatewayWsUrlDeps,
   type WebSocketAuthParam
 } from './websocket-url'

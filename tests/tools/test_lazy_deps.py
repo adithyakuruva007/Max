@@ -119,18 +119,18 @@ class TestSecurityGating:
             ld.ensure("test.feat", prompt=False)
 
     def test_disabled_via_env_var(self, monkeypatch):
-        monkeypatch.setenv("HERMES_DISABLE_LAZY_INSTALLS", "1")
+        monkeypatch.setenv("MAX_DISABLE_LAZY_INSTALLS", "1")
         # Bypass config layer; the env var alone must disable.
         monkeypatch.setattr(
-            "hermes_cli.config.load_config",
+            "max_cli.config.load_config",
             lambda: {"security": {"allow_lazy_installs": True}},
         )
         assert ld._allow_lazy_installs() is False
 
     def test_default_allows(self, monkeypatch):
-        monkeypatch.delenv("HERMES_DISABLE_LAZY_INSTALLS", raising=False)
+        monkeypatch.delenv("MAX_DISABLE_LAZY_INSTALLS", raising=False)
         monkeypatch.setattr(
-            "hermes_cli.config.load_config",
+            "max_cli.config.load_config",
             lambda: {"security": {}},
         )
         assert ld._allow_lazy_installs() is True
@@ -138,9 +138,9 @@ class TestSecurityGating:
     def test_config_failure_fails_open(self, monkeypatch):
         # If config can't be read at all, we ALLOW installs rather than
         # blocking the user out of their own backends.
-        monkeypatch.delenv("HERMES_DISABLE_LAZY_INSTALLS", raising=False)
+        monkeypatch.delenv("MAX_DISABLE_LAZY_INSTALLS", raising=False)
         monkeypatch.setattr(
-            "hermes_cli.config.load_config",
+            "max_cli.config.load_config",
             lambda: (_ for _ in ()).throw(RuntimeError("config broken")),
         )
         assert ld._allow_lazy_installs() is True
@@ -334,7 +334,7 @@ class TestRefreshActiveFeatures:
 
     def test_windows_matrix_refresh_is_skipped_before_pip(self, monkeypatch):
         # Matrix E2EE pulls python-olm, which has no native Windows wheel/build
-        # path. `hermes update` must not retry that doomed install every run.
+        # path. `max update` must not retry that doomed install every run.
         monkeypatch.setattr(ld.sys, "platform", "win32")
         monkeypatch.setattr(ld, "active_features", lambda: ["platform.matrix"])
         monkeypatch.setattr(ld, "_is_satisfied", lambda spec: False)

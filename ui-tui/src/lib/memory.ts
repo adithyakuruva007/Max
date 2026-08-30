@@ -4,6 +4,7 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { getHeapSnapshot, getHeapSpaceStatistics, getHeapStatistics } from 'node:v8'
+import { dualEnv } from '../config/env.js'
 
 export type MemoryTrigger = 'auto-critical' | 'auto-high' | 'manual'
 
@@ -148,7 +149,7 @@ export async function performHeapDump(trigger: MemoryTrigger = 'manual'): Promis
     // Diagnostics first — heap-snapshot serialization can crash on very large
     // heaps, and the JSON sidecar is the most actionable artifact if so.
     const diagnostics = await captureMemoryDiagnostics(trigger)
-    const dir = process.env.HERMES_HEAPDUMP_DIR?.trim() || join(homedir() || tmpdir(), '.hermes', 'heapdumps')
+    const dir = dualEnv('HEAPDUMP_DIR')?.trim() || join(homedir() || tmpdir(), '.max', 'heapdumps')
 
     await mkdir(dir, { recursive: true })
 
@@ -163,7 +164,7 @@ export async function performHeapDump(trigger: MemoryTrigger = 'manual'): Promis
     // Auto triggers require explicit opt-in: multi-GiB snapshots written on
     // every threshold cross can fill the user's disk (issue #21767).
     const isAuto = trigger === 'auto-critical' || trigger === 'auto-high'
-    const autoEnabled = /^(?:1|true|yes|on)$/i.test((process.env.HERMES_AUTO_HEAPDUMP ?? '').trim())
+    const autoEnabled = /^(?:1|true|yes|on)$/i.test((dualEnv('AUTO_HEAPDUMP') ?? '').trim())
 
     if (isAuto && !autoEnabled) {
       await pruneHeapdumps(dir).catch(() => undefined)
@@ -188,7 +189,7 @@ export async function performHeapDump(trigger: MemoryTrigger = 'manual'): Promis
 // gated auto-triggers cannot accumulate without bound. The newest file is
 // always retained even if it alone exceeds the cap.
 async function pruneHeapdumps(dir: string): Promise<void> {
-  const raw = process.env.HERMES_HEAPDUMP_MAX_BYTES?.trim()
+  const raw = dualEnv('HEAPDUMP_MAX_BYTES')?.trim()
   const parsed = raw ? Number(raw) : NaN
   const cap = Number.isFinite(parsed) && parsed > 0 ? parsed : 2 * 1024 ** 3
 

@@ -38,12 +38,12 @@ test('desktop background child processes opt into hidden Windows consoles', () =
   requireHiddenChildOptions(source, "spawn('curl'")
   requireHiddenChildOptions(source, /spawn\(\s*backend\.command,\s*backend\.args/)
   requireHiddenChildOptions(source, /hermesProcess = spawn\(\s*backend\.command,\s*backend\.args/)
-  requireHiddenChildOptions(source, /spawn\(\s*py,\s*\['-m', 'hermes_cli\.main', 'uninstall', '--gui-summary'\]/)
+  requireHiddenChildOptions(source, /spawn\(\s*py,\s*\['-m', 'max_cli\.main', 'uninstall', '--gui-summary'\]/)
 
-  assert.match(source, /function unwrapWindowsVenvHermesCommand\(command, backendArgs\)/)
+  assert.match(source, /function unwrapWindowsVenvMaxCommand\(command, backendArgs\)/)
   assert.match(source, /function getVenvSitePackagesEntries\(venvRoot\)/)
   assert.match(source, /path\.join\(venvRoot, 'Lib', 'site-packages'\)/)
-  assert.match(source, /args: \['-m', 'hermes_cli\.main', \.\.\.backendArgs\]/)
+  assert.match(source, /args: \['-m', 'max_cli\.main', \.\.\.backendArgs\]/)
 })
 
 test('desktop backend launches console python so child consoles are inherited, not pythonw', () => {
@@ -86,8 +86,8 @@ test('desktop backend teardown tree-kills Windows backend descendants', () => {
   assert.match(helperSnippet, /forceKillProcessTree\(child\.pid\)/)
   assert.match(helperSnippet, /child\.kill\('SIGTERM'\)/)
 
-  const resetIndex = source.indexOf('function resetHermesConnection()')
-  assert.notEqual(resetIndex, -1, 'missing resetHermesConnection')
+  const resetIndex = source.indexOf('function resetMaxConnection()')
+  assert.notEqual(resetIndex, -1, 'missing resetMaxConnection')
   const resetSnippet = source.slice(resetIndex, resetIndex + 300)
   assert.match(resetSnippet, /stopBackendChild\(hermesProcess\)/)
   assert.doesNotMatch(resetSnippet, /hermesProcess\.kill\('SIGTERM'\)/)

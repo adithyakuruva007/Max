@@ -15,13 +15,14 @@ import { appendFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-import type { FrameEvent } from '@hermes/ink'
-import { scrollFastPathStats } from '@hermes/ink'
+import type { FrameEvent } from '@max/ink'
+import { scrollFastPathStats } from '@max/ink'
 import { Profiler, type ProfilerOnRenderCallback, type ReactNode } from 'react'
+import { dualEnv } from '../config/env.js'
 
-const ENABLED = /^(?:1|true|yes|on)$/i.test((process.env.HERMES_DEV_PERF ?? '').trim())
-const THRESHOLD_MS = Number(process.env.HERMES_DEV_PERF_MS ?? '2') || 0
-const LOG_PATH = process.env.HERMES_DEV_PERF_LOG?.trim() || join(homedir(), '.hermes', 'perf.log')
+const ENABLED = /^(?:1|true|yes|on)$/i.test((dualEnv('DEV_PERF') ?? '').trim())
+const THRESHOLD_MS = Number(dualEnv('DEV_PERF_MS') ?? '2') || 0
+const LOG_PATH = dualEnv('DEV_PERF_LOG')?.trim() || join(homedir(), '.max', 'perf.log')
 
 let logReady = false
 

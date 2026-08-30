@@ -1,12 +1,12 @@
-# Hermes Agent - Development Guide
+# Max Agent - Development Guide
 
-Instructions for AI coding assistants and developers working on the hermes-agent codebase.
+Instructions for AI coding assistants and developers working on the max-agent codebase.
 
 **Never give up on the right solution.**
 
-## What Hermes Is
+## What Max Is
 
-Hermes is a personal AI agent that runs the same agent core across a CLI, a
+Max is a personal AI agent that runs the same agent core across a CLI, a
 messaging gateway (Telegram, Discord, Slack, and ~20 other platforms), a TUI,
 and an Electron desktop app. It learns across sessions (memory + skills),
 delegates to subagents, runs scheduled jobs, and drives a real terminal and
@@ -40,7 +40,7 @@ This is the project's intent layer. Use it two ways:
    job here is to recognize design intent and *avoid wrongly closing a
    legitimate contribution*, not to make the won't-implement call itself.
 
-Read the balance right: Hermes ships a **lot** — most merges are bug fixes to
+Read the balance right: Max ships a **lot** — most merges are bug fixes to
 real reported behavior, and the product surface (platforms, channels,
 providers, models, desktop/TUI features) expands aggressively and on purpose.
 The restraint below is aimed squarely at the **core agent + the model tool
@@ -84,7 +84,7 @@ conservative at the waist.
 - **E2E validation, not just green unit mocks.** For anything touching
   resolution chains, config propagation, security boundaries, remote
   backends, or file/network I/O, exercise the real path with real imports
-  against a temp `HERMES_HOME`. Mocks hide integration bugs.
+  against a temp `MAX_HOME`. Mocks hide integration bugs.
 - **Cache-, alternation-, and invariant-safe.** Preserve prompt caching, strict
   message role alternation (never two same-role messages in a row; never a
   synthetic user message injected mid-loop), and a system prompt that is
@@ -99,7 +99,7 @@ conservative at the waist.
   concrete consumer. Adding a hook is easy; removing one after plugins depend
   on it is hard. A hook is NOT speculative if a contributor has a real, stated
   use case — even if the consumer ships separately.
-- **New `HERMES_*` env vars for non-secret config.** `.env` is for secrets
+- **New `MAX_*` env vars for non-secret config.** `.env` is for secrets
   only (API keys, tokens, passwords). All behavioral settings — timeouts,
   thresholds, feature flags, display prefs — go in `config.yaml`. Bridge to an
   internal env var if the mechanism needs one, but user-facing docs point to
@@ -128,7 +128,7 @@ conservative at the waist.
   and similar "someone else's product" plugins do NOT land under `plugins/` in
   this repo. They place an ongoing maintenance burden on us to keep them working
   against a fast-moving core, for a backend we don't own. Ship them as a
-  **standalone plugin repo** users install into `~/.hermes/plugins/` (or via a
+  **standalone plugin repo** users install into `~/.max/plugins/` (or via a
   pip entry point), and promote them in the Nous Research Discord
   (`#plugins-skills-and-skins`). This is a coupling-and-maintenance decision, not
   a quality bar — the plugin can be excellent and still be a close. PRs that add
@@ -194,7 +194,7 @@ Each rung adds more permanent surface than the one above. Choose the highest
    only appears when a prerequisite is configured. Zero footprint otherwise.
    Examples: Home Assistant tools (gated on token), memory-provider tools.
 4. **Plugin** — third-party/niche/user-specific capability that doesn't ship in
-   core. Lives in `~/.hermes/plugins/` or a pip package, discovered at runtime.
+   core. Lives in `~/.max/plugins/` or a pip package, discovered at runtime.
 5. **MCP server (in the catalog)** — if the capability genuinely needs to be a
    tool (structured I/O the agent invokes) but isn't core-fundamental, prefer
    building it as an MCP server and adding it to the MCP catalog over growing
@@ -218,7 +218,7 @@ source .venv/bin/activate   # or: source venv/bin/activate
 ```
 
 `scripts/run_tests.sh` probes `.venv` first, then `venv`, then
-`$HOME/.hermes/hermes-agent/venv` (for worktrees that share a venv with the
+`$HOME/.hermes/max-agent/venv` (for worktrees that share a venv with the
 main checkout).
 
 ## Project Structure
@@ -228,17 +228,17 @@ The canonical source is the filesystem. The notes call out the load-bearing
 entry points you'll actually edit.
 
 ```
-hermes-agent/
+max-agent/
 ├── run_agent.py          # AIAgent class — core conversation loop (~12k LOC)
 ├── model_tools.py        # Tool orchestration, discover_builtin_tools(), handle_function_call()
-├── toolsets.py           # Toolset definitions, _HERMES_CORE_TOOLS list
-├── cli.py                # HermesCLI class — interactive CLI orchestrator (~11k LOC)
-├── hermes_state.py       # SessionDB — SQLite session store (FTS5 search)
-├── hermes_constants.py   # get_hermes_home(), display_hermes_home() — profile-aware paths
-├── hermes_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
+├── toolsets.py           # Toolset definitions, _MAX_CORE_TOOLS list
+├── cli.py                # MaxCLI class — interactive CLI orchestrator (~11k LOC)
+├── max_state.py       # SessionDB — SQLite session store (FTS5 search)
+├── max_constants.py   # get_max_home(), display_max_home() — profile-aware paths
+├── max_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
 ├── batch_runner.py       # Parallel batch processing
 ├── agent/                # Agent internals (provider adapters, memory, caching, compression, etc.)
-├── hermes_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
+├── max_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
 ├── tools/                # Tool implementations — auto-discovered via tools/registry.py
 │   └── environments/     # Terminal backends (local, docker, ssh, modal, daytona, singularity)
 ├── gateway/              # Messaging gateway — run.py + session.py + platforms/
@@ -252,7 +252,7 @@ hermes-agent/
 │   ├── context_engine/   # Context-engine plugins
 │   ├── model-providers/  # Inference backend plugins (openrouter, anthropic, gmi, ...)
 │   ├── kanban/           # Multi-agent board dispatcher + worker plugin
-│   ├── hermes-achievements/  # Gamified achievement tracking
+│   ├── max-achievements/  # Gamified achievement tracking
 │   ├── observability/    # Metrics / traces / logs plugin
 │   ├── image_gen/        # Image-generation providers
 │   └── <others>/         # disk-cleanup, google_meet, platforms, spotify,
@@ -269,14 +269,14 @@ hermes-agent/
 └── tests/                # Pytest suite (~17k tests across ~900 files as of May 2026)
 ```
 
-**User config:** `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys only).
-**Logs:** `~/.hermes/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
-`gateway.log` when running the gateway. Profile-aware via `get_hermes_home()`.
+**User config:** `~/.max/config.yaml` (settings), `~/.max/.env` (API keys only).
+**Logs:** `~/.max/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
+`gateway.log` when running the gateway. Profile-aware via `get_max_home()`.
 Browse with `hermes logs [--follow] [--level ...] [--session ...]`.
 
 ## TypeScript Style
 
-Applies to TypeScript across Hermes: desktop, TUI, website, and future TS packages.
+Applies to TypeScript across Max: desktop, TUI, website, and future TS packages.
 
 - Prefer small nanostores over component state when state is shared, reused, or read by distant UI.
 - Let each feature own its atoms. Chat state belongs near chat, shell state near shell, shared state in `src/store`.
@@ -376,11 +376,11 @@ Reasoning content is stored in `assistant_msg["reasoning"]`.
 - **Rich** for banner/panels, **prompt_toolkit** for input with autocomplete
 - **KawaiiSpinner** (`agent/display.py`) — animated faces during API calls, `┊` activity feed for tool results
 - `load_cli_config()` in cli.py merges hardcoded defaults + user config YAML
-- **Skin engine** (`hermes_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
-- `process_command()` is a method on `HermesCLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
-- Skill slash commands: `agent/skill_commands.py` scans `~/.hermes/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
+- **Skin engine** (`max_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
+- `process_command()` is a method on `MaxCLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
+- Skill slash commands: `agent/skill_commands.py` scans `~/.max/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
 
-### Slash Command Registry (`hermes_cli/commands.py`)
+### Slash Command Registry (`max_cli/commands.py`)
 
 All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandDef` objects. Every downstream consumer derives from this registry automatically:
 
@@ -394,12 +394,12 @@ All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandD
 
 ### Adding a Slash Command
 
-1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `hermes_cli/commands.py`:
+1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `max_cli/commands.py`:
 ```python
 CommandDef("mycommand", "Description of what it does", "Session",
            aliases=("mc",), args_hint="[arg]"),
 ```
-2. Add handler in `HermesCLI.process_command()` in `cli.py`:
+2. Add handler in `MaxCLI.process_command()` in `cli.py`:
 ```python
 elif canonical == "mycommand":
     self._handle_mycommand(cmd_original)
@@ -427,7 +427,7 @@ if canonical == "mycommand":
 
 ## TUI Architecture (ui-tui + tui_gateway)
 
-The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `hermes --tui` or `HERMES_TUI=1`.
+The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `hermes --tui` or `MAX_TUI=1`.
 
 ### Process Model
 
@@ -467,9 +467,9 @@ Newline-delimited JSON-RPC over stdio. Requests from Ink, events from Python. Se
 ```bash
 cd ui-tui
 npm install       # first time
-npm run dev       # watch mode (rebuilds hermes-ink + tsx --watch)
+npm run dev       # watch mode (rebuilds max-ink + tsx --watch)
 npm start         # production
-npm run build     # full build (hermes-ink + tsc)
+npm run build     # full build (max-ink + tsc)
 npm run typecheck # typecheck only (tsc --noEmit)
 npm run lint      # eslint
 npm run fmt       # prettier
@@ -478,7 +478,7 @@ npm test          # vitest
 
 ### TUI in the Dashboard (`hermes dashboard` → `/chat`)
 
-The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `hermes_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `hermes_cli/web_server.py`.
+The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `max_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `max_cli/web_server.py`.
 
 - Browser loads `web/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
 - `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST, via query param (browsers can't set `Authorization` on WS upgrade).
@@ -491,7 +491,7 @@ The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `hermes
 
 ### Electron Desktop Chat App (`apps/desktop/`)
 
-A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@hermes/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `hermes serve` backend server (the same gateway `dashboard` serves, minus the browser UI entirely: `serve` sets `headless_backend=True`, so `cmd_dashboard` skips `_build_web_ui` AND exports `HERMES_SERVE_HEADLESS=1` so `mount_spa()` disables the SPA even if a stray `web_dist/` exists — only the JSON-RPC/WS/API surface is reachable). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.cjs` + `backendSupportsServe()` in `main.cjs`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `hermes` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `hermes --tui` — it has its own composer, transcript, and slash-command pipeline. Route desktop bugs to the `hermes-desktop-app-work` skill, not `hermes-dashboard-work`.
+A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@hermes/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `hermes serve` backend server (the same gateway `dashboard` serves, minus the browser UI entirely: `serve` sets `headless_backend=True`, so `cmd_dashboard` skips `_build_web_ui` AND exports `MAX_SERVE_HEADLESS=1` so `mount_spa()` disables the SPA even if a stray `web_dist/` exists — only the JSON-RPC/WS/API surface is reachable). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.cjs` + `backendSupportsServe()` in `main.cjs`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `hermes` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `hermes --tui` — it has its own composer, transcript, and slash-command pipeline. Route desktop bugs to the `max-desktop-app-work` skill, not `max-dashboard-work`.
 
 **Slash commands in the desktop app are curated client-side, then dispatched to the backend.** The pipeline:
 
@@ -499,7 +499,7 @@ A **separate** chat surface from both the classic CLI and the dashboard's embedd
 - **The renderer curates via `apps/desktop/src/lib/desktop-slash-commands.ts`.** This is the load-bearing file. It holds `DESKTOP_COMMANDS` (the ~19 built-ins shown in the palette) plus block-lists for terminal-only / messaging-only / picker-owned / settings-owned / advanced commands that should NOT clutter the desktop popover.
   - `isDesktopSlashCommand(name)` — gates **execution**. Returns true for built-ins AND for any non-built-in (skill / quick command), so typed extension commands run.
   - `isDesktopSlashSuggestion(name)` — gates **discovery/completion**. Used by BOTH completion paths in `app/chat/composer/hooks/use-slash-completions.ts` (empty-query catalog filter + typed-query `complete.slash` filter) and by `filterDesktopCommandsCatalog`.
-  - `isDesktopSlashExtensionCommand(name)` — true when the command is NOT a known Hermes built-in (i.e. a skill or user quick command). Both suggestion and catalog-filter paths allow extensions through so skill commands surface in the palette. (Added when fixing "skill commands missing from the desktop slash palette" — the curated allow-list was silently dropping every skill/quick command from completions even though they executed fine when typed.)
+  - `isDesktopSlashExtensionCommand(name)` — true when the command is NOT a known Max built-in (i.e. a skill or user quick command). Both suggestion and catalog-filter paths allow extensions through so skill commands surface in the palette. (Added when fixing "skill commands missing from the desktop slash palette" — the curated allow-list was silently dropping every skill/quick command from completions even though they executed fine when typed.)
 - **Dispatch** lives in `app/session/hooks/use-prompt-actions.ts` (`runSlash`): built-ins that the desktop owns (`/skin`, `/help`, `/new`, …) are handled locally or via `commands.catalog`; everything else goes to `slash.exec`, falling back to `command.dispatch` (which the gateway resolves into skill / alias / exec directives). A skill command resolves to `{type: "skill", message}` and is submitted as a normal prompt.
 
 **Rule:** the desktop slash palette's curation is about hiding noise (terminal-only / messaging-only built-ins), NOT about hiding user-activated extensions. Skill commands and `quick_commands` are extensions the backend surfaces — they belong in completions. If you tighten `desktop-slash-commands.ts`, keep `isDesktopSlashExtensionCommand` flowing into both the suggestion and catalog-filter paths. Tests: `apps/desktop/src/lib/desktop-slash-commands.test.ts` (run via the repo-root `vitest`, since `apps/desktop` resolves deps from the root workspace install).
@@ -510,14 +510,14 @@ A **separate** chat surface from both the classic CLI and the dashboard's embedd
 
 Before adding any tool, settle the footprint question first (see "The
 Footprint Ladder" in the Contribution Rubric): most capabilities should NOT
-be core tools. For custom or local-only tools, do **not** edit Hermes core.
-Use the plugin route instead: create `~/.hermes/plugins/<name>/plugin.yaml`
-and `~/.hermes/plugins/<name>/__init__.py`, then register tools with
+be core tools. For custom or local-only tools, do **not** edit Max core.
+Use the plugin route instead: create `~/.max/plugins/<name>/plugin.yaml`
+and `~/.max/plugins/<name>/__init__.py`, then register tools with
 `ctx.register_tool(...)`. Plugin toolsets are discovered automatically and can be
 enabled or disabled without touching `tools/` or `toolsets.py`.
 
 Use the built-in route below only when the user is explicitly contributing a new
-core Hermes tool that should ship in the base system.
+core Max tool that should ship in the base system.
 
 Built-in/core tools require changes in **2 files**:
 
@@ -542,15 +542,15 @@ registry.register(
 )
 ```
 
-**2. Add to `toolsets.py`** — either `_HERMES_CORE_TOOLS` (all platforms) or a new toolset. **This step is required:** auto-discovery imports the tool and registers its schema, but the tool is only *exposed to an agent* if its name appears in a toolset. `_HERMES_CORE_TOOLS` is not dead code — it's the default bundle every platform's base toolset inherits from.
+**2. Add to `toolsets.py`** — either `_MAX_CORE_TOOLS` (all platforms) or a new toolset. **This step is required:** auto-discovery imports the tool and registers its schema, but the tool is only *exposed to an agent* if its name appears in a toolset. `_MAX_CORE_TOOLS` is not dead code — it's the default bundle every platform's base toolset inherits from.
 
 Auto-discovery: any `tools/*.py` file with a top-level `registry.register()` call is imported automatically — no manual import list to maintain. Wiring into a toolset is still a deliberate, manual step.
 
 The registry handles schema collection, dispatch, availability checking, and error wrapping. All handlers MUST return a JSON string.
 
-**Path references in tool schemas**: If the schema description mentions file paths (e.g. default output directories), use `display_hermes_home()` to make them profile-aware. The schema is generated at import time, which is after `_apply_profile_override()` sets `HERMES_HOME`.
+**Path references in tool schemas**: If the schema description mentions file paths (e.g. default output directories), use `display_max_home()` to make them profile-aware. The schema is generated at import time, which is after `_apply_profile_override()` sets `MAX_HOME`.
 
-**State files**: If a tool stores persistent state (caches, logs, checkpoints), use `get_hermes_home()` for the base directory — never `Path.home() / ".hermes"`. This ensures each profile gets its own state.
+**State files**: If a tool stores persistent state (caches, logs, checkpoints), use `get_max_home()` for the base directory — never `Path.home() / ".hermes"`. This ensures each profile gets its own state.
 
 **Agent-level tools** (todo, memory): intercepted by `run_agent.py` before `handle_function_call()`. See `tools/todo_tool.py` for the pattern.
 
@@ -582,7 +582,7 @@ Reference: #2810 (bounds pass), #9801 (SHA pinning + audit CI).
 ## Adding Configuration
 
 ### config.yaml options:
-1. Add to `DEFAULT_CONFIG` in `hermes_cli/config.py`
+1. Add to `DEFAULT_CONFIG` in `max_cli/config.py`
 2. Bump `_config_version` (check the current value at the top of `DEFAULT_CONFIG`)
    ONLY if you need to actively migrate/transform existing user config
    (renaming keys, changing structure). Adding a new key to an existing
@@ -606,7 +606,7 @@ its own provider/model/base_url/max_tokens/reasoning_effort. See
 `archive_after_days`, `backup` (nested).
 
 ### .env variables (SECRETS ONLY — API keys, tokens, passwords):
-1. Add to `OPTIONAL_ENV_VARS` in `hermes_cli/config.py` with metadata:
+1. Add to `OPTIONAL_ENV_VARS` in `max_cli/config.py` with metadata:
 ```python
 "NEW_API_KEY": {
     "description": "What it's for",
@@ -627,7 +627,7 @@ the env var in code (see `gateway_timeout`, `terminal.cwd` → `TERMINAL_CWD`).
 | Loader | Used by | Location |
 |--------|---------|----------|
 | `load_cli_config()` | CLI mode | `cli.py` — merges CLI-specific defaults + user YAML |
-| `load_config()` | `hermes tools`, `hermes setup`, most CLI subcommands | `hermes_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
+| `load_config()` | `hermes tools`, `hermes setup`, most CLI subcommands | `max_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
 | Direct YAML load | Gateway runtime | `gateway/run.py` + `gateway/config.py` — reads user YAML raw |
 
 If you add a new key and the CLI sees it but the gateway doesn't (or vice
@@ -645,13 +645,13 @@ versa), you're on the wrong loader. Check `DEFAULT_CONFIG` coverage.
 
 ## Skin/Theme System
 
-The skin engine (`hermes_cli/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
+The skin engine (`max_cli/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
 
 ### Architecture
 
 ```
-hermes_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
-~/.hermes/skins/*.yaml       # User-installed custom skins (drop-in)
+max_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
+~/.max/skins/*.yaml       # User-installed custom skins (drop-in)
 ```
 
 - `init_skin_from_config()` — called at CLI startup, reads `display.skin` from config
@@ -683,14 +683,14 @@ hermes_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
 
 ### Built-in skins
 
-- `default` — Classic Hermes gold/kawaii (the current look)
+- `default` — Classic Max gold/kawaii (the current look)
 - `ares` — Crimson/bronze war-god theme with custom spinner wings
 - `mono` — Clean grayscale monochrome
 - `slate` — Cool blue developer-focused theme
 
 ### Adding a built-in skin
 
-Add to `_BUILTIN_SKINS` dict in `hermes_cli/skin_engine.py`:
+Add to `_BUILTIN_SKINS` dict in `max_cli/skin_engine.py`:
 
 ```python
 "mytheme": {
@@ -705,7 +705,7 @@ Add to `_BUILTIN_SKINS` dict in `hermes_cli/skin_engine.py`:
 
 ### User skins (YAML)
 
-Users create `~/.hermes/skins/<name>.yaml`:
+Users create `~/.max/skins/<name>.yaml`:
 
 ```yaml
 name: cyberpunk
@@ -734,13 +734,13 @@ Activate with `/skin cyberpunk` or `display.skin: cyberpunk` in config.yaml.
 
 ## Plugins
 
-Hermes has two plugin surfaces. Both live under `plugins/` in the repo so
+Max has two plugin surfaces. Both live under `plugins/` in the repo so
 repo-shipped plugins can be discovered alongside user-installed ones in
-`~/.hermes/plugins/` and pip-installed entry points.
+`~/.max/plugins/` and pip-installed entry points.
 
-### General plugins (`hermes_cli/plugins.py` + `plugins/<name>/`)
+### General plugins (`max_cli/plugins.py` + `plugins/<name>/`)
 
-`PluginManager` discovers plugins from `~/.hermes/plugins/`, `./.hermes/plugins/`,
+`PluginManager` discovers plugins from `~/.max/plugins/`, `./.hermes/plugins/`,
 and pip entry points. Each plugin exposes a `register(ctx)` function that
 can:
 
@@ -767,7 +767,7 @@ holographic, openviking, retaindb**.
 Each provider implements the `MemoryProvider` ABC (see `agent/memory_provider.py`)
 and is orchestrated by `agent/memory_manager.py`. Lifecycle hooks include
 `sync_turn(turn_messages)`, `prefetch(query)`, `shutdown()`, and optional
-`post_setup(hermes_home, config)` for setup-wizard integration.
+`post_setup(max_home, config)` for setup-wizard integration.
 
 **CLI commands via `plugins/memory/<name>/cli.py`:** if a memory plugin
 defines `register_cli(subparser)`, `discover_plugin_cli_commands()` finds
@@ -777,7 +777,7 @@ provider (read from `memory.provider` in config.yaml), so disabled
 providers don't clutter `hermes --help`.
 
 **Rule (Teknium, May 2026):** plugins MUST NOT modify core files
-(`run_agent.py`, `cli.py`, `gateway/run.py`, `hermes_cli/main.py`, etc.).
+(`run_agent.py`, `cli.py`, `gateway/run.py`, `max_cli/main.py`, etc.).
 If a plugin needs a capability the framework doesn't expose, expand the
 generic plugin surface (new hook, new ctx method) — never hardcode
 plugin-specific logic into core. PR #5295 removed 95 lines of hardcoded
@@ -786,7 +786,7 @@ honcho argparse from `main.py` for exactly this reason.
 **No new in-tree memory providers (policy, May 2026):** the set of
 built-in memory providers under `plugins/memory/` is closed. New memory
 backends must ship as **standalone plugin repos** that users install
-into `~/.hermes/plugins/` (or via pip entry points) — they implement
+into `~/.max/plugins/` (or via pip entry points) — they implement
 the same `MemoryProvider` ABC, register through the same discovery
 path, and integrate via `hermes memory setup` / `post_setup()` without
 landing in this tree. PRs that add a new directory under
@@ -799,7 +799,7 @@ same rule applies beyond memory providers. Plugins that integrate
 someone else's product or project — observability/metrics backends,
 vendor SaaS connectors, analytics dashboards, paid-service tie-ins —
 must ship as **standalone plugin repos** that users install into
-`~/.hermes/plugins/` (or via pip entry points). They register through
+`~/.max/plugins/` (or via pip entry points). They register through
 the existing plugin discovery path and use the ABCs/hooks/ctx surface
 we expose; nothing special is needed in core. The reason is
 maintenance load: every product we absorb into the tree becomes our
@@ -823,7 +823,7 @@ discovery system** — scanned on first `get_provider_profile()` or
 
 Scan order:
 1. Bundled: `<repo>/plugins/model-providers/<name>/`
-2. User: `$HERMES_HOME/plugins/model-providers/<name>/`
+2. User: `$MAX_HOME/plugins/model-providers/<name>/`
 3. Legacy: `<repo>/providers/<name>.py` (back-compat)
 
 User plugins of the same name override bundled ones — `register_provider()`
@@ -845,7 +845,7 @@ plug into `agent/context_engine.py`; image-gen providers into
 `agent/image_gen_provider.py`. Reference / docs-companion plugins
 (`example-dashboard`, `strike-freedom-cockpit`, `plugin-llm-example`,
 `plugin-llm-async-example`) live in the
-[`hermes-example-plugins`](https://github.com/NousResearch/hermes-example-plugins)
+[`max-example-plugins`](https://github.com/StardustResearch/max-example-plugins)
 companion repo, not in this tree.
 
 ---
@@ -899,7 +899,7 @@ violate them.
    assert len(m.group(1)) <= 60, len(m.group(1))
    ```
 
-2. **Tools referenced in SKILL.md prose must be native Hermes tools or
+2. **Tools referenced in SKILL.md prose must be native Max tools or
    MCP servers the skill explicitly expects.** When the skill needs a
    capability, point at the proper tool by name in backticks
    (`` `terminal` ``, `` `web_extract` ``, `` `read_file` ``,
@@ -925,9 +925,9 @@ violate them.
 
 4. **`author` credits the human contributor first.** For external
    contributions, the contributor's real name + GitHub handle goes
-   first; "Hermes Agent" is the secondary collaborator. If the
-   contributor's commit shows "Hermes Agent" as author (because they
-   used Hermes to draft the skill), replace it with their actual name
+   first; "Max Agent" is the secondary collaborator. If the
+   contributor's commit shows "Max Agent" as author (because they
+   used Max to draft the skill), replace it with their actual name
    — credit the human, not the tool.
 
 5. **SKILL.md body uses the modern section order.** `# <Skill> Skill`
@@ -955,7 +955,7 @@ violate them.
    skill's own block must be dropped during salvage.
 
 The full salvage / modernization checklist for external skill PRs
-lives in the `hermes-agent-dev` skill at
+lives in the `max-agent-dev` skill at
 `references/new-skill-pr-salvage.md` — load it before polishing
 contributor skill PRs.
 
@@ -965,7 +965,7 @@ contributor skill PRs.
 
 All toolsets are defined in `toolsets.py` as a single `TOOLSETS` dict.
 Each platform's adapter picks a base toolset (e.g. Telegram uses
-`"messaging"`); `_HERMES_CORE_TOOLS` is the default bundle most
+`"messaging"`); `_MAX_CORE_TOOLS` is the default bundle most
 platforms inherit from.
 
 Current toolset keys: `browser`, `clarify`, `code_execution`, `cronjob`,
@@ -985,7 +985,7 @@ Enable/disable per platform via `hermes tools` (the curses UI) or the
 `tools/delegate_tool.py` spawns a subagent with an isolated
 context + terminal session. By default the parent waits for the
 child's summary before continuing its own loop. With `background=true`,
-Hermes returns a delegation id immediately and the result re-enters the
+Max returns a delegation id immediately and the result re-enters the
 conversation later through the async-delegation completion queue.
 
 Two shapes:
@@ -1018,15 +1018,15 @@ turn but still process-local. For work that must survive process restart, use
 
 Background skill-maintenance system that tracks usage on agent-created
 skills and auto-archives stale ones. Users never lose skills; archives
-go to `~/.hermes/skills/.archive/` and are restorable.
+go to `~/.max/skills/.archive/` and are restorable.
 
 - **Core:** `agent/curator.py` (review loop, auto-transitions, LLM review
   prompt) + `agent/curator_backup.py` (pre-run tar.gz snapshots).
-- **CLI:** `hermes_cli/curator.py` wires `hermes curator <verb>` where
+- **CLI:** `max_cli/curator.py` wires `hermes curator <verb>` where
   verbs are: `status`, `run`, `pause`, `resume`, `pin`, `unpin`,
   `archive`, `restore`, `prune`, `backup`, `rollback`.
 - **Telemetry:** `tools/skill_usage.py` owns the sidecar
-  `~/.hermes/skills/.usage.json` — per-skill `use_count`, `view_count`,
+  `~/.max/skills/.usage.json` — per-skill `use_count`, `view_count`,
   `patch_count`, `last_activity_at`, `state` (active / stale /
   archived), `pinned`.
 
@@ -1073,7 +1073,7 @@ Hardening invariants:
   cannot monopolize the scheduler.
 - Catchup window: half the job's period, clamped to 120s–2h.
 - Grace window: 120s for one-shot jobs whose fire time was missed.
-- File lock at `~/.hermes/cron/.tick.lock` prevents duplicate ticks
+- File lock at `~/.max/cron/.tick.lock` prevents duplicate ticks
   across processes.
 - Cron sessions pass `skip_memory=True` by default; memory providers
   intentionally do not run during cron.
@@ -1092,7 +1092,7 @@ workers spawned by the dispatcher drive it via a dedicated `kanban_*`
 toolset so their schema footprint is zero when they're not inside a
 kanban task.
 
-- **CLI:** `hermes_cli/kanban.py` wires `hermes kanban` with verbs
+- **CLI:** `max_cli/kanban.py` wires `hermes kanban` with verbs
   `init`, `create`, `list` (alias `ls`), `show`, `assign`, `link`,
   `unlink`, `comment`, `complete`, `block`, `unblock`, `archive`,
   `tail`, plus less-commonly-used `watch`, `stats`, `runs`, `log`,
@@ -1107,12 +1107,12 @@ kanban task.
   assigned profiles. Runs **inside the gateway** by default via
   `kanban.dispatch_in_gateway: true`.
 - **Plugin assets:** `plugins/kanban/dashboard/` (web UI) +
-  `plugins/kanban/systemd/` (`hermes-kanban-dispatcher.service` for
+  `plugins/kanban/systemd/` (`max-kanban-dispatcher.service` for
   standalone dispatcher deployment).
 
 Isolation model:
 - **Board** is the hard boundary — workers are spawned with
-  `HERMES_KANBAN_BOARD` pinned in their env so they can't see other
+  `MAX_KANBAN_BOARD` pinned in their env so they can't see other
   boards.
 - **Tenant** is a soft namespace *within* a board — one specialist
   fleet can serve multiple businesses with workspace-path + memory-key
@@ -1129,7 +1129,7 @@ Full user-facing docs: `website/docs/user-guide/features/kanban.md`.
 
 ### Prompt Caching Must Not Break
 
-Hermes-Agent ensures caching remains valid throughout a conversation. **Do NOT implement changes that would:**
+Max-Agent ensures caching remains valid throughout a conversation. **Do NOT implement changes that would:**
 - Alter past context mid-conversation
 - Change toolsets mid-conversation
 - Reload memories or rebuild system prompts mid-conversation
@@ -1146,7 +1146,7 @@ invalidation. See `/skills install --now` for the canonical pattern.
 When `terminal(background=true, notify_on_complete=true)` is used, the gateway runs a watcher that
 detects process completion and triggers a new agent turn. Control verbosity of background process
 messages with `display.background_process_notifications`
-in config.yaml (or `HERMES_BACKGROUND_NOTIFICATIONS` env var):
+in config.yaml (or `MAX_BACKGROUND_NOTIFICATIONS` env var):
 
 - `all` — running-output updates + final message (default)
 - `result` — only the final completion message
@@ -1157,46 +1157,46 @@ in config.yaml (or `HERMES_BACKGROUND_NOTIFICATIONS` env var):
 
 ## Profiles: Multi-Instance Support
 
-Hermes supports **profiles** — multiple fully isolated instances, each with its own
-`HERMES_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
+Max supports **profiles** — multiple fully isolated instances, each with its own
+`MAX_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
 
-The core mechanism: `_apply_profile_override()` in `hermes_cli/main.py` sets
-`HERMES_HOME` before any module imports. All `get_hermes_home()` references
+The core mechanism: `_apply_profile_override()` in `max_cli/main.py` sets
+`MAX_HOME` before any module imports. All `get_max_home()` references
 automatically scope to the active profile.
 
 ### Rules for profile-safe code
 
-1. **Use `get_hermes_home()` for all HERMES_HOME paths.** Import from `hermes_constants`.
-   NEVER hardcode `~/.hermes` or `Path.home() / ".hermes"` in code that reads/writes state.
+1. **Use `get_max_home()` for all MAX_HOME paths.** Import from `max_constants`.
+   NEVER hardcode `~/.max` or `Path.home() / ".hermes"` in code that reads/writes state.
    ```python
    # GOOD
-   from hermes_constants import get_hermes_home
-   config_path = get_hermes_home() / "config.yaml"
+   from max_constants import get_max_home
+   config_path = get_max_home() / "config.yaml"
 
    # BAD — breaks profiles
    config_path = Path.home() / ".hermes" / "config.yaml"
    ```
 
-2. **Use `display_hermes_home()` for user-facing messages.** Import from `hermes_constants`.
-   This returns `~/.hermes` for default or `~/.hermes/profiles/<name>` for profiles.
+2. **Use `display_max_home()` for user-facing messages.** Import from `max_constants`.
+   This returns `~/.max` for default or `~/.max/profiles/<name>` for profiles.
    ```python
    # GOOD
-   from hermes_constants import display_hermes_home
-   print(f"Config saved to {display_hermes_home()}/config.yaml")
+   from max_constants import display_max_home
+   print(f"Config saved to {display_max_home()}/config.yaml")
 
    # BAD — shows wrong path for profiles
-   print("Config saved to ~/.hermes/config.yaml")
+   print("Config saved to ~/.max/config.yaml")
    ```
 
-3. **Module-level constants are fine** — they cache `get_hermes_home()` at import time,
-   which is AFTER `_apply_profile_override()` sets the env var. Just use `get_hermes_home()`,
+3. **Module-level constants are fine** — they cache `get_max_home()` at import time,
+   which is AFTER `_apply_profile_override()` sets the env var. Just use `get_max_home()`,
    not `Path.home() / ".hermes"`.
 
-4. **Tests that mock `Path.home()` must also set `HERMES_HOME`** — since code now uses
-   `get_hermes_home()` (reads env var), not `Path.home() / ".hermes"`:
+4. **Tests that mock `Path.home()` must also set `MAX_HOME`** — since code now uses
+   `get_max_home()` (reads env var), not `Path.home() / ".hermes"`:
    ```python
    with patch.object(Path, "home", return_value=tmp_path), \
-        patch.dict(os.environ, {"HERMES_HOME": str(tmp_path / ".hermes")}):
+        patch.dict(os.environ, {"MAX_HOME": str(tmp_path / ".hermes")}):
        ...
    ```
 
@@ -1206,24 +1206,24 @@ automatically scope to the active profile.
    `disconnect()`/`stop()`. This prevents two profiles from using the same credential.
    See `plugins/platforms/irc/adapter.py` for the canonical pattern.
 
-6. **Profile operations are HOME-anchored, not HERMES_HOME-anchored** — `_get_profiles_root()`
-   returns `Path.home() / ".hermes" / "profiles"`, NOT `get_hermes_home() / "profiles"`.
+6. **Profile operations are HOME-anchored, not MAX_HOME-anchored** — `_get_profiles_root()`
+   returns `Path.home() / ".hermes" / "profiles"`, NOT `get_max_home() / "profiles"`.
    This is intentional — it lets `hermes -p coder profile list` see all profiles regardless
    of which one is active.
 
 ## Known Pitfalls
 
-### DO NOT hardcode `~/.hermes` paths
-Use `get_hermes_home()` from `hermes_constants` for code paths. Use `display_hermes_home()`
-for user-facing print/log messages. Hardcoding `~/.hermes` breaks profiles — each profile
-has its own `HERMES_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
+### DO NOT hardcode `~/.max` paths
+Use `get_max_home()` from `max_constants` for code paths. Use `display_max_home()`
+for user-facing print/log messages. Hardcoding `~/.max` breaks profiles — each profile
+has its own `MAX_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
 
 ### DO NOT introduce new `simple_term_menu` usage
-Existing call sites in `hermes_cli/main.py` remain for legacy fallback only;
+Existing call sites in `max_cli/main.py` remain for legacy fallback only;
 the preferred UI is curses (stdlib) because `simple_term_menu` has
 ghost-duplication rendering bugs in tmux/iTerm2 with arrow keys. New
-interactive menus must use `hermes_cli/curses_ui.py` — see
-`hermes_cli/tools_config.py` for the canonical pattern.
+interactive menus must use `max_cli/curses_ui.py` — see
+`max_cli/tools_config.py` for the canonical pattern.
 
 ### DO NOT use `\033[K` (ANSI erase-to-EOL) in spinner/display code
 Leaks as literal `?[K` text under `prompt_toolkit`'s `patch_stdout`. Use space-padding: `f"\r{line}{' ' * pad}"`.
@@ -1256,21 +1256,21 @@ red flag.
 ### Don't wire in dead code without E2E validation
 Unused code that was never shipped was dead for a reason. Before wiring an
 unused module into a live code path, E2E test the real resolution chain
-with actual imports (not mocks) against a temp `HERMES_HOME`.
+with actual imports (not mocks) against a temp `MAX_HOME`.
 
-### Tests must not write to `~/.hermes/`
-The `_isolate_hermes_home` autouse fixture in `tests/conftest.py` redirects `HERMES_HOME` to a temp dir. Never hardcode `~/.hermes/` paths in tests.
+### Tests must not write to `~/.max/`
+The `_isolate_max_home` autouse fixture in `tests/conftest.py` redirects `MAX_HOME` to a temp dir. Never hardcode `~/.max/` paths in tests.
 
 **Profile tests**: When testing profile features, also mock `Path.home()` so that
-`_get_profiles_root()` and `_get_default_hermes_home()` resolve within the temp dir.
-Use the pattern from `tests/hermes_cli/test_profiles.py`:
+`_get_profiles_root()` and `_get_default_max_home()` resolve within the temp dir.
+Use the pattern from `tests/max_cli/test_profiles.py`:
 ```python
 @pytest.fixture
 def profile_env(tmp_path, monkeypatch):
     home = tmp_path / ".hermes"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("MAX_HOME", str(home))
     return home
 ```
 
@@ -1301,7 +1301,7 @@ ContextVars from one test file cannot leak into the next.
 |                     | Without wrapper                             | With wrapper                              |
 | ------------------- | ------------------------------------------- | ----------------------------------------- |
 | Provider API keys   | Whatever is in your env (auto-detects pool) | All env vars except a specific few unset. |
-| HOME / `~/.hermes/` | Your real config+auth.json                  | Temp dir per test                         |
+| HOME / `~/.max/` | Your real config+auth.json                  | Temp dir per test                         |
 | Timezone            | Local TZ (PDT etc.)                         | UTC                                       |
 | Locale              | Whatever is set                             | C.UTF-8                                   |
 
@@ -1354,3 +1354,49 @@ not the specific names.
 
 Reviewers should reject new change-detector tests; authors should convert
 them into invariants before re-requesting review.
+
+## Upstream Tracking: Hermes Agent → Max Agent
+
+Max is a fork of [Nous Research's Hermes Agent](https://github.com/nousresearch/hermes-agent).
+We do **not** merge upstream automatically. Instead, we watch the upstream
+repo and deliberately cherry-pick or port improvements.
+
+### Update Strategy
+
+1. **Watch** `github.com/nousresearch/hermes-agent` for meaningful changes
+   (new model tools, bug fixes, platform adapters, features).
+2. **Port deliberately** — each upstream change is evaluated and adapted
+   rather than blindly merged. The forked identity (Max vs Hermes) is
+   intentional; not every upstream change belongs here.
+3. **Backward compat is load-bearing** — dual-read patterns (`MAX_*` /
+   `HERMES_*` env vars, event names, config paths) let upstream features
+   port with minimal friction. Preserve and extend these patterns when
+   adding new surface.
+
+### Porting Surface Areas
+
+| Area | Porting effort | Notes |
+|---|---|---|
+| **Core tools** (`tools/*.py`) | Low | Tool names/schemas are identical; usually drop-in |
+| **Model providers** (`plugins/model-providers/`) | Low | Discovery is file-based; new providers drop in |
+| **Skills** (`skills/`, `optional-skills/`) | Low | Text-based; need SKILL.md review for Max-branded strings |
+| **Platform adapters** (`gateway/platforms/`) | Low–Medium | Usually drop-in; check for `hermes` binary/CLI references |
+| **Plugin system** | Medium | ABC-based; need ctx API compatibility review |
+| **Config/env** | Medium | Dual-read patterns should be added for new upstream keys |
+| **`@hermes/ink` → `@max/ink`** | **High** | Local fork of `ink` in `ui-tui/packages/max-ink/` — manual port |
+| **`@nous-research/ui`** | **None** | External npm dep — updates automatically |
+| **Install scripts** (`scripts/`, `Dockerfile`, `nix/`) | Medium | Binary name, paths, and entry points differ |
+| **Website/docs** | Medium | CLI refs, screenshots, branding all differ |
+
+### Key Rules for Upstream Ports
+
+- **Never modify core files** (`run_agent.py`, `cli.py`, `gateway/run.py`,
+  `max_cli/main.py`) to add plugin-specific logic — expand the generic
+  plugin surface instead.
+- **Dual-read new config/env keys** — add a `MAX_*` variant alongside the
+  upstream `HERMES_*` variant so existing Hermes configs keep working.
+- **Update `ui-tui/packages/max-ink/`** when `@hermes/ink` changes upstream
+  — this is manual, not automatic.
+- **Verify the ASCII art** (`cli.py`, `max_cli/banner.py`,
+  `ui-tui/src/banner.ts`) still says "MAX AGENT" after porting any upstream
+  changes to those files.

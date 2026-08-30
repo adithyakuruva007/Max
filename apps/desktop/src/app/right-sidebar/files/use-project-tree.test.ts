@@ -1,13 +1,13 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { HermesReadDirResult } from '@/global'
+import type { MaxReadDirResult } from '@/global'
 import { $connection } from '@/store/session'
 
 import { clearProjectDirCache, readProjectDir } from './ipc'
 import { resetProjectTreeState, useProjectTree } from './use-project-tree'
 
-const readDir = vi.fn<(path: string) => Promise<HermesReadDirResult>>()
+const readDir = vi.fn<(path: string) => Promise<MaxReadDirResult>>()
 
 beforeEach(() => {
   $connection.set(null)
@@ -23,7 +23,7 @@ afterEach(() => {
   delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
 })
 
-function ok(entries: { name: string; path: string; isDirectory: boolean }[]): HermesReadDirResult {
+function ok(entries: { name: string; path: string; isDirectory: boolean }[]): MaxReadDirResult {
   return { entries }
 }
 
@@ -171,10 +171,10 @@ describe('useProjectTree', () => {
   it('dedupes concurrent loadChildren calls for the same id', async () => {
     readDir.mockResolvedValueOnce(ok([{ name: 'src', path: '/p/src', isDirectory: true }]))
 
-    let resolveChildren: ((value: HermesReadDirResult) => void) | undefined
+    let resolveChildren: ((value: MaxReadDirResult) => void) | undefined
     readDir.mockImplementationOnce(
       () =>
-        new Promise<HermesReadDirResult>(resolve => {
+        new Promise<MaxReadDirResult>(resolve => {
           resolveChildren = resolve
         })
     )
@@ -261,7 +261,7 @@ describe('useProjectTree', () => {
     expect(result.current.effectiveCwd).toBe('/deleted/worktree')
   })
 
-  it('returns no-bridge gracefully when window.hermesDesktop is missing', async () => {
+  it('returns no-bridge gracefully when window.maxDesktop is missing', async () => {
     delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
 
     const { result } = renderHook(() => useProjectTree('/p'))

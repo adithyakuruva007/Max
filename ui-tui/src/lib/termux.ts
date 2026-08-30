@@ -9,7 +9,7 @@ export const isTermuxEnv = (env: NodeJS.ProcessEnv = process.env): boolean => {
 }
 
 /**
- * Return true when Hermes should enable Termux-focused TUI defaults.
+ * Return true when Max should enable Termux-focused TUI defaults.
  *
  * Defaults to on in Termux, with an explicit opt-out for debugging:
  *   HERMES_TUI_TERMUX_MODE=0
@@ -19,7 +19,7 @@ export const isTermuxTuiMode = (env: NodeJS.ProcessEnv = process.env): boolean =
     return false
   }
 
-  const override = String(env.HERMES_TUI_TERMUX_MODE ?? '')
+  const override = String(env.MAX_TUI_TERMUX_MODE ?? env.HERMES_TUI_TERMUX_MODE ?? '')
     .trim()
     .toLowerCase()
 

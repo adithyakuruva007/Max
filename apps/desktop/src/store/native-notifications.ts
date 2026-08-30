@@ -26,7 +26,8 @@ export interface NativeNotificationPrefs {
   kinds: Record<NativeNotificationKind, boolean>
 }
 
-const STORAGE_KEY = 'hermes:native-notifications'
+const STORAGE_KEY = 'max:native-notifications'
+const STORAGE_KEY_OLD = 'hermes:native-notifications'
 
 const DEFAULT_PREFS: NativeNotificationPrefs = {
   enabled: true,
@@ -34,7 +35,7 @@ const DEFAULT_PREFS: NativeNotificationPrefs = {
 }
 
 function readPrefs(): NativeNotificationPrefs {
-  const raw = storedString(STORAGE_KEY)
+  const raw = storedString(STORAGE_KEY) || storedString(STORAGE_KEY_OLD)
 
   if (!raw) {
     return DEFAULT_PREFS
@@ -98,7 +99,7 @@ function throttled(key: string, now: number): boolean {
   return false
 }
 
-// "Backgrounded" = the user isn't on Hermes. `document.hidden` only flips when
+// "Backgrounded" = the user isn't on Max. `document.hidden` only flips when
 // minimized/occluded; an alt-tabbed window is visible-but-unfocused, so we also
 // check `document.hasFocus()`.
 function isBackgrounded(): boolean {
@@ -167,7 +168,7 @@ export function dispatchNativeNotification(input: NativeNotificationInput): void
     return
   }
 
-  void window.hermesDesktop?.notify({
+  void window.maxDesktop?.notify({
     actions: input.actions,
     body: input.body,
     kind: input.kind,
@@ -203,7 +204,7 @@ export async function respondToApprovalAction(sessionId: null | string, actionId
 // Settings "send test" — bypasses gating. Returns whether the OS accepted it so
 // the panel can flag a silent permission failure instead of looking dead.
 export async function sendTestNativeNotification(title: string, body: string): Promise<boolean> {
-  const bridge = window.hermesDesktop
+  const bridge = window.maxDesktop
 
   if (!bridge?.notify) {
     return false

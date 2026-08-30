@@ -55,15 +55,15 @@ def test_root_owned_state_files_repaired_on_boot(
     # Restart - stage2 should repair ownership
     restart_container(container_name)
 
-    # Verify files are now hermes-owned
+    # Verify files are now max-owned
     r = docker_exec_sh(
         container_name,
         " ".join(f'stat -c %U /opt/data/{f}' for f in ALLOWLISTED_FILES),
         timeout=5,
     )
     for line in r.stdout.split():
-        assert line == "hermes", (
-            f"expected hermes-owned after restart, got: {line}"
+        assert line == "max", (
+            f"expected max-owned after restart, got: {line}"
         )
 
 
@@ -72,7 +72,7 @@ def test_non_allowlisted_host_file_not_touched(
 ) -> None:
     """A non-allowlisted host-owned file must NOT be chowned, even if
     root-owned. Regression guard for #19788 / #19795: a bind-mounted
-    $HERMES_HOME may contain host-owned files Hermes does not manage."""
+    $MAX_HOME may contain host-owned files Max does not manage."""
     start_container(built_image, container_name)
 
     # Create a non-allowlisted file as root
@@ -162,7 +162,7 @@ def test_symlinked_allowlisted_file_not_chowned(
             f"expected symlink refusal warning for auth.json in docker logs: {combined}"
         )
     finally:
-        # Clean up root/hermes-owned files left by stage2 chown
+        # Clean up root/max-owned files left by stage2 chown
         if host_data is not None:
             subprocess.run(
                 ["docker", "rm", "-f", container_name],

@@ -1,4 +1,4 @@
-"""Runtime smoke test for Docker $HERMES_HOME/logs/gateways seeding.
+"""Runtime smoke test for Docker $MAX_HOME/logs/gateways seeding.
 
 Build the real image and verify logs/ and logs/gateways/ exist and are
 owned by the hermes user after container boot.
@@ -13,7 +13,7 @@ from __future__ import annotations
 from tests.docker.conftest import docker_exec_sh, start_container
 
 
-def test_logs_gateways_seeded_and_hermes_owned(
+def test_logs_gateways_seeded_and_max_owned(
     built_image: str, container_name: str,
 ) -> None:
     """logs/ and logs/gateways/ must exist and be owned by hermes after boot."""

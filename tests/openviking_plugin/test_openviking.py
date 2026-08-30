@@ -116,7 +116,7 @@ def make_prefetch_provider(monkeypatch, responses, **env):
     provider._endpoint = "http://openviking.test"
     provider._account = "default"
     provider._user = "default"
-    provider._agent = "hermes"
+    provider._agent = "max"
     provider._session_id = "session-test"
     return provider
 
@@ -154,7 +154,7 @@ class TestOpenVikingSkillQuerySafety:
 
         assert openviking_plugin._derive_openviking_user_text(skill_message) == ""
 
-    def test_skill_markers_match_hermes_scaffolding(self, tmp_path, monkeypatch):
+    def test_skill_markers_match_max_scaffolding(self, tmp_path, monkeypatch):
         import agent.skill_bundles as skill_bundles
         import agent.skill_commands as skill_commands
         import tools.skills_tool as skills_tool
@@ -165,7 +165,7 @@ class TestOpenVikingSkillQuerySafety:
         _write_bundle(bundles_dir, "demo", ["example"])
 
         monkeypatch.setattr(skills_tool, "SKILLS_DIR", skills_dir)
-        monkeypatch.setenv("HERMES_BUNDLES_DIR", str(bundles_dir))
+        monkeypatch.setenv("MAX_BUNDLES_DIR", str(bundles_dir))
         monkeypatch.setattr(skill_commands, "_skill_commands", {})
         monkeypatch.setattr(skill_commands, "_skill_commands_platform", None)
         monkeypatch.setattr(skill_bundles, "_bundles_cache", {})
@@ -203,7 +203,7 @@ class TestOpenVikingSkillQuerySafety:
         provider._api_key = ""
         provider._account = "default"
         provider._user = "default"
-        provider._agent = "hermes"
+        provider._agent = "max"
         skill_message = (
             '[IMPORTANT: The user has invoked the "skill-creator" skill, indicating they want '
             "you to follow its instructions. The full skill content is loaded below.]\n\n"
@@ -236,7 +236,7 @@ class TestOpenVikingSkillQuerySafety:
         provider._api_key = ""
         provider._account = "default"
         provider._user = "default"
-        provider._agent = "hermes"
+        provider._agent = "max"
         skill_message = (
             '[IMPORTANT: The user has invoked the "backend-dev" skill bundle, '
             "loading 2 skills together. Treat every skill below as active guidance for this turn.]\n\n"
@@ -286,7 +286,7 @@ class TestOpenVikingSkillQuerySafety:
         provider._api_key = ""
         provider._account = "default"
         provider._user = "default"
-        provider._agent = "hermes"
+        provider._agent = "max"
         provider._session_id = "session-1"
         skill_message = (
             '[IMPORTANT: The user has invoked the "skill-creator" skill, indicating they want '
@@ -314,7 +314,7 @@ class TestOpenVikingSkillQuerySafety:
                         {
                             "role": "assistant",
                             "parts": [{"type": "text", "text": "Done."}],
-                            "peer_id": "hermes",
+                            "peer_id": "max",
                         },
                     ]
                 },
@@ -707,12 +707,12 @@ class TestOpenVikingTurnConversion:
 
         batch = OpenVikingMemoryProvider._messages_to_openviking_batch(
             turn,
-            assistant_peer_id="hermes",
+            assistant_peer_id="max",
         )
 
         assert batch == [
             {"role": "user", "parts": [{"type": "text", "text": "hello"}]},
-            {"role": "assistant", "parts": [{"type": "text", "text": "answer"}], "peer_id": "hermes"},
+            {"role": "assistant", "parts": [{"type": "text", "text": "answer"}], "peer_id": "max"},
         ]
 
 
@@ -1035,7 +1035,7 @@ class TestOpenVikingAutoRecallPrefetch:
         monkeypatch.setenv("OPENVIKING_ENDPOINT", endpoint)
         monkeypatch.setenv("OPENVIKING_ACCOUNT", "acct")
         monkeypatch.setenv("OPENVIKING_USER", "user")
-        monkeypatch.setenv("OPENVIKING_AGENT", "hermes")
+        monkeypatch.setenv("OPENVIKING_AGENT", "max")
 
         provider = OpenVikingMemoryProvider()
         try:
@@ -1063,7 +1063,7 @@ class TestOpenVikingAutoRecallPrefetch:
             {key.lower(): value for key, value in headers.items()}
             for headers in records["headers"]
         ]
-        assert all(headers.get("x-openviking-actor-peer") == "hermes" for headers in normalized_headers)
+        assert all(headers.get("x-openviking-actor-peer") == "max" for headers in normalized_headers)
         assert all(headers.get("x-openviking-account") == "acct" for headers in normalized_headers)
         assert all(headers.get("x-openviking-user") == "user" for headers in normalized_headers)
 
@@ -1374,7 +1374,7 @@ class TestOpenVikingMemoryUriBuilder:
         assert uri.endswith(".md")
 
     def test_uri_uses_configured_peer_not_default(self):
-        """_agent value is the OpenViking actor peer ID, not hardcoded to 'hermes'."""
+        """_agent value is the OpenViking actor peer ID, not hardcoded to 'max'."""
         p = self._make_provider(user="alice", agent="research-bot")
         uri = p._build_memory_uri("entities")
         assert "/peers/research-bot/" in uri

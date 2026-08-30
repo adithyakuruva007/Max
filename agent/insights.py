@@ -1,11 +1,11 @@
 """
-Session Insights Engine for Hermes Agent.
+Session Insights Engine for Max Agent.
 
 Analyzes historical session data from the SQLite state database to produce
 comprehensive usage insights — token consumption, cost estimates, tool usage
 patterns, activity trends, model/platform breakdowns, and session metrics.
 
-Inspired by Claude Code's /insights command, adapted for Hermes Agent's
+Inspired by Claude Code's /insights command, adapted for Max Agent's
 multi-platform architecture with additional cost estimation and platform
 breakdown capabilities.
 
@@ -22,12 +22,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from agent.usage_pricing import (
-    CanonicalUsage,
-    estimate_usage_cost,
-    format_duration_compact,
-    has_known_pricing,
-)
+from agent.usage_pricing import CanonicalUsage, estimate_usage_cost, format_duration_compact, has_known_pricing
 
 
 
@@ -94,7 +89,7 @@ class InsightsEngine:
         Initialize with a SessionDB instance.
 
         Args:
-            db: A SessionDB instance (from hermes_state.py)
+            db: A SessionDB instance (from max_state.py)
         """
         self.db = db
         self._conn = db._conn
@@ -729,7 +724,7 @@ class InsightsEngine:
         # Header
         lines.append("")
         lines.append("  ╔══════════════════════════════════════════════════════════╗")
-        lines.append("  ║                    📊 Hermes Insights                    ║")
+        lines.append("  ║                    📊 Max Insights                    ║")
         period_label = f"Last {days} days"
         if src_filter:
             period_label += f" ({src_filter})"
@@ -864,7 +859,7 @@ class InsightsEngine:
         o = report["overview"]
         days = report["days"]
 
-        lines.append(f"📊 **Hermes Insights** — Last {days} days\n")
+        lines.append(f"📊 **Max Insights** — Last {days} days\n")
 
         # Overview
         lines.append(f"**Sessions:** {o['total_sessions']} | **Messages:** {o['total_messages']:,} | **Tool calls:** {o['total_tool_calls']:,}")

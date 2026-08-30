@@ -308,18 +308,18 @@ def test_nested_project_folders_pick_the_deepest_match():
 
 
 def test_junk_root_never_becomes_an_auto_project():
-    # A session whose git root is HERMES_HOME (config/state) must not spawn a
+    # A session whose git root is MAX_HOME (config/state) must not spawn a
     # phantom project; it falls through to flat Recents (unscoped). A real repo
     # alongside it still groups normally.
     resolve = _resolver(
         {
-            "/home/me/.hermes": ("/home/me/.hermes", "/home/me/.hermes"),
+            "/home/me/.max": ("/home/me/.max", "/home/me/.max"),
             "/www/app": ("/www/app", "/www/app"),
         }
     )
-    junk = _session("/home/me/.hermes", branch="main")
+    junk = _session("/home/me/.max", branch="main")
     real = _session("/www/app", branch="main")
-    is_junk = lambda root: root == "/home/me/.hermes"
+    is_junk = lambda root: root == "/home/me/.max"
 
     tree = pt.build_tree([], [junk, real], [], resolve, hydrate=True, is_junk_root=is_junk)
 
@@ -330,9 +330,9 @@ def test_junk_root_never_becomes_an_auto_project():
 
 
 def test_junk_root_is_dropped_from_the_discovered_tier():
-    discovered = [{"root": "/home/me/.hermes", "label": ".hermes", "sessions": 0, "last_active": 9}]
+    discovered = [{"root": "/home/me/.max", "label": ".max", "sessions": 0, "last_active": 9}]
 
-    tree = pt.build_tree([], [], discovered, resolve=None, is_junk_root=lambda r: r == "/home/me/.hermes")
+    tree = pt.build_tree([], [], discovered, resolve=None, is_junk_root=lambda r: r == "/home/me/.max")
 
     assert tree["projects"] == []
 
