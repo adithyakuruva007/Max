@@ -7,7 +7,7 @@
   <a href="https://max-agent.stardustresearch.com/">Max Agent</a> | <a href="https://max-agent.stardustresearch.com/">Max Desktop</a>
 </p>
 <p align="center">
-  <a href="https://max-agent.stardustresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.stardustresearch.com-FFD700?style=for-the-badge" alt="Documentación"></a>
+  <a href="https://max-agent.stardustresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-max--agent.stardustresearch.com-FFD700?style=for-the-badge" alt="Documentación"></a>
   <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://github.com/NousResearch/max-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/Licencia-MIT-green?style=for-the-badge" alt="Licencia: MIT"></a>
   <a href="https://stardustresearch.com"><img src="https://img.shields.io/badge/Creado%20por-Nous%20Research-blueviolet?style=for-the-badge" alt="Creado por Stardust Research"></a>
@@ -50,19 +50,19 @@ Ejecuta esto en PowerShell:
 iex (irm https://max-agent.stardustresearch.com/install.ps1)
 ```
 
-El instalador se encarga de todo: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **y un Git Bash portátil** (MinGit, descomprimido en `%LOCALAPPDATA%\hermes\git` — no requiere administrador, completamente aislado de cualquier instalación de Git del sistema). Max usa este Git Bash incluido para ejecutar comandos de shell.
+El instalador se encarga de todo: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **y un Git Bash portátil** (MinGit, descomprimido en `%LOCALAPPDATA%\max\git` — no requiere administrador, completamente aislado de cualquier instalación de Git del sistema). Max usa este Git Bash incluido para ejecutar comandos de shell.
 
 Si ya tienes Git instalado, el instalador lo detecta y lo usa en su lugar. De lo contrario, una descarga de ~45MB de MinGit es todo lo que necesitas — no tocará ni interferirá con ningún Git del sistema.
 
 > **Android / Termux:** La ruta manual probada está documentada en la [guía de Termux](https://max-agent.stardustresearch.com/docs/getting-started/termux). En Termux, Max instala el extra `.[termux]` curado porque el extra completo `.[all]` actualmente incluye dependencias de voz incompatibles con Android.
 >
-> **Windows:** Windows nativo es totalmente compatible — el comando de PowerShell de arriba instala todo. Si prefieres usar WSL2, el comando de Linux también funciona allí. La instalación nativa de Windows se encuentra en `%LOCALAPPDATA%\hermes`; WSL2 instala en `~/.max` como en Linux.
+> **Windows:** Windows nativo es totalmente compatible — el comando de PowerShell de arriba instala todo. Si prefieres usar WSL2, el comando de Linux también funciona allí. La instalación nativa de Windows se encuentra en `%LOCALAPPDATA%\max`; WSL2 instala en `~/.max` como en Linux.
 
 Después de la instalación:
 
 ```bash
 source ~/.bashrc    # recargar shell (o: source ~/.zshrc)
-hermes              # ¡empieza a chatear!
+max              # ¡empieza a chatear!
 ```
 
 ---
@@ -70,13 +70,13 @@ hermes              # ¡empieza a chatear!
 ## Primeros pasos
 
 ```bash
-hermes              # CLI interactiva — inicia una conversación
+max              # CLI interactiva — inicia una conversación
 max model        # Elige tu proveedor y modelo LLM
 max tools        # Configura qué herramientas están habilitadas
 max config set   # Establece valores de configuración individuales
 max gateway      # Inicia el gateway de mensajería (Telegram, Discord, etc.)
 max setup        # Ejecuta el asistente de configuración completo
-hermes claw migrate # Migra desde OpenClaw (si vienes de OpenClaw)
+max claw migrate # Migra desde OpenClaw (si vienes de OpenClaw)
 max update       # Actualiza a la última versión
 max doctor       # Diagnostica cualquier problema
 ```
@@ -157,10 +157,10 @@ Si vienes de OpenClaw, Max puede importar automáticamente tu configuración, me
 **En cualquier momento después de instalar:**
 
 ```bash
-hermes claw migrate              # Migración interactiva (preset completo)
-hermes claw migrate --dry-run    # Vista previa de qué se migraría
-hermes claw migrate --preset user-data   # Migrar sin secretos
-hermes claw migrate --overwrite  # Sobreescribir conflictos existentes
+max claw migrate              # Migración interactiva (preset completo)
+max claw migrate --dry-run    # Vista previa de qué se migraría
+max claw migrate --preset user-data   # Migrar sin secretos
+max claw migrate --overwrite  # Sobreescribir conflictos existentes
 ```
 
 Qué se importa:
@@ -187,8 +187,8 @@ Inicio rápido para colaboradores — clona y comienza con `setup-max.sh`:
 ```bash
 git clone https://github.com/NousResearch/max-agent.git
 cd max-agent
-./setup-max.sh     # instala uv, crea venv, instala .[all], enlaza ~/.local/bin/hermes
-./hermes              # detecta automáticamente el venv, no necesitas hacer `source` primero
+./setup-max.sh     # instala uv, crea venv, instala .[all], enlaza ~/.local/bin/max
+./max              # detecta automáticamente el venv, no necesitas hacer `source` primero
 ```
 
 Ruta manual (equivalente a lo anterior):
@@ -209,7 +209,7 @@ scripts/run_tests.sh
 - 📚 [Skills Hub](https://agentskills.io)
 - 🐛 [Issues](https://github.com/NousResearch/max-agent/issues)
 - 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Servidor MCP de control de escritorio Linux para Max y otros hosts MCP, con árboles de accesibilidad AT-SPI, entrada Wayland/X11, capturas de pantalla y targeting de ventanas del compositor.
-- 🔌 [MaxClaw](https://github.com/AaronWong1999/hermesclaw) — Puente WeChat comunitario: Ejecuta Max Agent y OpenClaw en la misma cuenta de WeChat.
+- 🔌 [MaxClaw](https://github.com/AaronWong1999/maxclaw) — Puente WeChat comunitario: Ejecuta Max Agent y OpenClaw en la misma cuenta de WeChat.
 
 ---
 

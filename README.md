@@ -7,10 +7,10 @@
   <a href="https://max-agent.stardustresearch.com/">Max Agent</a> | <a href="https://max-agent.stardustresearch.com/">Max Desktop</a>
 </p>
 <p align="center">
-  <a href="https://max-agent.stardustresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.stardustresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
-  <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://github.com/NousResearch/max-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <a href="https://stardustresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Stardust Research"></a>
+  <a href="https://max-agent.stardustresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-max--agent.stardustresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
+  <a href="https://discord.gg/StardustResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://github.com/adithyakuruva007/Max/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://stardustresearch.com"><img src="https://img.shields.io/badge/Built%20by-Stardust%20Research-blueviolet?style=for-the-badge" alt="Built by Stardust Research"></a>
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
   <a href="README.ur-pk.md"><img src="https://img.shields.io/badge/Lang-اردو-green?style=for-the-badge" alt="اردو"></a>
   <a href="README.es.md"><img src="https://img.shields.io/badge/Lang-Español-orange?style=for-the-badge" alt="Español"></a>
@@ -42,7 +42,9 @@ curl -fsSL https://max-agent.stardustresearch.com/install.sh | bash
 
 ### Windows (native, PowerShell)
 
-> **Heads up:** Native Windows runs Max without WSL — CLI, gateway, TUI, and tools all work natively. If you'd rather use WSL2, the Linux/macOS one-liner above works there too. Found a bug? Please [file issues](https://github.com/NousResearch/max-agent/issues).
+### Windows (native, PowerShell)
+
+> **Heads up:** Native Windows runs Max without WSL — CLI, gateway, TUI, and tools all work natively. If you'd rather use WSL2, the Linux/macOS one-liner above works there too. Found a bug? Please [file issues](https://github.com/adithyakuruva007/Max/issues).
 
 Run this in PowerShell:
 
@@ -50,26 +52,26 @@ Run this in PowerShell:
 iex (irm https://max-agent.stardustresearch.com/install.ps1)
 ```
 
-The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install). Max uses this bundled Git Bash to run shell commands.
+The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\max\git` — no admin required, completely isolated from any system Git install). Max uses this bundled Git Bash to run shell commands.
 
 If you already have Git installed, the installer detects it and uses that instead. Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
 
 > **Android / Termux:** The tested manual path is documented in the [Termux guide](https://max-agent.stardustresearch.com/docs/getting-started/termux). On Termux, Max installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
 >
-> **Windows:** Native Windows is fully supported — the PowerShell one-liner above installs everything. If you'd rather use WSL2, the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.max` as on Linux.
+> **Windows:** Native Windows is fully supported — the PowerShell one-liner above installs everything. If you'd rather use WSL2, the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\max`; WSL2 installs under `~/.max` as on Linux.
 
 After installation:
 
 ```bash
 source ~/.bashrc    # reload shell (or: source ~/.zshrc)
-hermes              # start chatting!
+max                 # start chatting!
 ```
 
 ### Troubleshooting
 
 #### Windows Defender or antivirus flags `uv.exe` as malware
 
-If your antivirus (Bitdefender, Windows Defender, etc.) quarantines `uv.exe` from the Max `bin` folder (`%LOCALAPPDATA%\hermes\bin\uv.exe`), this is a **false positive**. The file is Astral's `uv` — the Rust Python package manager Max bundles to manage its Python environment. ML-based antivirus engines commonly flag unsigned Rust binaries that download and install packages.
+If your antivirus (Bitdefender, Windows Defender, etc.) quarantines `uv.exe` from the Max `bin` folder (`%LOCALAPPDATA%\max\bin\uv.exe`), this is a **false positive**. The file is Astral's `uv` — the Rust Python package manager Max bundles to manage its Python environment. ML-based antivirus engines commonly flag unsigned Rust binaries that download and install packages.
 
 **To verify your copy is authentic:**
 
@@ -81,7 +83,7 @@ winget install --id GitHub.cli
 gh auth login
 
 # Run verification
-$uv = "$env:LOCALAPPDATA\hermes\bin\uv.exe"
+$uv = "$env:LOCALAPPDATA\max\bin\uv.exe"
 $ver = (& $uv --version).Split(' ')[1]
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $zip = "$env:TEMP\uv.zip"
@@ -94,7 +96,7 @@ Expand-Archive $zip "$env:TEMP\uv_x" -Force
 If attestation says "Verification succeeded" and the last line prints `True`, you're good.
 
 **To whitelist Max:**
-- **Windows Defender:** Run PowerShell as Admin → `Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA\hermes\bin"`
+- **Windows Defender:** Run PowerShell as Admin → `Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA\max\bin"`
 - **Bitdefender:** Add an exception in the Bitdefender console (Protection > Antivirus > Settings > Manage Exceptions)
 - Whitelist the **folder**, not the file hash — Max updates `uv` and the hash changes every version
 
@@ -105,14 +107,14 @@ For more context, see the upstream Astral reports: [astral-sh/uv#13553](https://
 ## Getting Started
 
 ```bash
-hermes              # Interactive CLI — start a conversation
+max                 # Interactive CLI — start a conversation
 max model        # Choose your LLM provider and model
 max tools        # Configure which tools are enabled
 max config set   # Set individual config values
 max config get   # Print individual config values
 max gateway      # Start the messaging gateway (Telegram, Discord, etc.)
 max setup        # Run the full setup wizard (configures everything at once)
-hermes claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
+max claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
 max update       # Update to the latest version
 max doctor       # Diagnose any issues
 ```
@@ -193,10 +195,10 @@ If you're coming from OpenClaw, Max can automatically import your settings, memo
 **Anytime after install:**
 
 ```bash
-hermes claw migrate              # Interactive migration (full preset)
-hermes claw migrate --dry-run    # Preview what would be migrated
-hermes claw migrate --preset user-data   # Migrate without secrets
-hermes claw migrate --overwrite  # Overwrite existing conflicts
+max claw migrate              # Interactive migration (full preset)
+max claw migrate --dry-run    # Preview what would be migrated
+max claw migrate --preset user-data   # Migrate without secrets
+max claw migrate --overwrite  # Overwrite existing conflicts
 ```
 
 What gets imported:
@@ -239,8 +241,8 @@ against its own checkout, destroying the running runtime mid-session.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-uv venv ~/.max/venvs/hermes-dev --python 3.11
-source ~/.max/venvs/hermes-dev/bin/activate
+uv venv ~/.max/venvs/max-dev --python 3.11
+source ~/.max/venvs/max-dev/bin/activate
 uv pip install -e ".[all,dev]"
 scripts/run_tests.sh
 ```
@@ -249,9 +251,9 @@ scripts/run_tests.sh
 
 ## Community
 
-- 💬 [Discord](https://discord.gg/NousResearch)
+- 💬 [Discord](https://discord.gg/StardustResearch)
 - 📚 [Skills Hub](https://agentskills.io)
-- 🐛 [Issues](https://github.com/NousResearch/max-agent/issues)
+- 🐛 [Issues](https://github.com/adithyakuruva007/Max/issues)
 - 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for Max and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
 - 🔌 [MaxClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run Max Agent and OpenClaw on the same WeChat account.
 

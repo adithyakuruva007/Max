@@ -5,7 +5,7 @@
 # Max Agent ☤
 
 <p align="center">
-  <a href="https://max-agent.stardustresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.stardustresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
+  <a href="https://max-agent.stardustresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-max--agent.stardustresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
   <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://github.com/NousResearch/max-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://stardustresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Stardust Research"></a>
@@ -49,7 +49,7 @@ curl -fsSL https://max-agent.stardustresearch.com/install.sh | bash
 
 ```bash
 source ~/.bashrc    # 重新加载 shell（或: source ~/.zshrc）
-hermes              # 开始对话！
+max              # 开始对话！
 ```
 
 ---
@@ -57,13 +57,13 @@ hermes              # 开始对话！
 ## 快速入门
 
 ```bash
-hermes              # 交互式 CLI — 开始对话
+max              # 交互式 CLI — 开始对话
 max model        # 选择 LLM 提供商和模型
 max tools        # 配置启用的工具
 max config set   # 设置单个配置项
 max gateway      # 启动消息网关（Telegram、Discord 等）
 max setup        # 运行完整设置向导（一次性配置所有内容）
-hermes claw migrate # 从 OpenClaw 迁移（如果来自 OpenClaw）
+max claw migrate # 从 OpenClaw 迁移（如果来自 OpenClaw）
 max update       # 更新到最新版本
 max doctor       # 诊断问题
 ```
@@ -144,10 +144,10 @@ Max 有两种入口：用 `max` 启动终端 UI，或运行网关从 Telegram、
 **安装后任意时间：**
 
 ```bash
-hermes claw migrate              # 交互式迁移（完整预设）
-hermes claw migrate --dry-run    # 预览将要迁移的内容
-hermes claw migrate --preset user-data   # 仅迁移用户数据，不含密钥
-hermes claw migrate --overwrite  # 覆盖已有冲突
+max claw migrate              # 交互式迁移（完整预设）
+max claw migrate --dry-run    # 预览将要迁移的内容
+max claw migrate --preset user-data   # 仅迁移用户数据，不含密钥
+max claw migrate --overwrite  # 覆盖已有冲突
 ```
 
 导入内容：
@@ -197,7 +197,7 @@ python -m pytest tests/ -q
 - 📚 [技能中心](https://agentskills.io)
 - 🐛 [问题反馈](https://github.com/NousResearch/max-agent/issues)
 - 💡 [讨论区](https://github.com/NousResearch/max-agent/discussions)
-- 🔌 [MaxClaw](https://github.com/AaronWong1999/hermesclaw) — 社区微信桥接：在同一微信账号上运行 Max Agent 和 OpenClaw。
+- 🔌 [MaxClaw](https://github.com/AaronWong1999/maxclaw) — 社区微信桥接：在同一微信账号上运行 Max Agent 和 OpenClaw。
 
 ---
 
